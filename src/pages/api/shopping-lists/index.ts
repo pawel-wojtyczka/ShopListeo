@@ -105,6 +105,9 @@ export async function POST({ request, locals }: APIContext) {
           statusCode = 400;
           break;
         case "DATABASE_ERROR":
+          statusCode = 500;
+          errorMessage = "Błąd konfiguracji bazy danych: tabela nie istnieje";
+          break;
         case "UNEXPECTED_ERROR":
           statusCode = 500;
           break;

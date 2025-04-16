@@ -6,6 +6,7 @@
 - `id` UUID PRIMARY KEY
 - `email` VARCHAR(128) NOT NULL UNIQUE
 - `password_hash` TEXT NOT NULL
+- `admin` BOOLEAN NOT NULL DEFAULT FALSE
 - `registration_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 - `last_login_date` TIMESTAMP
 - `updated_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -53,4 +54,5 @@
 - Hasła są przechowywane w kolumnie `password_hash`; należy rozważyć implementację bezpiecznego mechanizmu hashowania.
 - Klucze główne są typu UUID, co zapewnia unikalność rekordów.
 - Relacje między tabelami zostały zdefiniowane z opcją `ON DELETE CASCADE` dla ułatwienia zarządzania zależnościami.
-- Schemat został opracowany zgodnie z zasadami 3NF celem zapewnienia poprawnej normalizacji danych, chyba że denormalizacja będzie uzasadniona ze względu na wydajność. 
+- Schemat został opracowany zgodnie z zasadami 3NF celem zapewnienia poprawnej normalizacji danych, chyba że denormalizacja będzie uzasadniona ze względu na wydajność.
+- Kolumna `admin` w tabeli `users` pozwala identyfikować użytkowników z uprawnieniami administracyjnymi. Domyślnie wartość dla nowych użytkowników to `false`. 

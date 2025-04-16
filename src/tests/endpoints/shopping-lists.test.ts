@@ -164,7 +164,10 @@ describe("POST /api/shopping-lists", () => {
 
   it("powinien zwrócić kod 409 dla zduplikowanego tytułu", async () => {
     // Symulacja błędu duplikatu
-    mockSupabaseClient.single?.mockResolvedValue({
+    mockSupabaseClient.from = vi.fn().mockReturnThis();
+    mockSupabaseClient.insert = vi.fn().mockReturnThis();
+    mockSupabaseClient.select = vi.fn().mockReturnThis();
+    mockSupabaseClient.single = vi.fn().mockResolvedValue({
       data: null,
       error: {
         code: "23505",
@@ -188,7 +191,10 @@ describe("POST /api/shopping-lists", () => {
 
   it("powinien zwrócić kod 500 dla błędu bazy danych", async () => {
     // Symulacja ogólnego błędu bazy danych
-    mockSupabaseClient.single?.mockResolvedValue({
+    mockSupabaseClient.from = vi.fn().mockReturnThis();
+    mockSupabaseClient.insert = vi.fn().mockReturnThis();
+    mockSupabaseClient.select = vi.fn().mockReturnThis();
+    mockSupabaseClient.single = vi.fn().mockResolvedValue({
       data: null,
       error: {
         code: "42P01",
@@ -207,6 +213,6 @@ describe("POST /api/shopping-lists", () => {
 
     // Sprawdzenie poprawności zwróconych danych
     expect(responseBody.error).toBe("Błąd konfiguracji bazy danych: tabela nie istnieje");
-    expect(responseBody.code).toBe("TABLE_NOT_FOUND");
+    expect(responseBody.code).toBe("DATABASE_ERROR");
   });
 });

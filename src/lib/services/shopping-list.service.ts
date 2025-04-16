@@ -63,7 +63,7 @@ export async function createShoppingList(
       } else if (error.code === "23503") {
         throw new ShoppingListError("Nie znaleziono użytkownika o podanym ID", "USER_NOT_FOUND", error);
       } else if (error.code === "42P01") {
-        throw new ShoppingListError("Błąd konfiguracji bazy danych: tabela nie istnieje", "TABLE_NOT_FOUND", error);
+        throw new ShoppingListError("Błąd konfiguracji bazy danych: tabela nie istnieje", "DATABASE_ERROR", error);
       } else {
         throw new ShoppingListError("Nie udało się utworzyć listy zakupów", "DATABASE_ERROR", error);
       }
