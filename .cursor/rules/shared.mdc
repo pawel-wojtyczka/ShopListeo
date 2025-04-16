@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
-# AI Rules for {app-name}
+# AI Rules for ShopListeo
 
 {project-description}
 
@@ -47,3 +47,5 @@ When modifying the directory structure, always update this section.
 - Use guard clauses to handle preconditions and invalid states early.
 - Implement proper error logging and user-friendly error messages.
 - Consider using custom error types or error factories for consistent error handling.
+- I am new at programming. Make comments with details to let me better understand the code.
+- Write comments in polish language.
