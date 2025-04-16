@@ -27,3 +27,18 @@ export const getAllShoppingListsQuerySchema = z.object({
   sort: z.enum(["title", "createdAt", "updatedAt"]).optional().default("createdAt"),
   order: z.enum(["asc", "desc"]).optional().default("desc"),
 });
+
+/**
+ * Schemat walidacji dla ID listy zakupów (UUID)
+ */
+export const shoppingListIdSchema = z.string().uuid({ message: "Nieprawidłowy format identyfikatora listy zakupów" });
+
+/**
+ * Schemat walidacji dla aktualizacji listy zakupów
+ */
+export const updateShoppingListSchema = z.object({
+  title: z
+    .string()
+    .min(1, { message: "Tytuł listy zakupów nie może być pusty" })
+    .max(255, { message: "Tytuł listy zakupów nie może przekraczać 255 znaków" }),
+});
