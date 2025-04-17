@@ -12,7 +12,8 @@ const setNewPasswordFormSchema = z
       .min(8, "Hasło musi mieć co najmniej 8 znaków")
       .regex(/[a-z]/, "Hasło musi zawierać co najmniej jedną małą literę")
       .regex(/[A-Z]/, "Hasło musi zawierać co najmniej jedną dużą literę")
-      .regex(/[0-9]/, "Hasło musi zawierać co najmniej jedną cyfrę"),
+      .regex(/[0-9]/, "Hasło musi zawierać co najmniej jedną cyfrę")
+      .regex(/[^a-zA-Z0-9]/, "Hasło musi zawierać co najmniej jeden znak specjalny"),
     confirmPassword: z.string().min(1, "Potwierdzenie hasła jest wymagane"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -70,6 +71,18 @@ export function SetNewPasswordForm({
           {...register("password")}
         />
         {errors.password && <p className="text-sm font-medium text-destructive">{errors.password.message}</p>}
+
+        {/* Wymagania dla hasła */}
+        <div className="text-xs text-muted-foreground">
+          <p>Hasło musi zawierać:</p>
+          <ul className="list-disc pl-4 mt-1 space-y-1">
+            <li>Co najmniej 8 znaków</li>
+            <li>Co najmniej jedną małą literę (a-z)</li>
+            <li>Co najmniej jedną dużą literę (A-Z)</li>
+            <li>Co najmniej jedną cyfrę (0-9)</li>
+            <li>Co najmniej jeden znak specjalny (!@#$%^&*...)</li>
+          </ul>
+        </div>
       </div>
 
       <div className="space-y-2">
