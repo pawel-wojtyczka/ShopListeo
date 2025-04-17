@@ -32,6 +32,7 @@ export interface RegisterUserResponse {
 export interface LoginUserRequest {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface LoginUserResponse {
