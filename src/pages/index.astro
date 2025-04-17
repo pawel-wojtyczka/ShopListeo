@@ -1,8 +1,13 @@
 ---
-import Welcome from "../components/Welcome.astro";
 import Layout from "../layouts/Layout.astro";
+import ShoppingListsView from "../components/ShoppingListsView";
+import { ToastProvider } from "../components/ToastProvider";
+
+export const prerender = false;
 ---
 
-<Layout>
-  <Welcome />
+<Layout title="Twoje Listy Zakupów">
+  <ToastProvider client:load>
+    <ShoppingListsView client:load />
+  </ToastProvider>
 </Layout>
