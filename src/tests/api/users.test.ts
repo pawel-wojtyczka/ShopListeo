@@ -11,61 +11,6 @@ import { GET as getAllUsers } from "../../pages/api/users/index";
 import { GET as getUserById, PUT as updateUser, DELETE as deleteUser } from "../../pages/api/users/[id]";
 import type { APIContext } from "astro";
 
-// Definiujemy typ dla klienta Supabase używanego w testach
-interface MockSupabaseClient {
-  from: (table: string) => MockSupabaseQuery;
-  auth: {
-    getUser: () => Promise<{
-      data: {
-        user: { id: string; email: string };
-      };
-    }>;
-  };
-}
-
-// Typy pomocnicze dla zapytań Supabase
-interface MockSupabaseQuery {
-  select: (columns: string) => MockSupabaseSelect;
-  delete: () => MockSupabaseDelete;
-  update: (data: Record<string, unknown>) => MockSupabaseUpdate;
-}
-
-interface MockSupabaseSelect {
-  eq: (column: string, value: string) => MockSupabaseEq;
-  order: (column: string) => MockSupabaseOrder;
-  neq: (column: string, value: string) => MockSupabaseEq;
-  ilike: (column: string, pattern: string) => MockSupabaseOrder;
-}
-
-interface MockSupabaseOrder {
-  range: (from: number, to: number) => Promise<MockSupabaseResult>;
-}
-
-interface MockSupabaseEq {
-  single: () => Promise<MockSupabaseResult>;
-}
-
-interface MockSupabaseDelete {
-  eq: (column: string, value: string) => Promise<{ error: null | Error }>;
-}
-
-interface MockSupabaseUpdate {
-  eq: (
-    column: string,
-    value: string
-  ) => {
-    select: (columns: string) => {
-      single: () => Promise<MockSupabaseResult>;
-    };
-  };
-}
-
-interface MockSupabaseResult {
-  data: unknown;
-  error: null | Error;
-  count?: number;
-}
-
 // Definiujemy typ dla kontekstu API używany w testach
 interface TestAPIContext {
   locals: {
@@ -73,7 +18,41 @@ interface TestAPIContext {
       id: string;
       email: string;
     } | null;
-    supabase: MockSupabaseClient;
+    supabase: {
+      from: (table: string) => {
+        select: (columns: string) => {
+          eq: (
+            column: string,
+            value: string
+          ) => {
+            single: () => Promise<{ data: unknown; error: unknown }>;
+          };
+          order: (column: string) => {
+            range: (from: number, to: number) => Promise<{ data: unknown[]; count: number; error: unknown }>;
+          };
+        };
+        delete: () => {
+          eq: (column: string, value: string) => Promise<{ error: unknown }>;
+        };
+        update: (data: Record<string, unknown>) => {
+          eq: (
+            column: string,
+            value: string
+          ) => {
+            select: (columns: string) => {
+              single: () => Promise<{ data: unknown; error: unknown }>;
+            };
+          };
+        };
+      };
+      auth: {
+        getUser: () => Promise<{
+          data: {
+            user: { id: string; email: string };
+          };
+        }>;
+      };
+    };
   };
   params: Record<string, string>;
   request: Request;
@@ -216,23 +195,44 @@ describe("GET /api/users/{id}", () => {
     const context = createContext(true);
 
     // Dodajemy mockowanie metody single Supabase
-    context.locals.supabase.from = () =>
-      ({
-        select: () => ({
-          eq: () => ({
+    context.locals.supabase.from = () => ({
+      select: () => ({
+        eq: () => ({
+          single: () =>
+            Promise.resolve({
+              data: {
+                id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
+                email: "test@example.com",
+                registration_date: "2023-01-01",
+                last_login_date: null,
+              },
+              error: null,
+            }),
+        }),
+        order: () => ({
+          range: () =>
+            Promise.resolve({
+              data: [],
+              count: 0,
+              error: null,
+            }),
+        }),
+      }),
+      delete: () => ({
+        eq: () => Promise.resolve({ error: null }),
+      }),
+      update: () => ({
+        eq: () => ({
+          select: () => ({
             single: () =>
               Promise.resolve({
-                data: {
-                  id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
-                  email: "test@example.com",
-                  registration_date: "2023-01-01",
-                  last_login_date: null,
-                },
+                data: null,
                 error: null,
               }),
           }),
         }),
-      }) as unknown as MockSupabaseQuery;
+      }),
+    });
 
     // Ustawiamy parametry i request
     context.params = { id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347" };
@@ -252,18 +252,39 @@ describe("GET /api/users/{id}", () => {
     const context = createContext(true);
 
     // Mockujemy odpowiedź Supabase dla nieistniejącego użytkownika
-    context.locals.supabase.from = () =>
-      ({
-        select: () => ({
-          eq: () => ({
+    context.locals.supabase.from = () => ({
+      select: () => ({
+        eq: () => ({
+          single: () =>
+            Promise.resolve({
+              data: null,
+              error: { message: "User not found" },
+            }),
+        }),
+        order: () => ({
+          range: () =>
+            Promise.resolve({
+              data: [],
+              count: 0,
+              error: null,
+            }),
+        }),
+      }),
+      delete: () => ({
+        eq: () => Promise.resolve({ error: null }),
+      }),
+      update: () => ({
+        eq: () => ({
+          select: () => ({
             single: () =>
               Promise.resolve({
                 data: null,
-                error: { message: "User not found" } as unknown as Error,
+                error: null,
               }),
           }),
         }),
-      }) as unknown as MockSupabaseQuery;
+      }),
+    });
 
     // Ustawiamy parametry i request
     context.params = { id: "nonexistent-id" };
@@ -306,23 +327,44 @@ describe("PUT /api/users/{id}", () => {
     const context = createContext(true);
 
     // Dodajemy mockowanie metody single Supabase
-    context.locals.supabase.from = () =>
-      ({
-        select: () => ({
-          eq: () => ({
+    context.locals.supabase.from = () => ({
+      select: () => ({
+        eq: () => ({
+          single: () =>
+            Promise.resolve({
+              data: {
+                id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
+                email: "test@example.com",
+                registration_date: "2023-01-01",
+                last_login_date: null,
+              },
+              error: null,
+            }),
+        }),
+        order: () => ({
+          range: () =>
+            Promise.resolve({
+              data: [],
+              count: 0,
+              error: null,
+            }),
+        }),
+      }),
+      delete: () => ({
+        eq: () => Promise.resolve({ error: null }),
+      }),
+      update: () => ({
+        eq: () => ({
+          select: () => ({
             single: () =>
               Promise.resolve({
-                data: {
-                  id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
-                  email: "test@example.com",
-                  registration_date: "2023-01-01",
-                  last_login_date: null,
-                },
+                data: null,
                 error: null,
               }),
           }),
         }),
-      }) as unknown as MockSupabaseQuery;
+      }),
+    });
 
     // Ustawiamy parametry i request
     context.params = { id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347" };
@@ -366,26 +408,44 @@ describe("DELETE /api/users/{id}", () => {
     const context = createContext(true);
 
     // Dodajemy mockowanie metod Supabase
-    context.locals.supabase.from = () =>
-      ({
-        select: () => ({
-          eq: () => ({
+    context.locals.supabase.from = () => ({
+      select: () => ({
+        eq: () => ({
+          single: () =>
+            Promise.resolve({
+              data: {
+                id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
+                email: "test@example.com",
+                registration_date: "2023-01-01",
+                last_login_date: null,
+              },
+              error: null,
+            }),
+        }),
+        order: () => ({
+          range: () =>
+            Promise.resolve({
+              data: [],
+              count: 0,
+              error: null,
+            }),
+        }),
+      }),
+      delete: () => ({
+        eq: () => Promise.resolve({ error: null }),
+      }),
+      update: () => ({
+        eq: () => ({
+          select: () => ({
             single: () =>
               Promise.resolve({
-                data: {
-                  id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
-                  email: "test@example.com",
-                  registration_date: "2023-01-01",
-                  last_login_date: null,
-                },
+                data: null,
                 error: null,
               }),
           }),
         }),
-        delete: () => ({
-          eq: () => Promise.resolve({ error: null }),
-        }),
-      }) as unknown as MockSupabaseQuery;
+      }),
+    });
 
     // Ustawiamy parametry i request
     context.params = { id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347" };
