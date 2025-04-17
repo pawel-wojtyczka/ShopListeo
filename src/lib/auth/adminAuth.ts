@@ -1,7 +1,11 @@
 /**
  * Funkcje pomocnicze do sprawdzania uprawnień administratora
  */
-import { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../../db/database.types";
+
+// Definiujemy typ SupabaseClient lokalnie
+type SupabaseClient = ReturnType<typeof createClient<Database>>;
 
 /**
  * Sprawdza, czy użytkownik ma uprawnienia administratora
@@ -18,12 +22,22 @@ export async function isUserAdmin(supabase: SupabaseClient, userId: string, isDe
   }
 
   // W trybie produkcyjnym sprawdzamy uprawnienia w bazie danych
-  const { data, error } = await supabase.from("users").select("admin").eq("id", userId).single();
+  try {
+    // Ponieważ kolumna 'admin' nie istnieje w tabeli 'users',
+    // pobieramy użytkownika po ID i sprawdzamy czy jest administratorem
+    // Na tę chwilę w trybie produkcyjnym tylko określone ID użytkowników są administratorami
+    const { data, error } = await supabase.from("users").select("id").eq("id", userId).single();
 
-  if (error || !data) {
-    console.error("Błąd podczas sprawdzania uprawnień administratora:", error);
+    if (error || !data) {
+      console.error("Błąd podczas sprawdzania uprawnień administratora:", error);
+      return false;
+    }
+
+    // Lista ID użytkowników z uprawnieniami administratora
+    const adminUserIds = ["4e0a9b6a-b416-48e6-8d35-5700bd1d674a"]; // ID deweloperskie jako przykład
+    return adminUserIds.includes(data.id);
+  } catch (error) {
+    console.error("Wyjątek podczas sprawdzania uprawnień administratora:", error);
     return false;
   }
-
-  return data.admin === true;
 }

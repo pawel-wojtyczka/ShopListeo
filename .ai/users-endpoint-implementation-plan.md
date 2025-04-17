@@ -92,7 +92,8 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
     "id": "uuid",
     "email": "string",
     "registrationDate": "string",
-    "lastLoginDate": "string"
+    "lastLoginDate": "string",
+    "isAdmin": "boolean"
   }
   ```
 - **Kod statusu w przypadku sukcesu:** 200 OK
@@ -130,11 +131,12 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 2. Punkt końcowy waliduje format identyfikatora (UUID).
 3. Punkt końcowy sprawdza, czy żądający użytkownik ma uprawnienia do pobierania danych wskazanego użytkownika:
    - Użytkownik może zawsze pobierać własne dane
-   - Jeśli żądający posiada wartość `true` w kolumnie `admin`, może pobierać dane dowolnego użytkownika
+   - Jeśli żądający posiada uprawnienia administratora, może pobierać dane dowolnego użytkownika
 4. Wywoływana jest funkcja warstwy serwisowej, która:
    - Pobiera użytkownika o określonym ID z bazy danych
    - Sprawdza, czy użytkownik istnieje
-5. W przypadku znalezienia użytkownika, jego dane są zwracane w odpowiedzi.
+   - Określa, czy użytkownik ma uprawnienia administratora, sprawdzając czy jego ID znajduje się na liście administratorów
+5. W przypadku znalezienia użytkownika, jego dane wraz z informacją o uprawnieniach administratora są zwracane w odpowiedzi.
 6. W przypadku gdy użytkownik nie zostanie znaleziony lub żądający nie ma odpowiednich uprawnień, zwracany jest odpowiedni kod błędu.
 
 ### 5.3. Aktualizacja użytkownika
@@ -166,8 +168,9 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 ## 6. Względy bezpieczeństwa
 - **Uwierzytelnienie i autoryzacja:**
   - Dostęp do punktów końcowych mają wyłącznie uwierzytelnieni użytkownicy. Token uwierzytelniający jest weryfikowany za pomocą Supabase przy użyciu `context.locals`.
-  - Punkt końcowy pobierania wszystkich użytkowników jest dostępny tylko dla administratorów (użytkowników z wartością `true` w kolumnie `admin`).
-  - Użytkownicy mogą pobierać, aktualizować i usuwać tylko własne dane, chyba że posiadają uprawnienia administratora (wartość `true` w kolumnie `admin`).
+  - Punkt końcowy pobierania wszystkich użytkowników jest dostępny tylko dla administratorów (użytkowników, których ID znajduje się na zdefiniowanej liście administratorów).
+  - Użytkownicy mogą pobierać, aktualizować i usuwać tylko własne dane, chyba że posiadają uprawnienia administratora.
+  - Informacja o uprawnieniach administratora jest zwracana w odpowiedzi API dla endpointu pobierania użytkownika po ID.
 - **Walidacja danych:**
   - Parametry zapytania i treść żądania są walidowane przy użyciu schematu Zod, aby zapewnić, że są odpowiedniego typu i spełniają wymagane kryteria.
   - Adres email jest walidowany pod kątem poprawności formatu i unikalności w systemie.
@@ -212,11 +215,12 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 1. **Konfiguracja uwierzytelnienia:** Upewnić się, że middleware weryfikuje tokeny uwierzytelniające i ogranicza dostęp do punktu końcowego tylko dla uwierzytelnionych użytkowników.
 2. **Walidacja parametru identyfikatora:** Zaimplementować walidację formatu UUID dla parametru ścieżki.
 3. **Implementacja warstwy serwisowej:** Utworzyć funkcję serwisową `userService.getUserById()`, która obsłuży logikę biznesową pobierania użytkownika o określonym ID.
-4. **Implementacja autoryzacji:** Dodać logikę sprawdzającą, czy żądający użytkownik jest właścicielem konta lub ma wartość `true` w kolumnie `admin`.
-5. **Implementacja punktu końcowego API:** Opracować punkt końcowy GET `/api/users/{id}` w ramach trasy Astro, integrując walidację, autoryzację i warstwę serwisową.
-6. **Formowanie odpowiedzi:** Odpowiednio formatować odpowiedź z wykorzystaniem typu UserDTO.
-7. **Testowanie:** Napisać testy integracyjne, które obejmą różne scenariusze, w tym pobieranie istniejącego użytkownika, nieautoryzowany dostęp, nieistniejącego użytkownika itp.
-8. **Dokumentacja:** Zaktualizować dokumentację API oraz przewodniki dla deweloperów o nowy punkt końcowy.
+4. **Implementacja określania uprawnień administratora:** Dodać mechanizm określający, czy użytkownik ma uprawnienia administratora na podstawie jego ID.
+5. **Implementacja autoryzacji:** Dodać logikę sprawdzającą, czy żądający użytkownik jest właścicielem konta lub ma uprawnienia administratora.
+6. **Implementacja punktu końcowego API:** Opracować punkt końcowy GET `/api/users/{id}` w ramach trasy Astro, integrując walidację, autoryzację i warstwę serwisową.
+7. **Formowanie odpowiedzi:** Odpowiednio formatować odpowiedź z wykorzystaniem typu UserDTO, włączając informację o uprawnieniach administratora.
+8. **Testowanie:** Napisać testy integracyjne, które obejmą różne scenariusze, w tym pobieranie istniejącego użytkownika, nieautoryzowany dostęp, nieistniejącego użytkownika itp.
+9. **Dokumentacja:** Zaktualizować dokumentację API oraz przewodniki dla deweloperów o nowy punkt końcowy, jasno dokumentując pole isAdmin w odpowiedzi API.
 
 ### 9.3. Aktualizacja użytkownika
 1. **Konfiguracja uwierzytelnienia:** Upewnić się, że middleware weryfikuje tokeny uwierzytelniające i ogranicza dostęp do punktu końcowego tylko dla uwierzytelnionych użytkowników.

@@ -47,6 +47,7 @@ export interface UserDTO {
   email: string;
   registrationDate: string;
   lastLoginDate: string | null;
+  isAdmin: boolean;
 }
 
 export interface GetAllUsersResponse {

@@ -84,8 +84,9 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 {
   "id": "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
   "email": "user@example.com",
-  "registrationDate": "2023-01-15T12:00:00Z",
-  "lastLoginDate": "2023-02-20T15:30:00Z"
+  "registrationDate": "2023-05-20T14:30:00Z",
+  "lastLoginDate": "2023-05-25T09:15:30Z",
+  "isAdmin": false
 }
 ```
 
@@ -192,4 +193,12 @@ Pusta odpowiedź.
 - **401 Unauthorized** - Brak autoryzacji
 - **403 Forbidden** - Brak uprawnień do usunięcia tego użytkownika
 - **404 Not Found** - Nie znaleziono użytkownika
-- **500 Internal Server Error** - Błąd serwera 
+- **500 Internal Server Error** - Błąd serwera
+
+| Pole | Typ | Opis |
+| ---- | --- | ---- |
+| id | string (UUID) | Unikalny identyfikator użytkownika |
+| email | string | Adres email użytkownika |
+| registrationDate | string (ISO 8601) | Data rejestracji użytkownika |
+| lastLoginDate | string (ISO 8601) | Data ostatniego logowania lub null |
+| isAdmin | boolean | Informacja czy użytkownik ma uprawnienia administratora | 

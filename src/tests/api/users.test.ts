@@ -26,7 +26,7 @@ const mockLocals = {
     range: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
-    single: vi.fn().mockReturnThis(),
+    single: vi.fn(),
   },
 };
 
@@ -37,12 +37,16 @@ const mockUrl = new URL("http://example.com/api/users");
 beforeEach(() => {
   vi.resetAllMocks();
   process.env.NODE_ENV = "development";
+
+  // Resetowanie i domyślne ustawienie mocka single
+  mockLocals.supabase.single.mockReset();
 });
 
 describe("GET /api/users", () => {
   test("should return 401 when user is not authenticated", async () => {
     const response = await getAllUsers({
       locals: { supabase: mockLocals.supabase },
+      request: { url: mockUrl.toString() },
       url: mockUrl,
     } as any);
 
@@ -50,9 +54,6 @@ describe("GET /api/users", () => {
   });
 
   test("should return 200 with user list in development mode", async () => {
-    mockLocals.supabase.from.mockReturnThis();
-    mockLocals.supabase.select.mockReturnThis();
-    mockLocals.supabase.order.mockReturnThis();
     mockLocals.supabase.range.mockResolvedValue({
       data: [{ id: "1", email: "user@example.com", registration_date: "2023-01-01", last_login_date: null }],
       count: 1,
@@ -60,6 +61,7 @@ describe("GET /api/users", () => {
 
     const response = await getAllUsers({
       locals: mockLocals,
+      request: { url: mockUrl.toString() },
       url: mockUrl,
     } as any);
 
@@ -81,9 +83,6 @@ describe("GET /api/users/{id}", () => {
   });
 
   test("should return 200 when requesting own data", async () => {
-    mockLocals.supabase.from.mockReturnThis();
-    mockLocals.supabase.select.mockReturnThis();
-    mockLocals.supabase.eq.mockReturnThis();
     mockLocals.supabase.single.mockResolvedValue({
       data: {
         id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
@@ -91,6 +90,7 @@ describe("GET /api/users/{id}", () => {
         registration_date: "2023-01-01",
         last_login_date: null,
       },
+      error: null,
     });
 
     const response = await getUserById({
@@ -99,13 +99,15 @@ describe("GET /api/users/{id}", () => {
     } as any);
 
     expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data).toHaveProperty("isAdmin");
   });
 
   test("should return 404 when user does not exist", async () => {
-    mockLocals.supabase.from.mockReturnThis();
-    mockLocals.supabase.select.mockReturnThis();
-    mockLocals.supabase.eq.mockReturnThis();
-    mockLocals.supabase.single.mockResolvedValue({ data: null });
+    mockLocals.supabase.single.mockResolvedValue({
+      data: null,
+      error: null,
+    });
 
     const response = await getUserById({
       params: { id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347" },
@@ -131,16 +133,15 @@ describe("PUT /api/users/{id}", () => {
   });
 
   test("should return 400 when request body is invalid", async () => {
-    mockLocals.supabase.from.mockReturnThis();
-    mockLocals.supabase.select.mockReturnThis();
-    mockLocals.supabase.eq.mockReturnThis();
-    mockLocals.supabase.single.mockResolvedValue({
+    mockLocals.supabase.single.mockResolvedValueOnce({
+      // dla getUserById
       data: {
         id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
         email: "test@example.com",
         registration_date: "2023-01-01",
         last_login_date: null,
       },
+      error: null,
     });
 
     const response = await updateUser({
@@ -167,19 +168,19 @@ describe("DELETE /api/users/{id}", () => {
   });
 
   test("should return 204 when deleting own account", async () => {
-    mockLocals.supabase.from.mockReturnThis();
-    mockLocals.supabase.select.mockReturnThis();
-    mockLocals.supabase.eq.mockReturnThis();
-    mockLocals.supabase.single.mockResolvedValue({
+    // Mock dla getUserById
+    mockLocals.supabase.single.mockResolvedValueOnce({
       data: {
         id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347",
         email: "test@example.com",
         registration_date: "2023-01-01",
         last_login_date: null,
       },
+      error: null,
     });
-    mockLocals.supabase.delete.mockReturnThis();
-    mockLocals.supabase.eq.mockResolvedValue({ error: null });
+
+    // Mock dla deleteUser
+    mockLocals.supabase.eq.mockResolvedValueOnce({ error: null });
 
     const response = await deleteUser({
       params: { id: "077f7996-bca0-4e19-9a3f-b9c8bcb55347" },

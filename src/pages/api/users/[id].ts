@@ -16,7 +16,7 @@ import type { AstroLocals } from "../../../types/locals";
  */
 export const GET: APIRoute = async ({ params, locals }) => {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const endpointName = "GET /api/users/{id}";
+  const endpointName = "GET /api/users/:id";
 
   if (isDevelopment) {
     console.log(`🔧 Endpoint ${endpointName} działa w trybie deweloperskim`);
@@ -35,15 +35,23 @@ export const GET: APIRoute = async ({ params, locals }) => {
       });
     }
 
-    // Walidacja parametru ID
-    const { id } = params;
-    const idValidation = userIdSchema.safeParse(id);
+    // Walidacja parametru id
+    const userId = params.id;
 
-    if (!idValidation.success) {
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Brak ID użytkownika" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const validationResult = userIdSchema.safeParse(userId);
+
+    if (!validationResult.success) {
       return new Response(
         JSON.stringify({
           error: "Nieprawidłowy format ID użytkownika",
-          details: idValidation.error.format(),
+          details: validationResult.error.format(),
         }),
         {
           status: 400,
@@ -52,32 +60,22 @@ export const GET: APIRoute = async ({ params, locals }) => {
       );
     }
 
-    const targetUserId = idValidation.data;
-
-    // Sprawdzenie autoryzacji:
-    // 1. Użytkownik zawsze może pobierać własne dane
-    // 2. Administrator może pobierać dane dowolnego użytkownika
-    const isOwnData = currentUserId === targetUserId;
+    // Sprawdzenie czy użytkownik ma uprawnienia
     const isAdmin = await isUserAdmin(supabase, currentUserId, isDevelopment);
+    const isSelfAccess = currentUserId === userId;
 
-    if (isDevelopment) {
-      console.log(
-        `🔧 Endpoint ${endpointName} działa w trybie deweloperskim (uprawnienia administratora: ${isAdmin}, własne dane: ${isOwnData})`
-      );
-    }
-
-    if (!isOwnData && !isAdmin) {
-      return new Response(JSON.stringify({ error: "Brak uprawnień do pobrania danych tego użytkownika" }), {
+    if (!isAdmin && !isSelfAccess) {
+      return new Response(JSON.stringify({ error: "Brak uprawnień" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
       });
     }
 
     // Pobieranie danych użytkownika
-    const userData = await getUserById(supabase, targetUserId);
+    const userData = await getUserById(supabase, userId, isDevelopment);
 
     if (!userData) {
-      return new Response(JSON.stringify({ error: "Nie znaleziono użytkownika o podanym ID" }), {
+      return new Response(JSON.stringify({ error: "Użytkownik nie został znaleziony" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });

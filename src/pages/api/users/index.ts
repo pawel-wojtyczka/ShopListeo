@@ -84,7 +84,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       validParams.pageSize,
       validParams.sort,
       validParams.order,
-      validParams.emailFilter
+      validParams.emailFilter || undefined,
+      isDevelopment
     );
 
     // Zwrócenie odpowiedzi

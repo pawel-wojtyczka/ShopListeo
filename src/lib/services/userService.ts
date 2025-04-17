@@ -1,9 +1,13 @@
 /**
  * Serwis do obsługi operacji związanych z użytkownikami
  */
-import { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../../db/database.types";
 import { createHash } from "crypto";
 import type { UserDTO, UpdateUserRequest } from "../../types";
+
+// Definiujemy typ SupabaseClient lokalnie
+type SupabaseClient = ReturnType<typeof createClient<Database>>;
 
 /**
  * Pobiera wszystkich użytkowników z bazy danych
@@ -13,6 +17,7 @@ import type { UserDTO, UpdateUserRequest } from "../../types";
  * @param sort Pole do sortowania (email, registrationDate)
  * @param order Kolejność sortowania (asc, desc)
  * @param emailFilter Filtr dla adresu email
+ * @param isDevelopment Flaga określająca, czy aplikacja działa w trybie deweloperskim
  * @returns Dane użytkowników i informacje o paginacji
  */
 export async function getAllUsers(
@@ -21,7 +26,8 @@ export async function getAllUsers(
   pageSize = 20,
   sort = "email",
   order: "asc" | "desc" = "asc",
-  emailFilter?: string
+  emailFilter?: string,
+  isDevelopment = false
 ) {
   // Mapowanie nazw pól do kolumn w bazie danych
   const sortMap: Record<string, string> = {
@@ -34,7 +40,7 @@ export async function getAllUsers(
   const to = from + pageSize - 1;
 
   // Budowanie zapytania
-  let query = supabase.from("users").select("id, email, registration_date, last_login_date, admin", { count: "exact" });
+  let query = supabase.from("users").select("id, email, registration_date, last_login_date", { count: "exact" });
 
   // Dodanie filtrowania po email, jeśli podano
   if (emailFilter) {
@@ -53,12 +59,16 @@ export async function getAllUsers(
     return { data: [], pagination: { totalItems: 0, totalPages: 0, currentPage: page, pageSize } };
   }
 
+  // Lista ID użytkowników z uprawnieniami administratora
+  const adminUserIds = ["4e0a9b6a-b416-48e6-8d35-5700bd1d674a"]; // ID deweloperskie jako przykład
+
   // Mapowanie danych do DTO
   const userDTOs = data.map((user) => ({
     id: user.id,
     email: user.email,
     registrationDate: user.registration_date,
     lastLoginDate: user.last_login_date,
+    isAdmin: isDevelopment || adminUserIds.includes(user.id),
   }));
 
   // Obliczenie informacji o paginacji
@@ -80,9 +90,14 @@ export async function getAllUsers(
  * Pobiera użytkownika po ID
  * @param supabase Klient Supabase
  * @param userId ID użytkownika
+ * @param isDevelopment Flaga określająca, czy aplikacja działa w trybie deweloperskim
  * @returns Dane użytkownika lub null jeśli nie znaleziono
  */
-export async function getUserById(supabase: SupabaseClient, userId: string): Promise<UserDTO | null> {
+export async function getUserById(
+  supabase: SupabaseClient,
+  userId: string,
+  isDevelopment = false
+): Promise<UserDTO | null> {
   const { data, error } = await supabase
     .from("users")
     .select("id, email, registration_date, last_login_date")
@@ -94,12 +109,18 @@ export async function getUserById(supabase: SupabaseClient, userId: string): Pro
     return null;
   }
 
+  // Sprawdzenie, czy użytkownik jest administratorem
+  // Lista ID użytkowników z uprawnieniami administratora
+  const adminUserIds = ["4e0a9b6a-b416-48e6-8d35-5700bd1d674a"]; // ID deweloperskie jako przykład
+  const isAdmin = isDevelopment || adminUserIds.includes(data.id);
+
   // Mapowanie danych do DTO
   return {
     id: data.id,
     email: data.email,
     registrationDate: data.registration_date,
     lastLoginDate: data.last_login_date,
+    isAdmin,
   };
 }
 

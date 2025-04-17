@@ -32,7 +32,7 @@ export const getAllUsersQuerySchema = z.object({
   pageSize: z.coerce.number().int().positive().max(100).default(20),
   sort: z.enum(["email", "registrationDate"]).optional().default("email"),
   order: z.enum(["asc", "desc"]).optional().default("asc"),
-  emailFilter: z.string().optional(),
+  emailFilter: z.string().optional().nullable(),
 });
 
 /**
