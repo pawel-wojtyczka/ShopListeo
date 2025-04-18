@@ -1,44 +1,40 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import * as z from "zod";
 import { Button } from "../ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ReloadIcon } from "@radix-ui/react-icons";
 import type { RegisterUserRequest } from "../../types";
 
-// Schemat walidacji formularza
-const registerFormSchema = z
+// Define Zod schema for validation, including password confirmation
+const registerSchema = z
   .object({
-    email: z.string().email("Wprowadź poprawny adres email"),
-    password: z
-      .string()
-      .min(8, "Hasło musi mieć co najmniej 8 znaków")
-      .regex(/[a-z]/, "Hasło musi zawierać co najmniej jedną małą literę")
-      .regex(/[A-Z]/, "Hasło musi zawierać co najmniej jedną dużą literę")
-      .regex(/[0-9]/, "Hasło musi zawierać co najmniej jedną cyfrę")
-      .regex(/[^a-zA-Z0-9]/, "Hasło musi zawierać co najmniej jeden znak specjalny"),
-    confirmPassword: z.string().min(1, "Potwierdzenie hasła jest wymagane"),
+    email: z.string().email({ message: "Nieprawidłowy format adresu email." }),
+    password: z.string().min(8, { message: "Hasło musi mieć co najmniej 8 znaków." }),
+    confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Hasła muszą być identyczne",
-    path: ["confirmPassword"],
+    message: "Hasła muszą być takie same.",
+    path: ["confirmPassword"], // Attach error to confirmPassword field
   });
 
-// Definicja typów dla formularza
-type RegisterFormInputs = z.infer<typeof registerFormSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 interface RegisterFormProps {
+  // onSubmit expects the shape defined by RegisterUserRequest (email, password)
+  // We derive this from the form values after validation
   onSubmit: (data: RegisterUserRequest) => Promise<void>;
   isSubmitting: boolean;
   apiError: string | null;
 }
 
-export function RegisterForm({ onSubmit, isSubmitting, apiError }: RegisterFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormInputs>({
-    resolver: zodResolver(registerFormSchema),
+const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isSubmitting, apiError }) => {
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -46,94 +42,65 @@ export function RegisterForm({ onSubmit, isSubmitting, apiError }: RegisterFormP
     },
   });
 
-  // Przygotowanie danych przed wysłaniem (usunięcie confirmPassword)
-  const processSubmit = (data: RegisterFormInputs) => {
-    const { confirmPassword, ...registerData } = data;
-    onSubmit(registerData);
+  const handleFormSubmit = (values: RegisterFormValues) => {
+    // Pass only email and password to the onSubmit handler
+    onSubmit({ email: values.email, password: values.password });
   };
 
   return (
-    <form onSubmit={handleSubmit(processSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <label
-          htmlFor="email"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          {...register("email")}
-        />
-        {errors.email && <p className="text-sm font-medium text-destructive">{errors.email.message}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          Hasło
-        </label>
-        <input
-          id="password"
-          type="password"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          {...register("password")}
-        />
-        {errors.password && <p className="text-sm font-medium text-destructive">{errors.password.message}</p>}
-
-        {/* Wymagania dla hasła */}
-        <div className="text-xs text-muted-foreground">
-          <p>Hasło musi zawierać:</p>
-          <ul className="list-disc pl-4 mt-1 space-y-1">
-            <li>Co najmniej 8 znaków</li>
-            <li>Co najmniej jedną małą literę (a-z)</li>
-            <li>Co najmniej jedną dużą literę (A-Z)</li>
-            <li>Co najmniej jedną cyfrę (0-9)</li>
-            <li>Co najmniej jeden znak specjalny (!@#$%^&*...)</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label
-          htmlFor="confirmPassword"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          Potwierdź hasło
-        </label>
-        <input
-          id="confirmPassword"
-          type="password"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          {...register("confirmPassword")}
-        />
-        {errors.confirmPassword && (
-          <p className="text-sm font-medium text-destructive">{errors.confirmPassword.message}</p>
-        )}
-      </div>
-
-      {apiError && (
-        <div className="rounded-md bg-destructive/15 p-3">
-          <p className="text-sm font-medium text-destructive">{apiError}</p>
-        </div>
-      )}
-
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Rejestracja..." : "Zarejestruj się"}
-      </Button>
-
-      <div className="text-center text-sm">
+    <Card>
+      <CardHeader>{/* <CardTitle>Zarejestruj się</CardTitle> */}</CardHeader>
+      <CardContent>
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+          {apiError && (
+            <Alert variant="destructive">
+              <AlertTitle>Błąd rejestracji</AlertTitle>
+              <AlertDescription>{apiError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="ty@przyklad.com"
+              {...form.register("email")}
+              disabled={isSubmitting}
+            />
+            {form.formState.errors.email && (
+              <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Hasło</Label>
+            <Input id="password" type="password" {...form.register("password")} disabled={isSubmitting} />
+            {form.formState.errors.password && (
+              <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Potwierdź hasło</Label>
+            <Input id="confirmPassword" type="password" {...form.register("confirmPassword")} disabled={isSubmitting} />
+            {form.formState.errors.confirmPassword && (
+              <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
+            )}
+          </div>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}
+            Zarejestruj się
+          </Button>
+        </form>
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-2 text-sm">
         <p>
           Masz już konto?{" "}
-          <a href="/login" className="font-medium text-primary underline underline-offset-4">
+          <a href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
             Zaloguj się
           </a>
         </p>
-      </div>
-    </form>
+      </CardFooter>
+    </Card>
   );
-}
+};
+
+export default RegisterForm;

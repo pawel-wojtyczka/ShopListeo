@@ -1,11 +1,13 @@
 import "../styles/global.css";
 import { ViewTransitions } from "astro:transitions";
+import type { UserDTO } from "../types"; // Import UserDTO if available
 
 interface Props {
   title?: string;
 }
 
 const { title = "ShopListeo" } = Astro.props;
+// Removed isAuthenticated and authUser from locals - will be managed client-side
 
 <!doctype html>
 <html lang="pl" class="h-full">
@@ -20,19 +22,123 @@ const { title = "ShopListeo" } = Astro.props;
   <body class="h-full bg-background text-foreground antialiased">
     <div class="flex h-full min-h-screen flex-col md:flex-row">
       <!-- Nawigacja boczna -->
-      <div class="w-64 border-r hidden md:block p-4">
-        <div class="text-xl font-bold mb-6">ShopListeo</div>
-        <nav class="space-y-2">
-          <a href="/" class="flex items-center p-2 rounded-lg hover:bg-muted text-foreground">
-            Listy zakupów
-          </a>
-        </nav>
+      <div class="w-64 border-r hidden md:block p-4 flex flex-col justify-between">
+        <div>
+          <div class="text-xl font-bold mb-6">ShopListeo</div>
+          <nav class="space-y-2">
+             <a href="/" class:list={[ // Use class:list for conditional classes
+               "flex items-center p-2 rounded-lg hover:bg-muted text-foreground",
+               // Add active class logic if needed, e.g., based on Astro.url.pathname
+               // { "bg-muted": Astro.url.pathname === "/" }
+             ]}>
+               Listy zakupów
+             </a>
+             {/* Add more nav links here */}
+          </nav>
+        </div>
+        
+        {/* User Auth Status Area - will be updated by client-side script */}
+        <div id="auth-status-area" class="mt-auto text-sm text-muted-foreground p-2 border-t">
+           {/* Initial state - might show loading or logged out */}
+           <p>Sprawdzanie statusu...</p> 
+        </div>
       </div>
       
       <!-- Główny obszar treści -->
-      <main class="flex-1 overflow-auto">
+      <main class="flex-1 overflow-auto p-6">
         <slot />
       </main>
     </div>
+
+    <script is:inline>
+      const authStatusArea = document.getElementById('auth-status-area');
+      console.log('Layout script loaded. Auth status area:', authStatusArea);
+
+      function updateAuthStatus(isAuthenticated, user) {
+        if (!authStatusArea) {
+          console.error('Cannot update auth status: authStatusArea element not found.');
+          return;
+        }
+        console.log('Updating auth status:', { isAuthenticated, user });
+
+        if (isAuthenticated && user) {
+          authStatusArea.innerHTML = `
+            <p>Zalogowano jako:</p>
+            <p class="font-medium break-words">${escapeHtml(user.email)}</p>
+            <form id="logout-form" action="/api/auth/logout" method="post">
+              <button type="submit" class="text-red-500 hover:underline mt-1 w-full text-left">Wyloguj</button>
+            </form>
+          `;
+        } else {
+          authStatusArea.innerHTML = `
+            <p>Niezalogowany</p>
+            <a href="/login" class="text-primary hover:underline">Zaloguj się</a>
+          `;
+        }
+      }
+
+      function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      async function checkInitialAuth() {
+        console.log('Checking initial auth status...');
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        
+        if (token) {
+          console.log('Token found in storage. Verifying with /api/users/me...');
+          try {
+            // Call the /api/users/me endpoint to verify token and get user data
+            const response = await fetch('/api/users/me', {
+              headers: {
+                // Include token in Authorization header (some servers might prefer this)
+                // 'Authorization': `Bearer ${token}`,
+                // Cookie should be sent automatically by the browser if httpOnly is not set 
+                // or if credentials: 'include' is used, but rely on cookie first.
+              }
+            });
+
+            if (response.ok) {
+              const user = await response.json(); // Expects UserDTO
+              console.log('/api/users/me successful:', user);
+              updateAuthStatus(true, user);
+            } else {
+              console.log(`/api/users/me failed with status ${response.status}. Clearing token and showing logged out.`);
+              // Token is invalid or expired, clear it
+              localStorage.removeItem('authToken');
+              sessionStorage.removeItem('authToken');
+              updateAuthStatus(false, null);
+            }
+          } catch (error) {
+            console.error('Error calling /api/users/me:', error);
+            updateAuthStatus(false, null); // Show as logged out on error
+          }
+        } else {
+          console.log('No token found in storage. Showing logged out.');
+          updateAuthStatus(false, null);
+        }
+      }
+
+      window.addEventListener('authChange', (event) => {
+        console.log('authChange event received in layout', event.detail);
+        const { isAuthenticated, user } = event.detail;
+        updateAuthStatus(isAuthenticated, user);
+      });
+
+      // Listen for logout triggered by API redirect (form submission)
+      // If the logout API redirects back, this might catch it.
+      // A more robust way might be needed depending on exact flow.
+      // Consider checking response status of form submission if possible.
+
+      // Initial check when the script loads
+      checkInitialAuth();
+
+    </script>
   </body>
 </html> 

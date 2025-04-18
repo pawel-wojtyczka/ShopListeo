@@ -1,11 +1,17 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "../ui/button";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { CheckCircledIcon } from "@radix-ui/react-icons";
 
 // Schema walidacji formularza
-const setNewPasswordFormSchema = z
+const setNewPasswordSchema = z
   .object({
     password: z
       .string()
@@ -21,7 +27,7 @@ const setNewPasswordFormSchema = z
     path: ["confirmPassword"],
   });
 
-type SetNewPasswordFormInputs = z.infer<typeof setNewPasswordFormSchema>;
+type SetNewPasswordFormValues = z.infer<typeof setNewPasswordSchema>;
 
 interface SetNewPasswordFormProps {
   onSubmit: (password: string) => Promise<void>;
@@ -31,102 +37,81 @@ interface SetNewPasswordFormProps {
   disabled?: boolean;
 }
 
-export function SetNewPasswordForm({
+const SetNewPasswordForm: React.FC<SetNewPasswordFormProps> = ({
   onSubmit,
   isSubmitting,
   apiError,
   successMessage,
   disabled = false,
-}: SetNewPasswordFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SetNewPasswordFormInputs>({
-    resolver: zodResolver(setNewPasswordFormSchema),
+}) => {
+  const form = useForm<SetNewPasswordFormValues>({
+    resolver: zodResolver(setNewPasswordSchema),
     defaultValues: {
       password: "",
       confirmPassword: "",
     },
   });
 
-  const processSubmit = (data: SetNewPasswordFormInputs) => {
-    onSubmit(data.password);
+  const handleFormSubmit = (values: SetNewPasswordFormValues) => {
+    onSubmit(values.password);
   };
 
   return (
-    <form onSubmit={handleSubmit(processSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <label
-          htmlFor="password"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          Nowe hasło
-        </label>
-        <input
-          id="password"
-          type="password"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled}
-          {...register("password")}
-        />
-        {errors.password && <p className="text-sm font-medium text-destructive">{errors.password.message}</p>}
-
-        {/* Wymagania dla hasła */}
-        <div className="text-xs text-muted-foreground">
-          <p>Hasło musi zawierać:</p>
-          <ul className="list-disc pl-4 mt-1 space-y-1">
-            <li>Co najmniej 8 znaków</li>
-            <li>Co najmniej jedną małą literę (a-z)</li>
-            <li>Co najmniej jedną dużą literę (A-Z)</li>
-            <li>Co najmniej jedną cyfrę (0-9)</li>
-            <li>Co najmniej jeden znak specjalny (!@#$%^&*...)</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label
-          htmlFor="confirmPassword"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          Potwierdź nowe hasło
-        </label>
-        <input
-          id="confirmPassword"
-          type="password"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled}
-          {...register("confirmPassword")}
-        />
-        {errors.confirmPassword && (
-          <p className="text-sm font-medium text-destructive">{errors.confirmPassword.message}</p>
+    <Card>
+      <CardHeader>{/* <CardTitle>Ustaw nowe hasło</CardTitle> */}</CardHeader>
+      <CardContent>
+        {successMessage ? (
+          <Alert variant="default">
+            <CheckCircledIcon className="h-4 w-4" />
+            <AlertTitle>Sukces!</AlertTitle>
+            <AlertDescription>{successMessage}</AlertDescription>
+          </Alert>
+        ) : (
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+            <p className="text-sm text-muted-foreground">Wprowadź nowe hasło dla swojego konta.</p>
+            {apiError && (
+              <Alert variant="destructive">
+                <AlertTitle>Błąd</AlertTitle>
+                <AlertDescription>{apiError}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="password">Nowe hasło</Label>
+              <Input id="password" type="password" {...form.register("password")} disabled={isSubmitting || disabled} />
+              {form.formState.errors.password && (
+                <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Potwierdź nowe hasło</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                {...form.register("confirmPassword")}
+                disabled={isSubmitting || disabled}
+              />
+              {form.formState.errors.confirmPassword && (
+                <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
+              )}
+            </div>
+            <Button type="submit" className="w-full" disabled={isSubmitting || disabled}>
+              {isSubmitting && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}
+              Ustaw nowe hasło
+            </Button>
+          </form>
         )}
-      </div>
-
-      {apiError && (
-        <div className="rounded-md bg-destructive/15 p-3">
-          <p className="text-sm font-medium text-destructive">{apiError}</p>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="rounded-md bg-green-100 p-3">
-          <p className="text-sm font-medium text-green-800">{successMessage}</p>
-        </div>
-      )}
-
-      <Button type="submit" className="w-full" disabled={isSubmitting || disabled}>
-        {isSubmitting ? "Aktualizowanie..." : "Ustaw nowe hasło"}
-      </Button>
-
-      <div className="text-center text-sm">
-        <p>
-          <a href="/login" className="font-medium text-primary underline underline-offset-4">
-            Wróć do logowania
-          </a>
-        </p>
-      </div>
-    </form>
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-2 text-sm">
+        {successMessage && (
+          <p>
+            <a href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+              Przejdź do logowania
+            </a>
+          </p>
+        )}
+      </CardFooter>
+    </Card>
   );
-}
+};
+
+export default SetNewPasswordForm;

@@ -1,8 +1,13 @@
 ---
 import AuthLayout from "../layouts/AuthLayout.astro";
-import { LoginView } from "../components/auth/LoginView";
+import LoginView from "../components/auth/LoginView";
+
+const pageTitle = "Zaloguj się";
 ---
 
-<AuthLayout title="ShopListeo | Login">
-  <LoginView client:load />
+<AuthLayout title={pageTitle}>
+  <h1 class="text-2xl font-semibold tracking-tight text-center mb-6">{pageTitle}</h1>
+
+  {/* Render the React component, using client:idle */}
+  <LoginView client:idle />
 </AuthLayout>

@@ -2,82 +2,108 @@ import React, { useState, useEffect } from "react";
 import { PageHeader } from "../PageHeader";
 import { SetNewPasswordForm } from "./SetNewPasswordForm";
 
-export function SetNewPasswordView() {
+const SetNewPasswordView: React.FC = () => {
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Pobieranie tokenu z URL
-    const url = new URL(window.location.href);
-    const urlToken = url.searchParams.get("token");
-    setToken(urlToken);
+    // This runs only on the client after mount
+    try {
+      const hash = window.location.hash.substring(1); // Remove leading #
+      const params = new URLSearchParams(hash);
+      const token = params.get("access_token");
 
-    if (!urlToken) {
-      setApiError("Brak prawidłowego tokenu resetowania hasła w adresie URL");
+      if (token) {
+        setAccessToken(token);
+        console.log("Access token found in URL hash.");
+      } else {
+        console.error("Access token not found in URL hash.");
+        setTokenError("Nie znaleziono wymaganego tokenu w adresie URL. Upewnij się, że link jest poprawny.");
+      }
+    } catch (e) {
+      console.error("Error parsing URL hash:", e);
+      setTokenError("Wystąpił błąd podczas przetwarzania linku resetującego.");
     }
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
-  const handleSubmit = async (password: string) => {
-    if (!token) {
-      setApiError("Brak prawidłowego tokenu resetowania hasła");
+  const handleSetPassword = async (password: string) => {
+    if (!accessToken) {
+      setApiError("Brak tokenu dostępu do wysłania żądania.");
       return;
     }
 
     setIsSubmitting(true);
     setApiError(null);
     setSuccessMessage(null);
+    console.log("Attempting to set new password...");
 
     try {
-      // Korzystamy bezpośrednio z Supabase client
-      const { createClient } = await import("@supabase/supabase-js");
-
-      const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-      const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error("Brak konfiguracji Supabase");
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      // Aktualizacja hasła użytkownika
-      const { error } = await supabase.auth.updateUser({
-        password,
+      const response = await fetch("/api/auth/set-new-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ accessToken, password }),
       });
 
-      if (error) {
-        const errorMessage = error.message || (typeof error === "string" ? error : "Błąd aktualizacji hasła");
-        console.error("Szczegóły błędu aktualizacji hasła:", error);
-        throw new Error(errorMessage);
+      const responseData: { message?: string; error?: unknown; errors?: unknown } = await response
+        .json()
+        .catch(() => ({}));
+
+      if (!response.ok) {
+        let errorMessage = `Błąd ustawiania hasła (${response.status})`;
+        if (typeof responseData === "object" && responseData !== null) {
+          errorMessage =
+            responseData.message ||
+            (responseData.errors ? JSON.stringify(responseData.errors) : undefined) ||
+            (responseData.error ? String(responseData.error) : undefined) ||
+            errorMessage;
+        }
+        console.error("Set new password API error details:", responseData);
+        throw new Error(String(errorMessage));
       }
 
-      // Komunikat sukcesu i przekierowanie
-      setSuccessMessage("Hasło zostało zmienione. Za chwilę zostaniesz przekierowany do strony logowania.");
-
-      // Przekierowanie po 3 sekundach
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 3000);
+      setSuccessMessage(responseData.message || "Hasło zostało pomyślnie zaktualizowane.");
+      console.log("Set new password successful:", responseData.message);
     } catch (error) {
-      console.error("Password update error:", error);
-      setApiError(error instanceof Error ? error.message : "Nieoczekiwany błąd podczas zmiany hasła");
+      console.error("Set new password fetch error:", error);
+      setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Render based on token status and API status
+  if (tokenError) {
+    return (
+      <div className="text-center text-destructive">
+        <p>{tokenError}</p>
+        <a href="/reset-password" className="text-primary hover:underline mt-4 inline-block">
+          Poproś o nowy link
+        </a>
+      </div>
+    );
+  }
+
+  if (!accessToken && !tokenError) {
+    // Still waiting for useEffect to run and parse token
+    return <p className="text-center text-muted-foreground">Wczytywanie...</p>;
+  }
+
   return (
     <>
       <PageHeader title="Ustaw nowe hasło" />
       <SetNewPasswordForm
-        onSubmit={handleSubmit}
+        onSubmit={handleSetPassword}
         isSubmitting={isSubmitting}
         apiError={apiError}
         successMessage={successMessage}
-        disabled={!token}
       />
     </>
   );
-}
+};
+
+export default SetNewPasswordView;

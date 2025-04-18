@@ -1,48 +1,51 @@
 import React, { useState } from "react";
 import { PageHeader } from "../PageHeader";
-import { RequestPasswordResetForm } from "./RequestPasswordResetForm";
+import RequestPasswordResetForm from "./RequestPasswordResetForm";
 
-export function RequestPasswordResetView() {
+const RequestPasswordResetView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (email: string) => {
+  const handleRequestReset = async (email: string) => {
     setIsSubmitting(true);
     setApiError(null);
     setSuccessMessage(null);
+    console.log("Attempting password reset request for:", email);
 
     try {
-      // Korzystamy bezpośrednio z Supabase client - importujemy go i używamy
-      // W rzeczywistości lepiej zrobić endpoint API, ale dla demonstracji używamy bezpośrednio klienta
-      const { createClient } = await import("@supabase/supabase-js");
-
-      const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-      const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error("Brak konfiguracji Supabase");
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/set-new-password`,
+      const response = await fetch("/api/auth/request-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
       });
 
-      if (error) {
-        const errorMessage = error.message || (typeof error === "string" ? error : "Błąd resetowania hasła");
-        console.error("Szczegóły błędu resetowania hasła:", error);
-        throw new Error(errorMessage);
+      // Even if response is not ok, we might get a success message (e.g., generic one)
+      const responseData: { message?: string; error?: unknown; errors?: unknown } = await response
+        .json()
+        .catch(() => ({}));
+
+      if (!response.ok) {
+        let errorMessage = `Błąd żądania resetu (${response.status})`;
+        if (typeof responseData === "object" && responseData !== null) {
+          errorMessage =
+            responseData.message ||
+            (responseData.errors ? JSON.stringify(responseData.errors) : undefined) ||
+            (responseData.error ? String(responseData.error) : undefined) ||
+            errorMessage;
+        }
+        console.error("Request reset API error details:", responseData);
+        throw new Error(String(errorMessage));
       }
 
-      // Pokazujemy komunikat sukcesu
-      setSuccessMessage("Instrukcje resetowania hasła zostały wysłane na Twój adres email");
+      // Set success message from API response
+      setSuccessMessage(responseData.message || "Żądanie zostało przetworzone.");
+      console.log("Request reset successful:", responseData.message);
     } catch (error) {
-      console.error("Password reset error:", error);
-      setApiError(
-        error instanceof Error ? error.message : "Nieoczekiwany błąd podczas wysyłania instrukcji resetowania hasła"
-      );
+      console.error("Request reset fetch error:", error);
+      setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);
     }
@@ -52,11 +55,13 @@ export function RequestPasswordResetView() {
     <>
       <PageHeader title="Resetuj hasło" />
       <RequestPasswordResetForm
-        onSubmit={handleSubmit}
+        onSubmit={handleRequestReset}
         isSubmitting={isSubmitting}
         apiError={apiError}
         successMessage={successMessage}
       />
     </>
   );
-}
+};
+
+export default RequestPasswordResetView;

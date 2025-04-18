@@ -1,15 +1,21 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "../ui/button";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { CheckCircledIcon } from "@radix-ui/react-icons";
 
-// Schemat walidacji formularza
-const resetPasswordFormSchema = z.object({
-  email: z.string().email("Wprowadź poprawny adres email"),
+// Define Zod schema for validation
+const requestResetSchema = z.object({
+  email: z.string().email({ message: "Nieprawidłowy format adresu email." }),
 });
 
-type ResetPasswordFormInputs = z.infer<typeof resetPasswordFormSchema>;
+type RequestResetFormValues = z.infer<typeof requestResetSchema>;
 
 interface RequestPasswordResetFormProps {
   onSubmit: (email: string) => Promise<void>;
@@ -18,69 +24,73 @@ interface RequestPasswordResetFormProps {
   successMessage: string | null;
 }
 
-export function RequestPasswordResetForm({
+const RequestPasswordResetForm: React.FC<RequestPasswordResetFormProps> = ({
   onSubmit,
   isSubmitting,
   apiError,
   successMessage,
-}: RequestPasswordResetFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ResetPasswordFormInputs>({
-    resolver: zodResolver(resetPasswordFormSchema),
+}) => {
+  const form = useForm<RequestResetFormValues>({
+    resolver: zodResolver(requestResetSchema),
     defaultValues: {
       email: "",
     },
   });
 
-  const processSubmit = (data: ResetPasswordFormInputs) => {
-    onSubmit(data.email);
+  const handleFormSubmit = (values: RequestResetFormValues) => {
+    onSubmit(values.email);
   };
 
   return (
-    <form onSubmit={handleSubmit(processSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <label
-          htmlFor="email"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          placeholder="Podaj swój adres email"
-          {...register("email")}
-        />
-        {errors.email && <p className="text-sm font-medium text-destructive">{errors.email.message}</p>}
-      </div>
-
-      {apiError && (
-        <div className="rounded-md bg-destructive/15 p-3">
-          <p className="text-sm font-medium text-destructive">{apiError}</p>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="rounded-md bg-green-100 p-3">
-          <p className="text-sm font-medium text-green-800">{successMessage}</p>
-        </div>
-      )}
-
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Wysyłanie..." : "Wyślij link resetujący"}
-      </Button>
-
-      <div className="text-center text-sm">
+    <Card>
+      <CardHeader>{/* <CardTitle>Resetuj hasło</CardTitle> */}</CardHeader>
+      <CardContent>
+        {successMessage ? (
+          <Alert variant="default">
+            <CheckCircledIcon className="h-4 w-4" />
+            <AlertTitle>Wysłano!</AlertTitle>
+            <AlertDescription>{successMessage}</AlertDescription>
+          </Alert>
+        ) : (
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Wprowadź adres email powiązany z kontem, a wyślemy Ci link do zresetowania hasła.
+            </p>
+            {apiError && (
+              <Alert variant="destructive">
+                <AlertTitle>Błąd</AlertTitle>
+                <AlertDescription>{apiError}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="ty@przyklad.com"
+                {...form.register("email")}
+                disabled={isSubmitting}
+              />
+              {form.formState.errors.email && (
+                <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+              )}
+            </div>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}
+              Wyślij link do resetowania
+            </Button>
+          </form>
+        )}
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-2 text-sm">
         <p>
-          <a href="/login" className="font-medium text-primary underline underline-offset-4">
-            Wróć do logowania
+          <a href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+            Powrót do logowania
           </a>
         </p>
-      </div>
-    </form>
+      </CardFooter>
+    </Card>
   );
-}
+};
+
+export default RequestPasswordResetForm;

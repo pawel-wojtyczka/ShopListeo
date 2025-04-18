@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { PageHeader } from "../PageHeader";
-import { RegisterForm } from "./RegisterForm";
-import type { RegisterUserRequest } from "../../types";
+import RegisterForm from "./RegisterForm";
+import type { RegisterUserRequest, RegisterUserResponse } from "../../types";
 
-export function RegisterView() {
+const RegisterView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const handleSubmit = async (data: RegisterUserRequest) => {
+  const handleRegister = async (data: RegisterUserRequest) => {
     setIsSubmitting(true);
     setApiError(null);
+    console.log("Attempting registration with:", data);
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -17,32 +18,60 @@ export function RegisterView() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ email: data.email, password: data.password }),
       });
 
-      // Próbujemy sparsować odpowiedź niezależnie czy sukces czy błąd
-      const responseData = await response.json().catch(() => ({}));
+      const responseData: RegisterUserResponse | { message?: string; error?: unknown } = await response
+        .json()
+        .catch(() => ({}));
 
       if (!response.ok) {
-        // Bardziej szczegółowa obsługa błędów
-        const errorMessage =
-          responseData.message ||
-          responseData.error?.message ||
-          responseData.error ||
-          `Błąd rejestracji (${response.status})`;
-
-        console.error("Szczegóły błędu:", responseData);
-        throw new Error(errorMessage);
+        let errorMessage = `Błąd rejestracji (${response.status})`;
+        if (typeof responseData === "object" && responseData !== null && !("token" in responseData)) {
+          let specificErrorMsg: string | undefined;
+          if (
+            responseData.error &&
+            typeof responseData.error === "object" &&
+            "message" in responseData.error &&
+            typeof responseData.error.message === "string"
+          ) {
+            specificErrorMsg = responseData.error.message;
+          }
+          errorMessage =
+            responseData.message ||
+            specificErrorMsg ||
+            (responseData.error ? String(responseData.error) : undefined) ||
+            errorMessage;
+        }
+        console.error("Registration API error details:", responseData);
+        throw new Error(String(errorMessage));
       }
 
-      // Zapisujemy token po rejestracji aby użytkownik był od razu zalogowany
-      localStorage.setItem("authToken", responseData.token);
+      const successData = responseData as RegisterUserResponse;
+      console.log("Registration successful, received token:", successData.token);
 
-      // Przekierowanie na stronę główną
+      // Registration successful, treat as login: store token and dispatch event
+      // Assuming API returns a token immediately usable for login
+      // For simplicity, using localStorage directly. In a real app, consider sessionStorage too or based on a flag.
+      localStorage.setItem("authToken", successData.token);
+      console.log("Token stored in localStorage after registration");
+
+      // Dispatch authChange event to update layout/global state
+      window.dispatchEvent(
+        new CustomEvent("authChange", {
+          detail: {
+            isAuthenticated: true,
+            user: { id: successData.id, email: successData.email },
+          },
+        })
+      );
+      console.log("Dispatched authChange event after registration");
+
+      // Redirect to the main page
       window.location.href = "/";
     } catch (error) {
-      console.error("Registration error:", error);
-      setApiError(error instanceof Error ? error.message : "Nieoczekiwany błąd podczas rejestracji");
+      console.error("Registration fetch error:", error);
+      setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd podczas rejestracji.");
     } finally {
       setIsSubmitting(false);
     }
@@ -51,7 +80,9 @@ export function RegisterView() {
   return (
     <>
       <PageHeader title="Zarejestruj się" />
-      <RegisterForm onSubmit={handleSubmit} isSubmitting={isSubmitting} apiError={apiError} />
+      <RegisterForm onSubmit={handleRegister} isSubmitting={isSubmitting} apiError={apiError} />
     </>
   );
-}
+};
+
+export default RegisterView;

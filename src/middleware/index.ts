@@ -1,11 +1,7 @@
 import type { MiddlewareHandler } from "astro";
 import type { AstroLocals } from "../types/locals";
 import { supabaseClient } from "../db/supabase.client";
-import type { User } from "@supabase/supabase-js";
 import type { UserDTO } from "../types";
-
-// Sprawdzenie czy środowisko jest developmentem
-const isDevelopment = process.env.NODE_ENV === "development";
 
 // Ścieżki wymagające autentykacji
 const PROTECTED_ROUTES = ["/", "/shopping-lists", "/profile"];
@@ -17,34 +13,6 @@ const AUTH_ROUTES = ["/login", "/register", "/reset-password", "/set-new-passwor
 const ADMIN_ROUTES = ["/admin"];
 
 export const prerender = false;
-
-// Funkcja pomocnicza do weryfikacji tokenu JWT
-async function verifyToken(token: string): Promise<UserDTO | null> {
-  try {
-    // W rzeczywistej aplikacji, powinniśmy wywołać endpoint API
-    // do weryfikacji tokenu, tu używamy klienta Supabase
-    const { data, error } = await supabaseClient.auth.getUser(token);
-
-    if (error || !data.user) {
-      return null;
-    }
-
-    // Konwersja User z Supabase na nasze UserDTO
-    // W rzeczywistej aplikacji pobralibyśmy więcej danych z bazy
-    const userDTO: UserDTO = {
-      id: data.user.id,
-      email: data.user.email || "",
-      registrationDate: data.user.created_at || "",
-      lastLoginDate: data.user.last_sign_in_at || null,
-      isAdmin: data.user.app_metadata?.isAdmin || false,
-    };
-
-    return userDTO;
-  } catch (error) {
-    console.error("Błąd weryfikacji tokenu:", error);
-    return null;
-  }
-}
 
 /**
  * Middleware obsługujące uwierzytelnianie, dostęp do Supabase i kontrolę dostępu
@@ -59,92 +27,103 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   const url = new URL(request.url);
   const pathname = url.pathname;
 
-  // Pomijamy pliki statyczne
-  if (pathname.includes("_astro") || pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/)) {
+  // Skip static files AND API routes from auth checks/redirects
+  if (
+    pathname.startsWith("/api/") ||
+    pathname.includes("_astro") ||
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/)
+  ) {
+    console.log(`Middleware: Skipping auth checks for path: ${pathname}`);
     return await next();
   }
 
-  // Tryb developerski - konfigurujemy testowego użytkownika
-  if (isDevelopment) {
-    console.log("🔧 Tryb deweloperski: używanie testowego użytkownika");
+  /* DEV MODE OVERRIDE IS COMMENTED OUT */
 
-    // Testowy użytkownik deweloperski dla łatwiejszego testowania
-    const devUser: User = {
-      id: "4e0a9b6a-b416-48e6-8d35-5700bd1d674a",
-      app_metadata: { isAdmin: true },
-      user_metadata: {},
-      aud: "authenticated",
-      email: "dev@example.com",
-      created_at: new Date().toISOString(),
-      role: "authenticated",
-    };
-
-    // Ustawiamy użytkownika w locals
-    (locals as AstroLocals).user = devUser;
-
-    // W trybie dev przyjmujemy że użytkownik jest zalogowany dla łatwiejszego testowania
-    const devUserDTO: UserDTO = {
-      id: devUser.id,
-      email: devUser.email || "",
-      registrationDate: devUser.created_at,
-      lastLoginDate: new Date().toISOString(),
-      isAdmin: true,
-    };
-
-    (locals as any).authUser = devUserDTO;
-    (locals as any).isAuthenticated = true;
-
-    // Kontynuujemy przetwarzanie
-    return await next();
-  }
-
-  // Pobieramy token z ciasteczka lub nagłówka
-  const token = cookies.get("authToken")?.value || request.headers.get("Authorization")?.replace("Bearer ", "");
-
-  // Stan autentykacji
+  // --- AUTHENTICATION FLOW ---
   let authUser: UserDTO | null = null;
   let isAuthenticated = false;
+  let supabaseUser = null; // Variable to hold the raw Supabase user
 
-  // Jeśli mamy token, weryfikujemy go
+  // 1. Get token
+  const token = cookies.get("authToken")?.value || request.headers.get("Authorization")?.replace("Bearer ", "");
+
+  // 2. Verify token if it exists
   if (token) {
-    authUser = await verifyToken(token);
-    isAuthenticated = !!authUser;
-
-    // Standardowa weryfikacja uwierzytelnienia
+    console.log("Middleware: Token found, verifying...");
     const {
       data: { user },
+      error,
     } = await supabaseClient.auth.getUser(token);
-    (locals as AstroLocals).user = user;
+
+    if (error || !user) {
+      // Token invalid or expired
+      console.log("Middleware: Token verification failed or user not found.", error?.message);
+      isAuthenticated = false;
+      authUser = null;
+      supabaseUser = null;
+      // Clear the invalid cookie
+      cookies.delete("authToken", { path: "/" });
+      console.log("Middleware: Invalid cookie cleared.");
+    } else {
+      // Token is valid
+      console.log(`Middleware: Token verified for user: ${user.email}`);
+      isAuthenticated = true;
+      supabaseUser = user; // Store the raw user object
+      // Map to UserDTO
+      authUser = {
+        id: user.id,
+        email: user.email || "",
+        registrationDate: user.created_at || "",
+        lastLoginDate: user.last_sign_in_at || null,
+        isAdmin: user.app_metadata?.isAdmin || false,
+      };
+    }
+  } else {
+    console.log("Middleware: No token found.");
+    isAuthenticated = false;
+    authUser = null;
+    supabaseUser = null;
   }
 
-  // Zapisujemy dane użytkownika w locals dla widoków
-  (locals as any).authUser = authUser;
-  (locals as any).isAuthenticated = isAuthenticated;
+  // 3. Set locals based on verification result
+  (locals as AstroLocals).user = supabaseUser; // Store raw Supabase user or null
+  (locals as AstroLocals & { authUser: UserDTO | null; isAuthenticated: boolean }).authUser = authUser;
+  (locals as AstroLocals & { authUser: UserDTO | null; isAuthenticated: boolean }).isAuthenticated = isAuthenticated;
+  console.log("Middleware: Locals set", { isAuthenticated, userId: authUser?.id });
 
-  // Sprawdzamy, czy ścieżka wymaga autentykacji
+  // 4. Apply redirection rules
   const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
-
-  // Sprawdzamy, czy ścieżka jest dla niezalogowanych
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
-
-  // Sprawdzamy, czy ścieżka jest dla administratorów
   const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route));
 
-  // Jeśli użytkownik próbuje dostać się do chronionej ścieżki bez autoryzacji
-  if (isProtectedRoute && !isAuthenticated) {
+  console.log("Middleware: Checking redirects for path:", pathname, {
+    isProtectedRoute,
+    isAuthRoute,
+    isAdminRoute,
+    isAuthenticated,
+  });
+
+  // Redirect to login if trying to access protected route while logged out
+  if (isProtectedRoute && !isAuthenticated && pathname !== "/login") {
+    console.log("Middleware: Redirecting to /login (protected route, not authenticated, not already on /login)");
     return redirect("/login");
   }
 
-  // Jeśli zalogowany użytkownik próbuje dostać się do ścieżki autoryzacji
+  // --- RE-ENABLED ---
+  // Redirect to home if trying to access auth route while logged in
   if (isAuthRoute && isAuthenticated) {
+    console.log("Middleware: Redirecting to / (auth route, authenticated)");
     return redirect("/");
   }
+  // --- END RE-ENABLED ---
 
-  // Jeśli użytkownik próbuje dostać się do ścieżki admina i nie jest adminem
+  // Redirect to home if trying to access admin route without being an admin
   if (isAdminRoute && (!isAuthenticated || !authUser?.isAdmin)) {
+    console.log("Middleware: Redirecting to / (admin route, not admin or not authenticated)");
     return redirect("/");
   }
 
-  // Przekazanie do następnego middleware lub handlera
+  // 5. No redirect needed, proceed to the requested page
+  console.log("Middleware: No redirect needed, calling next()");
   return await next();
 };
