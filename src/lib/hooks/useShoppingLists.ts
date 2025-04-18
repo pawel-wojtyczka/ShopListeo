@@ -63,7 +63,18 @@ export function useShoppingLists() {
         session.access_token.substring(0, 10) + "..."
       ); // Log only part of the token
 
-      const response = await fetch("/api/shopping-lists", {
+      // Construct URL with default query parameters
+      const apiUrl = new URL("/api/shopping-lists", window.location.origin);
+      apiUrl.searchParams.set("page", "1");
+      apiUrl.searchParams.set("pageSize", "20"); // Default page size
+      // You can add default sort/order if needed, e.g.:
+      // apiUrl.searchParams.set("sort", "createdAt");
+      // apiUrl.searchParams.set("order", "desc");
+
+      console.log("[useShoppingLists] Fetching URL:", apiUrl.toString());
+
+      const response = await fetch(apiUrl.toString(), {
+        // Use the constructed URL
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },

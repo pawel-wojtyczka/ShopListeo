@@ -15,17 +15,18 @@ export const createShoppingListSchema = z.object({
  */
 export const getAllShoppingListsQuerySchema = z.object({
   page: z
-    .string()
-    .optional()
+    .preprocess((val) => (val ? String(val) : undefined), z.string().optional())
     .transform((val) => (val ? parseInt(val, 10) : 1))
     .pipe(z.number().int().positive().default(1)),
   pageSize: z
-    .string()
-    .optional()
+    .preprocess((val) => (val ? String(val) : undefined), z.string().optional())
     .transform((val) => (val ? parseInt(val, 10) : 20))
     .pipe(z.number().int().positive().max(100).default(20)),
-  sort: z.enum(["title", "createdAt", "updatedAt"]).optional().default("createdAt"),
-  order: z.enum(["asc", "desc"]).optional().default("desc"),
+  sort: z.preprocess(
+    (val) => val ?? undefined,
+    z.enum(["title", "createdAt", "updatedAt"]).optional().default("createdAt")
+  ),
+  order: z.preprocess((val) => val ?? undefined, z.enum(["asc", "desc"]).optional().default("desc")),
 });
 
 /**
