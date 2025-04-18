@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act } from "../../test-utils";
 import { useShoppingLists } from "../useShoppingLists";
 import { showSuccessToast, showErrorToast } from "../../services/toast-service";
 
@@ -18,10 +18,10 @@ describe("useShoppingLists", () => {
     vi.clearAllMocks();
 
     // Resetujemy mock fetcha
-    (global.fetch as jest.Mock).mockReset();
+    (global.fetch as ReturnType<typeof vi.fn>).mockReset();
 
     // Mock dla fetch podczas pobierania list
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         data: [
@@ -78,10 +78,10 @@ describe("useShoppingLists", () => {
 
   it("powinien obsłużyć błąd podczas pobierania list", async () => {
     // Resetujemy mock fetcha
-    (global.fetch as jest.Mock).mockReset();
+    (global.fetch as ReturnType<typeof vi.fn>).mockReset();
 
     // Mock dla fetch z błędem
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 500,
     });
@@ -115,10 +115,10 @@ describe("useShoppingLists", () => {
 
   it("powinien utworzyć nową listę zakupów", async () => {
     // Resetujemy mock fetcha
-    (global.fetch as jest.Mock).mockReset();
+    (global.fetch as ReturnType<typeof vi.fn>).mockReset();
 
     // Mock dla fetch podczas pobierania list
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         data: [],
@@ -132,7 +132,7 @@ describe("useShoppingLists", () => {
     });
 
     // Mock dla fetch podczas tworzenia listy
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         id: "3",
@@ -185,10 +185,10 @@ describe("useShoppingLists", () => {
 
   it("powinien usunąć listę zakupów", async () => {
     // Resetujemy mock fetcha
-    (global.fetch as jest.Mock).mockReset();
+    (global.fetch as ReturnType<typeof vi.fn>).mockReset();
 
     // Mock dla fetch podczas pobierania list
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         data: [
@@ -210,7 +210,7 @@ describe("useShoppingLists", () => {
     });
 
     // Mock dla fetch podczas usuwania listy
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 204,
     });
@@ -259,10 +259,10 @@ describe("useShoppingLists", () => {
 
   it("powinien obsłużyć błąd podczas usuwania listy", async () => {
     // Resetujemy mock fetcha
-    (global.fetch as jest.Mock).mockReset();
+    (global.fetch as ReturnType<typeof vi.fn>).mockReset();
 
     // Mock dla fetch podczas pobierania list
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         data: [
@@ -284,7 +284,7 @@ describe("useShoppingLists", () => {
     });
 
     // Mock dla fetch z błędem podczas usuwania listy
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       status: 500,
     });

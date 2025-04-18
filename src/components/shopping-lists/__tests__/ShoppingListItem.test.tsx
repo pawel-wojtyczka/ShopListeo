@@ -1,19 +1,21 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderWithProviders, screen } from "../../../lib/test-utils";
 import userEvent from "@testing-library/user-event";
 import { ShoppingListItem } from "../ShoppingListItem";
 
 // Mock dla komponentów Shadcn
+// @ts-expect-error - ignorujemy błędy typów w mockach testowych
 vi.mock("../../../components/ui/button", () => ({
-  Button: ({ children, onClick, disabled, className }: any) => (
+  Button: ({ children, onClick, disabled, className }) => (
     <button onClick={onClick} disabled={disabled} className={className} data-testid="mock-button">
       {children}
     </button>
   ),
 }));
 
+// @ts-expect-error - ignorujemy błędy typów w mockach testowych
 vi.mock("../../../components/ui/alert-dialog", () => ({
-  AlertDialog: ({ children, open, onOpenChange }: any) => (
+  AlertDialog: ({ children, open, onOpenChange }) => (
     <div data-testid="mock-alert-dialog" data-open={open}>
       {children}
       <button data-testid="mock-open-change-button" onClick={() => onOpenChange(!open)}>
@@ -21,41 +23,42 @@ vi.mock("../../../components/ui/alert-dialog", () => ({
       </button>
     </div>
   ),
-  AlertDialogTrigger: ({ children, asChild }: any) => (
+  AlertDialogTrigger: ({ children, asChild }) => (
     <div data-testid="mock-alert-dialog-trigger" data-as-child={asChild}>
       {children}
     </div>
   ),
-  AlertDialogContent: ({ children }: any) => <div data-testid="mock-alert-dialog-content">{children}</div>,
-  AlertDialogHeader: ({ children }: any) => <div data-testid="mock-alert-dialog-header">{children}</div>,
-  AlertDialogFooter: ({ children }: any) => <div data-testid="mock-alert-dialog-footer">{children}</div>,
-  AlertDialogTitle: ({ children }: any) => <div data-testid="mock-alert-dialog-title">{children}</div>,
-  AlertDialogDescription: ({ children }: any) => <div data-testid="mock-alert-dialog-description">{children}</div>,
-  AlertDialogAction: ({ children, onClick }: any) => (
+  AlertDialogContent: ({ children }) => <div data-testid="mock-alert-dialog-content">{children}</div>,
+  AlertDialogHeader: ({ children }) => <div data-testid="mock-alert-dialog-header">{children}</div>,
+  AlertDialogFooter: ({ children }) => <div data-testid="mock-alert-dialog-footer">{children}</div>,
+  AlertDialogTitle: ({ children }) => <div data-testid="mock-alert-dialog-title">{children}</div>,
+  AlertDialogDescription: ({ children }) => <div data-testid="mock-alert-dialog-description">{children}</div>,
+  AlertDialogAction: ({ children, onClick }) => (
     <button data-testid="mock-alert-dialog-action" onClick={onClick}>
       {children}
     </button>
   ),
-  AlertDialogCancel: ({ children }: any) => <button data-testid="mock-alert-dialog-cancel">{children}</button>,
+  AlertDialogCancel: ({ children }) => <button data-testid="mock-alert-dialog-cancel">{children}</button>,
 }));
 
+// @ts-expect-error - ignorujemy błędy typów w mockach testowych
 vi.mock("../../../components/ui/card", () => ({
-  Card: ({ children, className }: any) => (
+  Card: ({ children, className }) => (
     <div data-testid="mock-card" className={className}>
       {children}
     </div>
   ),
-  CardHeader: ({ children, className }: any) => (
+  CardHeader: ({ children, className }) => (
     <div data-testid="mock-card-header" className={className}>
       {children}
     </div>
   ),
-  CardContent: ({ children, className }: any) => (
+  CardContent: ({ children, className }) => (
     <div data-testid="mock-card-content" className={className}>
       {children}
     </div>
   ),
-  CardFooter: ({ children, className }: any) => (
+  CardFooter: ({ children, className }) => (
     <div data-testid="mock-card-footer" className={className}>
       {children}
     </div>
@@ -79,7 +82,7 @@ describe("ShoppingListItem", () => {
   });
 
   it("powinien renderować prawidłowo z przekazanymi propsami", () => {
-    render(<ShoppingListItem list={mockList} onDeleteList={mockOnDeleteList} />);
+    renderWithProviders(<ShoppingListItem list={mockList} onDeleteList={mockOnDeleteList} />);
 
     // Sprawdzamy, czy tytuł listy jest wyświetlany
     expect(screen.getByText("Test Lista Zakupów")).toBeInTheDocument();
@@ -97,7 +100,7 @@ describe("ShoppingListItem", () => {
   });
 
   it("powinien wyświetlać sformatowaną datę utworzenia", () => {
-    render(<ShoppingListItem list={mockList} onDeleteList={mockOnDeleteList} />);
+    renderWithProviders(<ShoppingListItem list={mockList} onDeleteList={mockOnDeleteList} />);
 
     // Data powinna być sformatowana zgodnie z formatem z komponentu
     // Przykład: "1 stycznia 2023"
@@ -108,7 +111,7 @@ describe("ShoppingListItem", () => {
 
   it("powinien mieć nieaktywny przycisk usuwania gdy lista jest w trakcie usuwania", () => {
     const deletingList = { ...mockList, isDeleting: true };
-    render(<ShoppingListItem list={deletingList} onDeleteList={mockOnDeleteList} />);
+    renderWithProviders(<ShoppingListItem list={deletingList} onDeleteList={mockOnDeleteList} />);
 
     // Przycisk powinien być nieaktywny
     const deleteButton = screen.getByTestId("mock-button");
@@ -116,7 +119,7 @@ describe("ShoppingListItem", () => {
   });
 
   it("powinien wywołać funkcję onDeleteList po potwierdzeniu usunięcia", async () => {
-    render(<ShoppingListItem list={mockList} onDeleteList={mockOnDeleteList} />);
+    renderWithProviders(<ShoppingListItem list={mockList} onDeleteList={mockOnDeleteList} />);
 
     // Otwieramy dialog potwierdzenia
     const deleteButton = screen.getByText("Usuń");
@@ -131,7 +134,7 @@ describe("ShoppingListItem", () => {
   });
 
   it("nie powinien wywołać funkcji onDeleteList po anulowaniu usunięcia", async () => {
-    render(<ShoppingListItem list={mockList} onDeleteList={mockOnDeleteList} />);
+    renderWithProviders(<ShoppingListItem list={mockList} onDeleteList={mockOnDeleteList} />);
 
     // Otwieramy dialog potwierdzenia
     const deleteButton = screen.getByText("Usuń");
@@ -147,7 +150,7 @@ describe("ShoppingListItem", () => {
 
   it("powinien mieć przezroczystość obniżoną gdy lista jest w trakcie usuwania", () => {
     const deletingList = { ...mockList, isDeleting: true };
-    render(<ShoppingListItem list={deletingList} onDeleteList={mockOnDeleteList} />);
+    renderWithProviders(<ShoppingListItem list={deletingList} onDeleteList={mockOnDeleteList} />);
 
     // Sprawdzamy, czy klasa opacity-50 jest dodana do karty
     const card = screen.getByTestId("mock-card");

@@ -199,6 +199,8 @@ ShopListeo to aplikacja webowa do zarządzania listami zakupów z minimalistyczn
 
 ### Układ globalny
 - Pełnoekranowy interfejs z boczną nawigacją
+- zalogowany użytkownik widzi w prawym górnym rogu ikonkę, która pozwala mu przejść do jego profilu
+- zalogowany użytkownik widzi informację w panelu, że jest zalogowany jako użytkownik o danym adresie e-mail
 - Na urządzeniach mobilnych nawigacja zwija się do hamburger menu
 - Przełącznik trybu jasny/ciemny w menu głównym
 - Stopka aplikacji z informacją "Powered by asperIT"

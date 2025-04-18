@@ -55,19 +55,20 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   // Przypisanie klienta Supabase do context.locals
   (locals as AstroLocals).supabase = supabaseClient;
 
-  // Pomijamy pliki statyczne
+  // Pobieramy ścieżkę z URL
   const url = new URL(request.url);
   const pathname = url.pathname;
 
-  if (pathname.includes("_astro") || pathname.includes(".") || pathname.includes("/api/")) {
+  // Pomijamy pliki statyczne
+  if (pathname.includes("_astro") || pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/)) {
     return await next();
   }
 
-  // Tryb developerski
+  // Tryb developerski - konfigurujemy testowego użytkownika
   if (isDevelopment) {
     console.log("🔧 Tryb deweloperski: używanie testowego użytkownika");
 
-    // Testowy użytkownik deweloperski dla łatwiejszego testowania API
+    // Testowy użytkownik deweloperski dla łatwiejszego testowania
     const devUser: User = {
       id: "4e0a9b6a-b416-48e6-8d35-5700bd1d674a",
       app_metadata: { isAdmin: true },
@@ -78,6 +79,7 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
       role: "authenticated",
     };
 
+    // Ustawiamy użytkownika w locals
     (locals as AstroLocals).user = devUser;
 
     // W trybie dev przyjmujemy że użytkownik jest zalogowany dla łatwiejszego testowania
@@ -92,6 +94,7 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
     (locals as any).authUser = devUserDTO;
     (locals as any).isAuthenticated = true;
 
+    // Kontynuujemy przetwarzanie
     return await next();
   }
 
