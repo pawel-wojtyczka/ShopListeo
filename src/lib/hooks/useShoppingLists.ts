@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { ShoppingListSummaryDTO, CreateShoppingListRequest, CreateShoppingListResponse } from "../../types";
 import { showSuccessToast, showErrorToast } from "../services/toast-service";
+import { supabaseClient } from "../../db/supabase.client";
 
 // Typ dla modelu widoku pojedynczego elementu list zakupów
 interface ShoppingListItemViewModel extends ShoppingListSummaryDTO {
@@ -35,12 +36,42 @@ export function useShoppingLists() {
   // Funkcja do pobierania list zakupów
   const fetchShoppingLists = async () => {
     setViewModel((prev) => ({ ...prev, isLoading: true, error: null }));
+    console.log("[useShoppingLists] Fetching shopping lists..."); // Log start
 
     try {
-      const response = await fetch("/api/shopping-lists");
+      console.log("[useShoppingLists] Attempting to get session..."); // Log before getSession
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+
+      // Log the result of getSession
+      console.log("[useShoppingLists] getSession result:", { session: sessionData?.session, error: sessionError });
+
+      if (sessionError) {
+        console.error("[useShoppingLists] Session error:", sessionError.message);
+        throw new Error(`Błąd pobierania sesji: ${sessionError.message}`);
+      }
+
+      // Use sessionData.session for the check
+      if (!sessionData?.session) {
+        console.warn("[useShoppingLists] No active session found.");
+        throw new Error("Użytkownik nie jest zalogowany");
+      }
+
+      // Now use the session from sessionData
+      const session = sessionData.session;
+      console.log(
+        "[useShoppingLists] Session found, fetching API with token:",
+        session.access_token.substring(0, 10) + "..."
+      ); // Log only part of the token
+
+      const response = await fetch("/api/shopping-lists", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (!response.ok) {
-        throw new Error(`Błąd podczas pobierania list: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Błąd podczas pobierania list (${response.status}): ${errorData.error || response.statusText}`);
       }
 
       const data = await response.json();
@@ -77,6 +108,22 @@ export function useShoppingLists() {
     setViewModel((prev) => ({ ...prev, isCreating: true, error: null }));
 
     try {
+      // Get session inside createList
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+
+      if (sessionError) {
+        console.error("[useShoppingLists] Session error in createList:", sessionError.message);
+        throw new Error(`Błąd pobierania sesji: ${sessionError.message}`);
+      }
+
+      if (!sessionData?.session) {
+        console.warn("[useShoppingLists] No active session found for createList.");
+        throw new Error("Użytkownik nie jest zalogowany");
+      }
+
+      const session = sessionData.session;
+      console.log("[useShoppingLists] Session found, creating list with token.");
+
       // Generowanie domyślnego tytułu dla nowej listy (np. z datą)
       const defaultTitle = `Lista zakupów ${new Date().toLocaleDateString("pl-PL")}`;
 
@@ -88,12 +135,14 @@ export function useShoppingLists() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {
-        throw new Error(`Błąd podczas tworzenia listy: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Błąd podczas tworzenia listy (${response.status}): ${errorData.error || response.statusText}`);
       }
 
       const data: CreateShoppingListResponse = await response.json();
@@ -141,12 +190,32 @@ export function useShoppingLists() {
     }));
 
     try {
+      // Get session inside deleteList
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+
+      if (sessionError) {
+        console.error("[useShoppingLists] Session error in deleteList:", sessionError.message);
+        throw new Error(`Błąd pobierania sesji: ${sessionError.message}`);
+      }
+
+      if (!sessionData?.session) {
+        console.warn("[useShoppingLists] No active session found for deleteList.");
+        throw new Error("Użytkownik nie jest zalogowany");
+      }
+
+      const session = sessionData.session;
+      console.log("[useShoppingLists] Session found, deleting list with token.");
+
       const response = await fetch(`/api/shopping-lists/${listId}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`Błąd podczas usuwania listy: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Błąd podczas usuwania listy (${response.status}): ${errorData.error || response.statusText}`);
       }
 
       // Usunięcie listy z UI po potwierdzeniu z serwera

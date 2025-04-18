@@ -1,7 +1,8 @@
 import type { MiddlewareHandler } from "astro";
 import type { AstroLocals } from "../types/locals";
-import { supabaseClient } from "../db/supabase.client";
 import type { UserDTO } from "../types";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import type { Database } from "../db/database.types";
 
 // Ścieżki wymagające autentykacji
 const PROTECTED_ROUTES = ["/", "/shopping-lists", "/profile"];
@@ -20,69 +21,75 @@ export const prerender = false;
 export const onRequest: MiddlewareHandler = async (context, next) => {
   const { request, locals, cookies, redirect } = context;
 
-  // Przypisanie klienta Supabase do context.locals
-  (locals as AstroLocals).supabase = supabaseClient;
-
   // Pobieramy ścieżkę z URL
   const url = new URL(request.url);
   const pathname = url.pathname;
 
-  // Skip static files AND API routes from auth checks/redirects
-  if (
-    pathname.startsWith("/api/") ||
-    pathname.includes("_astro") ||
-    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/)
-  ) {
-    console.log(`Middleware: Skipping auth checks for path: ${pathname}`);
-    return await next();
+  // Skip auth checks ONLY for static assets, not API routes
+  if (pathname.includes("_astro") || pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/)) {
+    console.log(`Middleware: Skipping auth checks for static asset: ${pathname}`);
+  } else {
+    console.log(`Middleware: Running auth checks for path: ${pathname}`);
   }
 
-  /* DEV MODE OVERRIDE IS COMMENTED OUT */
+  // Create Supabase client using @supabase/ssr for server-side context
+  const supabase = createServerClient<Database>(
+    import.meta.env.SUPABASE_URL, // Use non-public URL
+    import.meta.env.SUPABASE_KEY, // Use non-public Anon Key
+    {
+      cookies: {
+        // Get cookies from Astro context
+        get(key: string) {
+          return cookies.get(key)?.value;
+        },
+        // Set cookies using Astro context
+        set(key: string, value: string, options: CookieOptions) {
+          cookies.set(key, value, options);
+        },
+        // Remove cookies using Astro context
+        remove(key: string, options: CookieOptions) {
+          cookies.delete(key, options);
+        },
+      },
+    }
+  );
+
+  // Assign the ssr-configured client to locals
+  (locals as AstroLocals).supabase = supabase;
 
   // --- AUTHENTICATION FLOW ---
   let authUser: UserDTO | null = null;
   let isAuthenticated = false;
-  let supabaseUser = null; // Variable to hold the raw Supabase user
+  let supabaseUser = null;
 
-  // 1. Get token
-  const token = cookies.get("authToken")?.value || request.headers.get("Authorization")?.replace("Bearer ", "");
+  // 1. Get User / Session using the ssr client
+  // No need to manually handle token, getUser() will use the cookie handler
+  console.log("Middleware: Attempting to get user via supabase.auth.getUser()...");
+  const {
+    data: { user },
+    error: getUserError,
+  } = await supabase.auth.getUser();
 
-  // 2. Verify token if it exists
-  if (token) {
-    console.log("Middleware: Token found, verifying...");
-    const {
-      data: { user },
-      error,
-    } = await supabaseClient.auth.getUser(token);
-
-    if (error || !user) {
-      // Token invalid or expired
-      console.log("Middleware: Token verification failed or user not found.", error?.message);
-      isAuthenticated = false;
-      authUser = null;
-      supabaseUser = null;
-      // Clear the invalid cookie
-      cookies.delete("authToken", { path: "/" });
-      console.log("Middleware: Invalid cookie cleared.");
-    } else {
-      // Token is valid
-      console.log(`Middleware: Token verified for user: ${user.email}`);
-      isAuthenticated = true;
-      supabaseUser = user; // Store the raw user object
-      // Map to UserDTO
-      authUser = {
-        id: user.id,
-        email: user.email || "",
-        registrationDate: user.created_at || "",
-        lastLoginDate: user.last_sign_in_at || null,
-        isAdmin: user.app_metadata?.isAdmin || false,
-      };
-    }
-  } else {
-    console.log("Middleware: No token found.");
+  // 2. Handle verification result
+  if (getUserError || !user) {
+    console.log("Middleware: User not found or error.", getUserError?.message);
     isAuthenticated = false;
     authUser = null;
     supabaseUser = null;
+    // No need to manually delete cookies here, Supabase client handles expiration
+  } else {
+    // User is valid
+    console.log(`Middleware: User verified: ${user.email}`);
+    isAuthenticated = true;
+    supabaseUser = user;
+    // Map to UserDTO
+    authUser = {
+      id: user.id,
+      email: user.email || "",
+      registrationDate: user.created_at || "",
+      lastLoginDate: user.last_sign_in_at || null,
+      isAdmin: user.app_metadata?.isAdmin || false,
+    };
   }
 
   // 3. Set locals based on verification result

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { PageHeader } from "../PageHeader";
 import LoginForm from "./LoginForm";
-import type { LoginUserRequest, LoginUserResponse } from "../../types";
+import type { LoginUserRequest } from "../../types";
+import { supabaseClient } from "../../db/supabase.client";
 
 const LoginView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -11,75 +12,38 @@ const LoginView: React.FC = () => {
     console.log("[LoginView] handleLogin triggered with data:", data);
     setIsSubmitting(true);
     setApiError(null);
-    console.log("Attempting login with:", data);
+    console.log("Attempting Supabase login with:", data.email);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
       });
 
-      const responseData: LoginUserResponse | { message?: string; error?: unknown } = await response
-        .json()
-        .catch(() => ({}));
-
-      if (!response.ok) {
-        let errorMessage = `Błąd logowania (${response.status})`; // Default error
-        // Check if responseData has error details and is not the success type
-        if (typeof responseData === "object" && responseData !== null && !("token" in responseData)) {
-          // Check if responseData.error is an object with a message property
-          let specificErrorMsg: string | undefined;
-          if (
-            responseData.error &&
-            typeof responseData.error === "object" &&
-            "message" in responseData.error &&
-            typeof responseData.error.message === "string"
-          ) {
-            specificErrorMsg = responseData.error.message;
-          }
-
-          errorMessage =
-            responseData.message ||
-            specificErrorMsg || // Use the extracted message if available
-            (responseData.error ? String(responseData.error) : undefined) || // Convert error to string if it exists but has no message
-            errorMessage; // Use default if specific messages aren't found
+      if (authError) {
+        console.error("Supabase login error:", authError);
+        let friendlyMessage = "Nieprawidłowy email lub hasło.";
+        if (authError.message.includes("Invalid login credentials")) {
+          friendlyMessage = "Nieprawidłowy email lub hasło.";
+        } else if (authError.message.includes("Email not confirmed")) {
+          friendlyMessage = "Adres email nie został potwierdzony.";
         }
-        console.error("Login API error details:", responseData);
-        throw new Error(String(errorMessage)); // Ensure errorMessage is a string
+        throw new Error(friendlyMessage);
       }
 
-      // Type assertion is safer here because we checked response.ok
-      const successData = responseData as LoginUserResponse;
-      console.log("Login successful, received token:", successData.token);
-
-      // Store token based on rememberMe flag
-      if (data.rememberMe) {
-        localStorage.setItem("authToken", successData.token);
-        console.log("Token stored in localStorage");
-      } else {
-        sessionStorage.setItem("authToken", successData.token);
-        console.log("Token stored in sessionStorage");
+      if (!authData || !authData.session || !authData.user) {
+        console.error("Supabase login response missing data:", authData);
+        throw new Error("Logowanie nie powiodło się. Brak danych sesji.");
       }
 
-      // Dispatch a custom event to notify other parts of the app
-      window.dispatchEvent(
-        new CustomEvent("authChange", {
-          detail: {
-            isAuthenticated: true,
-            // Pass user data if available from API response, otherwise fetch separately later
-            user: { id: successData.id, email: successData.email },
-          },
-        })
-      );
-      console.log("Dispatched authChange event");
+      console.log(`Supabase login successful for user: ${authData.user.email}`);
+      console.log("Session automatically handled by Supabase client (using cookies).");
 
-      // Redirect to the main page after successful login
-      window.location.href = "/";
+      // Re-adding client-side redirect after successful login
+      console.log("[LoginView] Redirecting to /...");
+      window.location.assign("/"); // Use assign for navigation
     } catch (error) {
-      console.error("Login fetch error:", error);
+      console.error("Login error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);
