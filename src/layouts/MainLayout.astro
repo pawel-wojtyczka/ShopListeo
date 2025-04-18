@@ -1,6 +1,10 @@
 import "../styles/global.css";
-import { ViewTransitions } from "astro:transitions";
-import type { UserDTO } from "../types"; // Import UserDTO if available
+import { ViewTransition } from "astro:transitions";
+// Removed UserDTO import, not needed here directly
+
+// Import the AuthProvider and AuthStatus component
+import { AuthProvider } from "@/lib/auth/AuthContext";
+import AuthStatus from "@/components/auth/AuthStatus"; // Adjust path if necessary
 
 interface Props {
   title?: string;
@@ -13,132 +17,44 @@ const { title = "ShopListeo" } = Astro.props;
 <html lang="pl" class="h-full">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
-    <ViewTransitions />
+    <ViewTransition />
   </head>
   <body class="h-full bg-background text-foreground antialiased">
-    <div class="flex h-full min-h-screen flex-col md:flex-row">
-      <!-- Nawigacja boczna -->
-      <div class="w-64 border-r hidden md:block p-4 flex flex-col justify-between">
-        <div>
-          <div class="text-xl font-bold mb-6">ShopListeo</div>
-          <nav class="space-y-2">
-             <a href="/" class:list={[ // Use class:list for conditional classes
-               "flex items-center p-2 rounded-lg hover:bg-muted text-foreground",
-               // Add active class logic if needed, e.g., based on Astro.url.pathname
-               // { "bg-muted": Astro.url.pathname === "/" }
-             ]}>
-               Listy zakupów
-             </a>
-             {/* Add more nav links here */}
-          </nav>
+    {/* Wrap the entire body content with AuthProvider */}
+    <AuthProvider>
+      <div class="flex h-full min-h-screen flex-col md:flex-row">
+        <!-- Nawigacja boczna -->
+        <div class="w-64 border-r hidden md:block p-4 flex flex-col justify-between">
+          <div>
+            <div class="text-xl font-bold mb-6">ShopListeo</div>
+            <nav class="space-y-2">
+               <a href="/" class:list={[ // Use class:list for conditional classes
+                 "flex items-center p-2 rounded-lg hover:bg-muted text-foreground",
+                 // Add active class logic if needed, e.g., based on Astro.url.pathname
+                 // { "bg-muted": Astro.url.pathname === "/" }
+               ]}>
+                 Listy zakupów
+               </a>
+               {/* Add more nav links here */}
+            </nav>
+          </div>
+          
+          {/* Auth Status Area - Now rendered by React */}
+          <div id="auth-status-area" class="mt-auto text-sm text-muted-foreground p-2 border-t">
+             {/* Render the AuthStatus component */}
+             <AuthStatus client:idle /> 
+          </div>
         </div>
         
-        {/* User Auth Status Area - will be updated by client-side script */}
-        <div id="auth-status-area" class="mt-auto text-sm text-muted-foreground p-2 border-t">
-           {/* Initial state - might show loading or logged out */}
-           <p>Sprawdzanie statusu...</p> 
-        </div>
+        <!-- Główny obszar treści -->
+        <main class="flex-1 overflow-auto p-6">
+          <slot />
+        </main>
       </div>
-      
-      <!-- Główny obszar treści -->
-      <main class="flex-1 overflow-auto p-6">
-        <slot />
-      </main>
-    </div>
-
-    <script is:inline>
-      const authStatusArea = document.getElementById('auth-status-area');
-      console.log('Layout script loaded. Auth status area:', authStatusArea);
-
-      function updateAuthStatus(isAuthenticated, user) {
-        if (!authStatusArea) {
-          console.error('Cannot update auth status: authStatusArea element not found.');
-          return;
-        }
-        console.log('Updating auth status:', { isAuthenticated, user });
-
-        if (isAuthenticated && user) {
-          authStatusArea.innerHTML = `
-            <p>Zalogowano jako:</p>
-            <p class="font-medium break-words">${escapeHtml(user.email)}</p>
-            <form id="logout-form" action="/api/auth/logout" method="post">
-              <button type="submit" class="text-red-500 hover:underline mt-1 w-full text-left">Wyloguj</button>
-            </form>
-          `;
-        } else {
-          authStatusArea.innerHTML = `
-            <p>Niezalogowany</p>
-            <a href="/login" class="text-primary hover:underline">Zaloguj się</a>
-          `;
-        }
-      }
-
-      function escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return unsafe
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
-      async function checkInitialAuth() {
-        console.log('Checking initial auth status...');
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        
-        if (token) {
-          console.log('Token found in storage. Verifying with /api/users/me...');
-          try {
-            // Call the /api/users/me endpoint to verify token and get user data
-            const response = await fetch('/api/users/me', {
-              headers: {
-                // Include token in Authorization header (some servers might prefer this)
-                // 'Authorization': `Bearer ${token}`,
-                // Cookie should be sent automatically by the browser if httpOnly is not set 
-                // or if credentials: 'include' is used, but rely on cookie first.
-              }
-            });
-
-            if (response.ok) {
-              const user = await response.json(); // Expects UserDTO
-              console.log('/api/users/me successful:', user);
-              updateAuthStatus(true, user);
-            } else {
-              console.log(`/api/users/me failed with status ${response.status}. Clearing token and showing logged out.`);
-              // Token is invalid or expired, clear it
-              localStorage.removeItem('authToken');
-              sessionStorage.removeItem('authToken');
-              updateAuthStatus(false, null);
-            }
-          } catch (error) {
-            console.error('Error calling /api/users/me:', error);
-            updateAuthStatus(false, null); // Show as logged out on error
-          }
-        } else {
-          console.log('No token found in storage. Showing logged out.');
-          updateAuthStatus(false, null);
-        }
-      }
-
-      window.addEventListener('authChange', (event) => {
-        console.log('authChange event received in layout', event.detail);
-        const { isAuthenticated, user } = event.detail;
-        updateAuthStatus(isAuthenticated, user);
-      });
-
-      // Listen for logout triggered by API redirect (form submission)
-      // If the logout API redirects back, this might catch it.
-      // A more robust way might be needed depending on exact flow.
-      // Consider checking response status of form submission if possible.
-
-      // Initial check when the script loads
-      checkInitialAuth();
-
-    </script>
+    </AuthProvider>
   </body>
 </html> 

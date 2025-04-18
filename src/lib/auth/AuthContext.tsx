@@ -42,42 +42,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Sprawdzenie statusu autentykacji przy montowaniu komponentu
   useEffect(() => {
+    // Define checkAuthStatus function directly inside useEffect
     const checkAuthStatus = async () => {
+      console.log("[AuthContext] checkAuthStatus running...");
+      const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
+      // If no token AND no user is currently set, we are definitely logged out.
+      if (!token && !user) {
+        console.log("[AuthContext] No token and no user, setting loading false.");
+        setIsLoading(false);
+        return;
+      }
+
+      // If we have a token OR a user already (re-validate on mount)
+      console.log(`[AuthContext] Token: ${!!token}, Current User: ${!!user}. Fetching /api/users/me...`);
+      setIsLoading(true);
       try {
-        // Sprawdzenie czy token jest w localStorage lub sessionStorage
-        const storedToken = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+        const response = await fetch("/api/users/me");
+        console.log(`[AuthContext] /api/users/me response status: ${response.status}`);
 
-        if (!storedToken) {
-          // Brak tokenu - użytkownik nie jest zalogowany
-          setIsLoading(false);
-          return;
-        }
-
-        // Pobranie profilu użytkownika za pomocą tokenu
-        const response = await fetch("/api/auth/me", {
-          headers: {
-            Authorization: `Bearer ${storedToken}`,
-          },
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-          setToken(storedToken);
-        } else {
-          // Token jest nieważny - wyloguj użytkownika
+        if (!response.ok) {
+          // Clear user and token if request fails
+          setUser(null);
           localStorage.removeItem("authToken");
           sessionStorage.removeItem("authToken");
+          // Don't throw error here, just set logged out state
+          console.log("[AuthContext] Auth check failed, clearing state.");
+        } else {
+          const userData: UserDTO = await response.json();
+          console.log("[AuthContext] User data received:", userData);
+          setUser(userData); // Update user state
         }
       } catch (error) {
-        console.error("Błąd sprawdzania statusu autentykacji:", error);
+        console.error("[AuthContext] Error fetching /api/users/me:", error);
+        setUser(null); // Clear user on fetch error
+        localStorage.removeItem("authToken");
+        sessionStorage.removeItem("authToken");
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuthStatus();
-  }, []);
+
+    // We only want this effect to run on mount, or potentially when the token changes
+    // For simplicity, run only on mount. Login/logout actions should update the context.
+  }, []); // Empty dependency array: runs only on mount
 
   // Funkcja do logowania
   const login = (newToken: string, rememberMe = false) => {
