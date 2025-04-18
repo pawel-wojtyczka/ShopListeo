@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader } from "../PageHeader";
-import { SetNewPasswordForm } from "./SetNewPasswordForm";
+import SetNewPasswordForm from "./SetNewPasswordForm";
 
 const SetNewPasswordView: React.FC = () => {
   const [accessToken, setAccessToken] = useState<string | null>(null);

@@ -1,5 +1,6 @@
+---
 import "../styles/global.css";
-import { ViewTransition } from "astro:transitions";
+import { ViewTransitions } from "astro:transitions";
 // Removed UserDTO import, not needed here directly
 
 // Import the AuthProvider and AuthStatus component
@@ -12,6 +13,7 @@ interface Props {
 
 const { title = "ShopListeo" } = Astro.props;
 // Removed isAuthenticated and authUser from locals - will be managed client-side
+---
 
 <!doctype html>
 <html lang="pl" class="h-full">
@@ -21,40 +23,35 @@ const { title = "ShopListeo" } = Astro.props;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
-    <ViewTransition />
+    <ViewTransitions />
   </head>
   <body class="h-full bg-background text-foreground antialiased">
-    {/* Wrap the entire body content with AuthProvider */}
-    <AuthProvider>
+    <AuthProvider client:load>
       <div class="flex h-full min-h-screen flex-col md:flex-row">
-        <!-- Nawigacja boczna -->
+        {/* Poprawiony komentarz: Nawigacja boczna */}
         <div class="w-64 border-r hidden md:block p-4 flex flex-col justify-between">
           <div>
             <div class="text-xl font-bold mb-6">ShopListeo</div>
             <nav class="space-y-2">
-               <a href="/" class:list={[ // Use class:list for conditional classes
-                 "flex items-center p-2 rounded-lg hover:bg-muted text-foreground",
-                 // Add active class logic if needed, e.g., based on Astro.url.pathname
-                 // { "bg-muted": Astro.url.pathname === "/" }
-               ]}>
-                 Listy zakupów
-               </a>
-               {/* Add more nav links here */}
+              <a href="/" class:list={["flex items-center p-2 rounded-lg hover:bg-muted text-foreground"]}>
+                Listy zakupów
+              </a>
+              {/* Add more nav links here */}
             </nav>
           </div>
-          
-          {/* Auth Status Area - Now rendered by React */}
+
+          {/* Poprawiony komentarz: Auth Status Area - Now rendered by React */}
           <div id="auth-status-area" class="mt-auto text-sm text-muted-foreground p-2 border-t">
-             {/* Render the AuthStatus component */}
-             <AuthStatus client:idle /> 
+            {/* Render the AuthStatus component */}
+            <AuthStatus client:idle />
           </div>
         </div>
-        
-        <!-- Główny obszar treści -->
+
+        {/* Poprawiony komentarz: Główny obszar treści */}
         <main class="flex-1 overflow-auto p-6">
           <slot />
         </main>
       </div>
     </AuthProvider>
   </body>
-</html> 
+</html>
