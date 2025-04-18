@@ -1,0 +1,20 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import ShoppingListDetailView from "@/components/views/ShoppingListDetailView";
+
+// Pobierz ID listy z parametrów ścieżki
+const { id } = Astro.params;
+
+// Sprawdzenie, czy ID jest dostępne (opcjonalne, ale dobre praktyki)
+if (!id) {
+  // Można tu zwrócić błąd 404 lub przekierować
+  return Astro.redirect("/404"); // Przykładowe przekierowanie
+}
+
+// Wyłączamy prerendering, ponieważ strona jest dynamiczna
+export const prerender = false;
+---
+
+<AppLayout title="Szczegóły Listy Zakupów">
+  <ShoppingListDetailView listId={id} client:load />
+</AppLayout>
