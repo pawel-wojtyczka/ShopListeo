@@ -7,6 +7,7 @@ import type {
   UpdateShoppingListItemResponse,
   AddItemToShoppingListRequest,
   AddItemToShoppingListResponse,
+  ShoppingListDetailResponse,
 } from "@/types";
 // Importuj klienta Supabase i usługi toast
 import { supabaseClient } from "@/db/supabase.client";
@@ -22,10 +23,9 @@ export interface ProductItemViewModel extends ShoppingListItemDTO {
 interface ShoppingListDetailViewModel {
   id: string; // ID listy
   title: string; // Tytuł listy
-  isLoading: boolean; // Status ładowania danych
-  isUpdating: boolean; // Status aktualizacji (np. tytułu, elementów)
-  error: string | null; // Komunikat błędu API
   items: ProductItemViewModel[]; // Lista elementów (ViewModel)
+  createdAt: string; // Dodaj datę utworzenia
+  updatedAt: string; // Dodaj datę aktualizacji
 }
 
 // Hook do zarządzania stanem i logiką widoku szczegółów listy zakupów
@@ -40,57 +40,53 @@ export function useShoppingListDetail(listId: string) {
     console.log(`[useShoppingListDetail] Fetching details for list ID: ${listId}`);
     setIsLoading(true);
     setError(null);
+    setViewModel(null); // Wyczyść poprzednie dane na czas ładowania
 
-    // TODO: Zaimplementować rzeczywiste wywołanie API GET /api/shopping-lists/:id
     try {
-      // Symulacja opóźnienia sieciowego
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Pobierz sesję i token
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+      if (sessionError || !sessionData?.session) {
+        throw new Error(sessionError?.message || "User not authenticated");
+      }
+      const token = sessionData.session.access_token;
 
-      // Przykładowe dane (zastąpić rzeczywistymi danymi z API)
-      const mockData: ShoppingListDetailViewModel = {
-        id: listId,
-        title: `Przykładowa Lista ${listId.substring(0, 4)}`,
-        isLoading: false,
-        isUpdating: false,
-        error: null,
-        items: [
-          {
-            id: "item-1",
-            itemName: "Mleko",
-            purchased: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isEditingName: false,
-            isUpdating: false,
-          },
-          {
-            id: "item-2",
-            itemName: "Chleb",
-            purchased: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isEditingName: false,
-            isUpdating: false,
-          },
-          {
-            id: "item-3",
-            itemName: "Masło",
-            purchased: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isEditingName: false,
-            isUpdating: false,
-          },
-        ],
+      // Wywołaj API
+      const response = await fetch(`/api/shopping-lists/${listId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Błąd API (${response.status}): ${errorData.error || response.statusText}`);
+      }
+
+      const data: ShoppingListDetailResponse = await response.json();
+
+      // Zmapuj odpowiedź API na ViewModel
+      const fetchedViewModel: ShoppingListDetailViewModel = {
+        id: data.id,
+        title: data.title,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+        items: data.items.map((item: ShoppingListItemDTO) => ({
+          ...item,
+          isEditingName: false, // Domyślny stan dla widoku
+          isUpdating: false, // Domyślny stan dla widoku
+        })),
       };
 
-      setViewModel(mockData);
-      console.log("[useShoppingListDetail] Mock data loaded:", mockData);
+      setViewModel(fetchedViewModel);
+      console.log("[useShoppingListDetail] List details loaded:", fetchedViewModel);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas pobierania szczegółów listy.";
       console.error("[useShoppingListDetail] Error fetching details:", errorMessage);
       setError(errorMessage);
       showErrorToast("Błąd pobierania listy", { description: errorMessage });
+      // Ustawiamy viewModel na null w przypadku błędu, aby komponent mógł to obsłużyć
+      setViewModel(null);
     } finally {
       setIsLoading(false);
     }
@@ -100,6 +96,11 @@ export function useShoppingListDetail(listId: string) {
   useEffect(() => {
     if (listId) {
       fetchListDetails();
+    } else {
+      // Jeśli listId jest puste lub null, zresetuj stan
+      setIsLoading(false);
+      setViewModel(null);
+      setError("Invalid List ID");
     }
   }, [listId, fetchListDetails]);
 
@@ -120,10 +121,6 @@ export function useShoppingListDetail(listId: string) {
 
       setIsUpdating(true);
       setError(null);
-      const originalTitle = viewModel.title; // Zapisz oryginał do ewentualnego przywrócenia
-
-      // Aktualizacja optymistyczna (opcjonalnie, na razie bez)
-      // setViewModel(prev => prev ? { ...prev, title: trimmedTitle } : null);
 
       try {
         const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
@@ -150,8 +147,16 @@ export function useShoppingListDetail(listId: string) {
 
         const data: UpdateShoppingListResponse = await response.json();
 
-        // Aktualizacja stanu po sukcesie
-        setViewModel((prev) => (prev ? { ...prev, title: data.title /* ew. updatedAt: data.updatedAt */ } : null));
+        // Aktualizacja stanu po sukcesie - weź dane z odpowiedzi API
+        setViewModel((prev) =>
+          prev
+            ? {
+                ...prev,
+                title: data.title,
+                updatedAt: data.updatedAt, // Zaktualizuj updatedAt
+              }
+            : null
+        );
 
         showSuccessToast("Tytuł zaktualizowany", {
           description: `Tytuł listy został zmieniony na "${data.title}".`,
@@ -160,8 +165,6 @@ export function useShoppingListDetail(listId: string) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas aktualizacji tytułu.";
         setError(errorMessage);
         showErrorToast("Błąd aktualizacji tytułu", { description: errorMessage });
-        // Przywrócenie stanu (jeśli była optymistyczna aktualizacja)
-        // setViewModel(prev => prev ? { ...prev, title: originalTitle } : null);
         throw err; // Rzuć błąd dalej, aby komponent mógł zareagować
       } finally {
         setIsUpdating(false);
@@ -172,9 +175,94 @@ export function useShoppingListDetail(listId: string) {
 
   const toggleItemPurchased = useCallback(
     async (itemId: string) => {
-      // ... logika
+      if (!viewModel) return;
+
+      const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
+      if (itemIndex === -1) {
+        console.error(`[toggleItemPurchased] Item with id ${itemId} not found.`);
+        showErrorToast("Błąd", { description: "Nie znaleziono produktu do zaktualizowania." });
+        return;
+      }
+
+      const originalItem = viewModel.items[itemIndex];
+      const newPurchasedStatus = !originalItem.purchased;
+
+      // Optymistyczna aktualizacja UI
+      setViewModel((prev) => {
+        if (!prev) return null;
+        const updatedItems = [...prev.items];
+        updatedItems[itemIndex] = {
+          ...originalItem,
+          purchased: newPurchasedStatus,
+          isUpdating: true, // Oznacz jako aktualizowany
+        };
+        return { ...prev, items: updatedItems };
+      });
+
+      try {
+        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+        if (sessionError || !sessionData?.session) {
+          throw new Error(sessionError?.message || "User not authenticated");
+        }
+        const token = sessionData.session.access_token;
+
+        const requestBody: UpdateShoppingListItemRequest = { purchased: newPurchasedStatus };
+
+        const response = await fetch(`/api/shopping-lists/${listId}/items/${itemId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`Błąd API (${response.status}): ${errorData.error || response.statusText}`);
+        }
+
+        const data: UpdateShoppingListItemResponse = await response.json();
+
+        // Potwierdzenie aktualizacji - zastosuj dane z serwera (głównie updatedAt)
+        setViewModel((prev) => {
+          if (!prev) return null;
+          const confirmedItems = [...prev.items];
+          const confirmedIndex = confirmedItems.findIndex((item) => item.id === itemId);
+          if (confirmedIndex !== -1) {
+            confirmedItems[confirmedIndex] = {
+              ...confirmedItems[confirmedIndex],
+              purchased: data.purchased, // Użyj danych z serwera
+              updatedAt: data.updatedAt, // Zaktualizuj updatedAt
+              isUpdating: false, // Zakończ ładowanie
+            };
+          }
+          return { ...prev, items: confirmedItems };
+        });
+
+        // Nie pokazujemy toastu sukcesu dla tej akcji, bo zmiana jest widoczna od razu
+        // showSuccessToast("Status produktu zaktualizowany");
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Nieznany błąd podczas aktualizacji statusu produktu.";
+        setError(errorMessage); // Ustaw ogólny błąd hooka
+        showErrorToast("Błąd aktualizacji produktu", { description: errorMessage });
+
+        // Przywróć stan w razie błędu
+        setViewModel((prev) => {
+          if (!prev) return null;
+          const revertedItems = [...prev.items];
+          const revertedIndex = revertedItems.findIndex((item) => item.id === itemId);
+          if (revertedIndex !== -1) {
+            // Przywróć oryginalny stan produktu
+            revertedItems[revertedIndex] = { ...originalItem, isUpdating: false };
+          }
+          return { ...prev, items: revertedItems };
+        });
+        // Nie rzucamy błędu dalej, bo został obsłużony przez toast i revert stanu
+      }
     },
-    [listId, viewModel]
+    [listId, viewModel] // Zależności obejmują teraz viewModel, aby mieć dostęp do items
   );
 
   // Funkcja do usuwania elementu z listy
@@ -408,7 +496,9 @@ export function useShoppingListDetail(listId: string) {
         if (addedItemsViewModels.length > 0) {
           setViewModel((prev) => {
             if (!prev) return null;
-            return { ...prev, items: [...prev.items, ...addedItemsViewModels] };
+            // Dodaj nowe elementy do istniejącej listy
+            const updatedItems = [...prev.items, ...addedItemsViewModels];
+            return { ...prev, items: updatedItems };
           });
         }
 
@@ -443,6 +533,8 @@ export function useShoppingListDetail(listId: string) {
     id: viewModel?.id ?? listId, // Zwróć listId jeśli viewModel jest null
     title: viewModel?.title ?? "", // Zwróć pusty string, jeśli viewModel jest null
     items: viewModel?.items ?? [], // Zwróć pustą tablicę, jeśli viewModel jest null
+    createdAt: viewModel?.createdAt, // Dodaj createdAt
+    updatedAt: viewModel?.updatedAt, // Dodaj updatedAt
     isLoading,
     isUpdating, // Zwróć ogólny stan aktualizacji
     error,

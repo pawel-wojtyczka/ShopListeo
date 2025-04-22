@@ -161,3 +161,11 @@ export interface BulkUpdateItemsResponse {
   updatedCount: number;
   updatedAt: string;
 }
+
+export interface ShoppingListDetailResponse {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  items: ShoppingListItemDTO[];
+}
