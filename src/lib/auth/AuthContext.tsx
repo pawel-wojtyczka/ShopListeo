@@ -163,21 +163,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
       checkAuthStatus();
     },
     logout: async () => {
-      console.log("[AuthContext] logout called");
-      // Wyloguj z Supabase Auth
-      try {
-        await supabaseClient.auth.signOut();
-      } catch (error) {
-        console.error("[AuthContext] Error signing out from Supabase:", error);
-      }
+      console.log("[AuthContext] logout called - using API endpoint");
 
-      // Wyczyść lokalne stany
-      localStorage.removeItem("authToken");
-      sessionStorage.removeItem("authToken");
+      // Wyczyść lokalne stany natychmiast (dla szybszej reakcji UI)
       setUser(null);
       setToken(null);
+      localStorage.removeItem("authToken");
+      sessionStorage.removeItem("authToken");
+      console.log("[AuthContext] Local state and storage cleared.");
 
-      // Przekierowanie do strony logowania
+      // Wywołaj serwerowy endpoint wylogowania
+      try {
+        const response = await fetch("/api/auth/logout", {
+          method: "POST",
+        });
+
+        if (!response.ok && response.status !== 204) {
+          // 204 is success with no content
+          console.error(`[AuthContext] Logout API endpoint failed with status: ${response.status}`);
+          // Opcjonalnie: Pokaż błąd użytkownikowi
+        } else {
+          console.log("[AuthContext] Logout API endpoint successful.");
+        }
+      } catch (error) {
+        console.error("[AuthContext] Error calling logout API endpoint:", error);
+        // Opcjonalnie: Pokaż błąd użytkownikowi
+      }
+
+      // Przekieruj do strony logowania (niezależnie od wyniku API, stan lokalny jest już wyczyszczony)
+      console.log("[AuthContext] Redirecting to /login");
       window.location.href = "/login";
     },
   };

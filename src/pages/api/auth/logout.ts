@@ -1,43 +1,57 @@
-import type { APIRoute } from "astro";
-import type { AstroLocals } from "src/types/locals";
+import type { APIContext } from 'astro';
+import type { AstroLocals } from '@/types/locals';
+import { logger } from '@/lib/logger';
 
 export const prerender = false;
 
 /**
- * Handles the POST request to log out the user.
- * Deletes the authentication cookie and redirects to the login page.
+ * API endpoint to handle user logout.
+ * Calls Supabase signOut on the server-side to clear the session cookie.
  */
-export const POST: APIRoute = async ({ locals }) => {
-  // Pobieramy klienta Supabase z lokalnego kontekstu
-  const supabase = (locals as AstroLocals)?.supabase;
+export async function POST({ locals, cookies }: APIContext) {
+  const requestId = crypto.randomUUID();
+  logger.info('[API Logout] Received POST request', { requestId });
+
+  const { supabase } = locals as AstroLocals;
+
   if (!supabase) {
-    console.error("API /auth/logout: Supabase client not found in locals");
-    return new Response(JSON.stringify({ message: "Błąd serwera." }), { status: 500 });
+    logger.error('[API Logout] Supabase client not found in locals', { requestId });
+    return new Response(JSON.stringify({ error: 'Internal server error: Supabase client missing' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    // Wywołujemy metodę wylogowania z Supabase
+    // Sign out the user on the server side
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      console.error("API /auth/logout: Error during logout", error);
-      return new Response(JSON.stringify({ message: "Wystąpił błąd podczas wylogowywania." }), { status: 500 });
+      logger.error('[API Logout] Error signing out from Supabase', { requestId }, error);
+      // Even if Supabase fails, proceed to clear cookies as a fallback
     }
 
-    console.log("API /auth/logout: User logged out successfully");
+    logger.info('[API Logout] Supabase signOut completed (or error occurred, proceeding)', { requestId });
 
-    // Pomyślne wylogowanie
-    return new Response(JSON.stringify({ message: "Wylogowano pomyślnie." }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("API /auth/logout: Unexpected error during logout", error);
-    return new Response(JSON.stringify({ message: "Wystąpił nieoczekiwany błąd podczas wylogowywania." }), {
+    // Explicitly clear potential Supabase cookies (names might vary, adjust if needed)
+    // Astro's signOut might handle this, but being explicit can help
+    cookies.delete('sb-access-token', { path: '/' });
+    cookies.delete('sb-refresh-token', { path: '/' });
+    // Add any other relevant session cookies if necessary
+
+    logger.info('[API Logout] Session cookies cleared', { requestId });
+
+    // Return a success response (No Content)
+    return new Response(null, { status: 204 });
+
+  } catch (err) {
+    logger.error('[API Logout] Unexpected error during logout process', { requestId }, err);
+    return new Response(JSON.stringify({ error: 'Wystąpił nieoczekiwany błąd podczas wylogowywania.' }), {
       status: 500,
+      headers: { 'Content-Type': 'application/json' },
     });
   }
-};
+}
 
 // Optional: Handle GET requests or other methods if needed,
 // otherwise they will result in a 405 Method Not Allowed error.

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import type {
   ShoppingListSummaryDTO,
   CreateShoppingListRequest,
@@ -109,144 +109,123 @@ export function useShoppingLists({
   // and useAuth() provides the necessary user.id.
 
   const createList = async (): Promise<string | null> => {
-    if (!isAuthenticated || !user) {
-      showErrorToast("Nie można utworzyć listy", { description: "Musisz być zalogowany." });
-      return null;
-    }
-
+    // Auth check removed
     setViewModel((prev) => ({ ...prev, isCreating: true, error: null }));
-    console.log("[useShoppingLists] Creating new list..."); // Log start
+    console.log("[useShoppingLists] Creating new list via client endpoint...");
 
     try {
-      // Generowanie domyślnego tytułu dla nowej listy (np. z datą)
       const defaultTitle = `Lista zakupów ${new Date().toLocaleDateString("pl-PL")}`;
-
-      const requestData: CreateShoppingListRequest = {
-        title: defaultTitle,
-      };
-
-      // Prepare headers using token from context if available
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
+      const requestData: CreateShoppingListRequest = { title: defaultTitle };
+      // Headers: Remove Authorization header logic
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      /* 
       if (token) {
-        console.log("[useShoppingLists] Using token from AuthContext for createList.");
         headers["Authorization"] = `Bearer ${token}`;
-      } else {
-        console.log("[useShoppingLists] No token in AuthContext for createList, relying on cookies.");
       }
+      */
 
-      const response = await fetch("/api/shopping-lists", {
+      // Use the NEW client-specific endpoint
+      const response = await fetch("/api/client/shopping-lists/create", {
         method: "POST",
         headers: headers,
         body: JSON.stringify(requestData),
+        credentials: "include", // Keep this
       });
 
-      console.log(`[useShoppingLists] Create list response status: ${response.status}`); // Log status
+      console.log(`[useShoppingLists] Create list (client endpoint) response status: ${response.status}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: response.statusText }));
         console.error(`[useShoppingLists] Error creating list (${response.status}):`, errorData);
+        if (response.status === 401) {
+          throw new Error("Sesja wygasła lub użytkownik nie jest zalogowany.");
+        }
         throw new Error(
-          `Błąd podczas tworzenia listy (${response.status}): ${errorData.message || errorData.error || response.statusText}`
+          `Błąd podczas tworzenia listy (${response.status}): ${errorData.message || errorData.error || "Nieznany błąd API"}`
         );
       }
 
+      // Assuming the new endpoint returns the same CreateShoppingListResponse shape
       const data: CreateShoppingListResponse = await response.json();
-      console.log("[useShoppingLists] List created successfully:", data); // Log success
-
-      // Aktualizacja stanu
-      setViewModel((prev) => ({
-        ...prev,
-        isCreating: false,
-      }));
-
-      // Powiadomienie o sukcesie
+      console.log("[useShoppingLists] List created successfully:", data);
+      setViewModel((prev) => ({ ...prev, isCreating: false }));
       showSuccessToast("Lista zakupów została utworzona", {
         description: `Lista "${defaultTitle}" została pomyślnie utworzona.`,
       });
-
-      // Manually refetch lists after creation to show the new list
       fetchShoppingLists();
-
-      // Zwrócenie ID nowej listy do przekierowania
       return data.id;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas tworzenia listy";
-      console.error("[useShoppingLists] Create list catch block error:", errorMessage); // Log catch errors
-      setViewModel((prev) => ({
-        ...prev,
-        isCreating: false,
-        error: errorMessage,
-      }));
-
-      // Powiadomienie o błędzie
-      showErrorToast("Nie udało się utworzyć listy zakupów", {
-        description: errorMessage,
-      });
-
+      console.error("[useShoppingLists] Create list catch block error:", errorMessage);
+      setViewModel((prev) => ({ ...prev, isCreating: false, error: errorMessage }));
+      showErrorToast("Nie udało się utworzyć listy zakupów", { description: errorMessage });
       return null;
     }
   };
 
   // Funkcja do usuwania listy zakupów
   const deleteList = async (listId: string): Promise<void> => {
-    if (!isAuthenticated || !user) {
-      showErrorToast("Nie można usunąć listy", { description: "Musisz być zalogowany." });
-      return;
-    }
-
-    // Znajdź tytuł listy przed usunięciem (do powiadomienia)
+    // Auth check removed
     const listToDelete = viewModel.lists.find((list) => list.id === listId);
     const listTitle = listToDelete?.title || "Lista zakupów";
-
-    // Optymistyczna aktualizacja UI - oznaczenie listy jako usuwanej
     setViewModel((prev) => ({
       ...prev,
       lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: true } : list)),
     }));
-    console.log(`[useShoppingLists] Attempting to delete list ${listId}...`); // Log start
+    console.log(`[useShoppingLists] Attempting to delete list ${listId} via client endpoint...`);
 
     try {
-      // Prepare headers using token from context if available
+      // Headers: Remove Authorization header logic
       const headers: Record<string, string> = {};
+      /*
       if (token) {
-        console.log("[useShoppingLists] Using token from AuthContext for deleteList.");
         headers["Authorization"] = `Bearer ${token}`;
-      } else {
-        console.log("[useShoppingLists] No token in AuthContext for deleteList, relying on cookies.");
       }
+      */
 
-      const response = await fetch(`/api/shopping-lists/${listId}`, {
+      // Use the NEW client-specific endpoint
+      const response = await fetch(`/api/client/shopping-lists/${listId}`, {
         method: "DELETE",
         headers: headers,
+        credentials: "include", // Keep this
       });
 
-      console.log(`[useShoppingLists] Delete list response status: ${response.status}`); // Log status
+      console.log(`[useShoppingLists] Delete list (client endpoint) response status: ${response.status}`);
 
       if (!response.ok) {
-        // If deletion failed, revert the optimistic update
+        // Revert optimistic update
         setViewModel((prev) => ({
           ...prev,
           lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: false } : list)),
         }));
-        const errorData = await response.json().catch(() => ({ message: response.statusText }));
-        console.error(`[useShoppingLists] Error deleting list ${listId} (${response.status}):`, errorData);
+
+        // Try to parse error, default to status text
+        let errorJson = { message: response.statusText };
+        try {
+          errorJson = await response.json();
+        } catch (_) {
+          /* Ignore parsing error - fix linter */
+        }
+
+        console.error(`[useShoppingLists] Error deleting list ${listId} (${response.status}):`, errorJson);
+        if (response.status === 401) {
+          throw new Error("Sesja wygasła lub użytkownik nie jest zalogowany.");
+        }
+        if (response.status === 404) {
+          throw new Error("Nie znaleziono listy do usunięcia.");
+        }
         throw new Error(
-          `Błąd podczas usuwania listy (${response.status}): ${errorData.message || errorData.error || response.statusText}`
+          `Błąd podczas usuwania listy (${response.status}): ${errorJson.message || "Nieznany błąd API"}`
         );
       }
 
-      console.log(`[useShoppingLists] List ${listId} deleted successfully.`); // Log success
-
-      // Usunięcie listy z modelu widoku po pomyślnym usunięciu na serwerze
+      // Status 204 No Content on successful delete
+      console.log(`[useShoppingLists] List ${listId} deleted successfully.`);
       setViewModel((prev) => ({
         ...prev,
         lists: prev.lists.filter((list) => list.id !== listId),
-        pagination: prev.pagination ? { ...prev.pagination, totalItems: prev.pagination.totalItems - 1 } : null, // Update pagination count
+        pagination: prev.pagination ? { ...prev.pagination, totalItems: prev.pagination.totalItems - 1 } : null,
       }));
-
-      // Powiadomienie o sukcesie
       showSuccessToast("Lista zakupów została usunięta", {
         description: `Lista "${listTitle}" została pomyślnie usunięta.`,
       });
@@ -255,17 +234,11 @@ export function useShoppingLists({
       setViewModel((prev) => ({
         ...prev,
         lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: false } : list)),
+        error: err instanceof Error ? err.message : "Nieznany błąd podczas usuwania listy",
       }));
-      const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas usuwania listy";
-      console.error(`[useShoppingLists] Delete list ${listId} catch block error:`, errorMessage); // Log catch errors
-      setViewModel((prev) => ({
-        ...prev,
-        error: errorMessage, // Show error in the view model maybe?
-      }));
-
-      // Powiadomienie o błędzie
+      console.error(`[useShoppingLists] Delete list ${listId} catch block error:`, err);
       showErrorToast("Nie udało się usunąć listy zakupów", {
-        description: errorMessage,
+        description: err instanceof Error ? err.message : "Nieznany błąd podczas usuwania listy",
       });
     }
   };

@@ -8,13 +8,17 @@ import { AuthProvider } from "@/lib/auth/AuthContext";
 import AuthStatus from "@/components/auth/AuthStatus"; // Adjust path if necessary
 // Import ToastProvider
 import { ToastProvider } from "@/components/ToastProvider";
+import type { AstroLocals } from "@/types/locals"; // Import AstroLocals
 
 interface Props {
   title?: string;
 }
 
 const { title = "ShopListeo" } = Astro.props;
-// Removed isAuthenticated and authUser from locals - will be managed client-side
+// Get the mapped UserDTO from locals (authUser)
+const { authUser } = Astro.locals as AstroLocals;
+// Remove dynamic key logic
+// const authKey = Astro.locals.user ? 'user-logged-in' : 'user-logged-out';
 ---
 
 <!doctype html>
@@ -35,7 +39,10 @@ const { title = "ShopListeo" } = Astro.props;
           <div>
             <div class="text-xl font-bold mb-6">ShopListeo</div>
             <nav class="space-y-2">
-              <a href="/" class:list={["flex items-center p-2 rounded-lg hover:bg-muted text-foreground"]}>
+              <a
+                href="/shopping-lists"
+                class:list={["flex items-center p-2 rounded-lg hover:bg-muted text-foreground"]}
+              >
                 Listy zakupów
               </a>
               {/* Add more nav links here */}
@@ -44,8 +51,8 @@ const { title = "ShopListeo" } = Astro.props;
 
           {/* Poprawiony komentarz: Auth Status Area - Now rendered by React */}
           <div id="auth-status-area" class="mt-auto text-sm text-muted-foreground p-2 border-t">
-            {/* Render the AuthStatus component - Should have context again */}
-            <AuthStatus client:load />
+            {/* Pass the mapped authUser from locals */}
+            <AuthStatus client:load initialUser={authUser} />
           </div>
         </div>
 
