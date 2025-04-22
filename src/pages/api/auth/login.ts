@@ -5,84 +5,86 @@ import type { LoginUserResponse } from "src/types";
 
 export const prerender = false;
 
-// Input validation schema
+// Schema do walidacji danych wejściowych
 const LoginSchema = z.object({
   email: z.string().email("Nieprawidłowy format adresu email."),
   password: z.string().min(1, "Hasło jest wymagane."),
-  // rememberMe is handled client-side for storing token, not needed here
+  rememberMe: z.boolean().optional(),
 });
 
-export const POST: APIRoute = async ({ request, locals, cookies }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  // Sprawdzanie dostępności klienta Supabase
   const supabase = (locals as AstroLocals)?.supabase;
   if (!supabase) {
-    console.error("API /login: Supabase client not found in locals");
-    return new Response(JSON.stringify({ message: "Błąd serwera." }), { status: 500 });
+    console.error("API /auth/login: Supabase client not found in locals");
+    return new Response(JSON.stringify({ message: "Błąd serwera - brak połączenia z usługą autoryzacji." }), {
+      status: 500,
+    });
   }
 
+  // Pobieranie i parsowanie danych JSON z żądania
   let requestData;
   try {
     requestData = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ message: "Nieprawidłowy format zapytania." }), { status: 400 });
+  } catch (error) {
+    console.error("API /auth/login: Invalid JSON", error);
+    return new Response(JSON.stringify({ message: "Nieprawidłowy format danych." }), { status: 400 });
   }
 
-  // Validate input
+  // Walidacja danych wejściowych
   const validationResult = LoginSchema.safeParse(requestData);
   if (!validationResult.success) {
+    const formattedErrors = validationResult.error.format();
+    console.error("API /auth/login: Validation error", formattedErrors);
     return new Response(
       JSON.stringify({
-        message: "Błąd walidacji.",
-        errors: validationResult.error.flatten().fieldErrors,
+        message: "Błąd walidacji danych.",
+        errors: formattedErrors,
       }),
       { status: 400 }
     );
   }
 
   const { email, password } = validationResult.data;
-  console.log(`API /login: Attempting login for ${email}`);
+  console.log(`API /auth/login: Login attempt for ${email}`);
 
   try {
-    // Sign in using Supabase
+    // Próba logowania przez Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
+      email,
+      password,
     });
 
-    if (error || !data.session || !data.user) {
-      console.error("API /login: Supabase signIn error:", error?.message);
-      // Use a generic message for invalid credentials
-      return new Response(JSON.stringify({ message: "Nieprawidłowy email lub hasło." }), { status: 401 }); // Unauthorized
+    // Obsługa błędu logowania
+    if (error) {
+      console.error("API /auth/login: Supabase auth error", error);
+
+      // Zwracamy ogólny komunikat dla bezpieczeństwa
+      return new Response(JSON.stringify({ message: "Nieprawidłowy email lub hasło." }), { status: 401 });
     }
 
-    // Login successful, extract token and user info
-    const token = data.session.access_token;
-    const user = data.user;
-    console.log(`API /login: Login successful for user: ${user.email}`);
+    // Sprawdzenie czy mamy poprawne dane użytkownika i sesji
+    if (!data.user || !data.session) {
+      console.error("API /auth/login: Missing user or session data");
+      return new Response(JSON.stringify({ message: "Błąd autoryzacji - brak danych użytkownika." }), { status: 500 });
+    }
 
-    // Set the auth token cookie (important for subsequent requests and SSR)
-    // Note: Set httpOnly: true and secure: true in production for security!
-    cookies.set("authToken", token, {
-      path: "/",
-      maxAge: data.session.expires_in || 60 * 60 * 24 * 7, // Default to 7 days
-      // httpOnly: true,
-      // secure: import.meta.env.PROD,
-      sameSite: "lax",
-    });
-    console.log("API /login: authToken cookie set.");
+    // Logowanie pomyślne - budujemy odpowiedź
+    console.log(`API /auth/login: Login successful for user: ${data.user.email}`);
 
-    // Prepare the response body matching LoginUserResponse
+    // Przygotowanie odpowiedzi
     const responseBody: LoginUserResponse = {
-      id: user.id,
-      email: user.email || "",
-      token: token, // Send token back to client (might be needed for some client-side logic)
+      id: data.user.id,
+      email: data.user.email || "",
+      token: data.session.access_token,
     };
 
     return new Response(JSON.stringify(responseBody), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (error: unknown) {
-    console.error("API /login: Unexpected error during login:", error);
-    return new Response(JSON.stringify({ message: "Wystąpił nieoczekiwany błąd serwera." }), { status: 500 });
+  } catch (error) {
+    console.error("API /auth/login: Unexpected error during login", error);
+    return new Response(JSON.stringify({ message: "Wystąpił nieoczekiwany błąd podczas logowania." }), { status: 500 });
   }
 };

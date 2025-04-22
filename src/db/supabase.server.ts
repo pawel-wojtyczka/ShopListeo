@@ -1,67 +1,61 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import type { AstroCookies } from "astro";
+import { createServerClient, type CookieOptionsWithName } from "@supabase/ssr";
 import type { Database } from "./database.types";
 
-// --- Server-side Admin Client (Singleton) ---
+// Konfiguracja plików cookie, zwłaszcza dla bezpieczeństwa w środowisku produkcyjnym
+export const cookieOptions: CookieOptionsWithName = {
+  path: "/",
+  secure: import.meta.env.PROD, // true w produkcji, false w środowisku deweloperskim
+  httpOnly: true,
+  sameSite: "lax",
+};
 
-// Konfiguracja serwerowa (używa zmiennych środowiskowych bez PUBLIC_)
-// Należy zapewnić, że SUPABASE_URL jest również dostępny na serwerze, jeśli nie jest ustawiony globalnie
-// Zazwyczaj SUPABASE_URL jest taki sam jak PUBLIC_SUPABASE_URL
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL; // Lub import.meta.env.SUPABASE_URL jeśli jest zdefiniowany
-const supabaseServiceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Sprawdzenie krytycznych zmiennych serwerowych
-if (!supabaseUrl) {
-  console.error(
-    "Server-side Supabase URL is missing. Check environment variables (.env file, ensure PUBLIC_SUPABASE_URL or SUPABASE_URL is set)."
-  );
-  throw new Error("Supabase server configuration error: Server URL not found.");
-}
-if (!supabaseServiceRoleKey) {
-  console.error(
-    "Server-side Supabase Service Role Key is missing. Check environment variables (.env file, ensure SUPABASE_SERVICE_ROLE_KEY is set)."
-  );
-  throw new Error("Supabase server configuration error: Service Role Key not found.");
+/**
+ * Parsuje nagłówek Cookie do formatu wymaganego przez @supabase/ssr
+ */
+function parseCookieHeader(cookieHeader: string): { name: string; value: string }[] {
+  return cookieHeader.split(";").map((cookie) => {
+    const [name, ...rest] = cookie.trim().split("=");
+    return { name, value: rest.join("=") };
+  });
 }
 
-let adminClient: ReturnType<typeof createServerClient<Database>> | null = null;
-
-function getSupabaseAdminClient() {
-  if (adminClient) {
-    return adminClient;
-  }
-
-  // Atrapy funkcji cookies, ponieważ używamy klienta z kluczem service_role,
-  // który omija RLS i nie polega na ciasteczkach sesji użytkownika do autoryzacji.
-  const cookies = {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    get: (_key: string) => undefined,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    set: (_key: string, _value: string, _options: CookieOptions) => {
-      // No-op
-    },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    remove: (_key: string, _options: CookieOptions) => {
-      // No-op
-    },
-  };
-
-  adminClient = createServerClient<Database>(supabaseUrl, supabaseServiceRoleKey, {
-    cookies: cookies,
-    // Opcjonalnie: konfiguracja przechowywania sesji, chociaż klucz serwisowy to omija
-    auth: {
-      persistSession: false, // Zazwyczaj false dla operacji z kluczem serwisowym
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
+/**
+ * Tworzy instancję klienta Supabase do użytku po stronie serwera,
+ * zgodnie z dokumentacją @supabase/ssr dla Astro
+ */
+export const createSupabaseServerInstance = (context: { headers: Headers; cookies: AstroCookies }) => {
+  const supabase = createServerClient<Database>(import.meta.env.SUPABASE_URL, import.meta.env.SUPABASE_KEY, {
+    cookieOptions,
+    cookies: {
+      // Implementacja getAll zamiast get/set/remove zgodnie z zaleceniami
+      getAll() {
+        return parseCookieHeader(context.headers.get("Cookie") ?? "");
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => context.cookies.set(name, value, options));
+      },
     },
   });
 
-  return adminClient;
-}
+  return supabase;
+};
 
-// Eksport funkcji pobierającej instancję klienta admina
-export const supabaseAdminClient = getSupabaseAdminClient();
+// Dla operacji wymagających uprawnień administratora
+// Używamy service_role key, który pomija RLS (Row Level Security)
+export const createSupabaseAdminClient = () => {
+  if (!import.meta.env.SUPABASE_URL || !import.meta.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Brak wymaganych zmiennych środowiskowych dla klienta administratora Supabase");
+  }
 
-// Eksport funkcji do użycia w API endpoints
-export function getSupabaseAdmin() {
-  return getSupabaseAdminClient();
-}
+  return createServerClient<Database>(import.meta.env.SUPABASE_URL, import.meta.env.SUPABASE_SERVICE_ROLE_KEY, {
+    cookieOptions,
+    cookies: {
+      getAll: () => [],
+      setAll: () => {
+        // Administrator nie potrzebuje zapisywać ciasteczek sesji użytkownika
+        // To celowo pusta metoda, ponieważ admin działa poza kontekstem sesji użytkownika
+      },
+    },
+  });
+};

@@ -11,22 +11,26 @@ const LoginView: React.FC = () => {
     setApiError(null);
 
     try {
-      // This is just a placeholder - actual authentication logic will be implemented later
-      console.log("Login attempt with:", data);
+      // Wysłanie danych logowania do API
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
-      // Simulate API request delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // For now, we'll add a simple simulation to show the UI flow
-      if (data.email === "error@example.com") {
-        throw new Error("Nieprawidłowy email lub hasło.");
+      // Sprawdzenie odpowiedzi
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Wystąpił błąd podczas logowania");
       }
 
-      // Success would normally redirect to the home page
-      // This will be implemented in the actual authentication logic
+      // Przekierowanie po pomyślnym zalogowaniu na stronę list zakupowych
+      window.location.href = "/shopping-lists";
     } catch (error) {
       console.error("Login error:", error);
-      setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
+      setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd");
     } finally {
       setIsSubmitting(false);
     }

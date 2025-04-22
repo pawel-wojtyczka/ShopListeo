@@ -3,6 +3,12 @@ import AuthLayout from "../layouts/AuthLayout.astro";
 import LoginView from "../components/auth/LoginView";
 
 export const prerender = false;
+
+// Przekierowanie zalogowanych użytkowników, jeśli spróbują uzyskać dostęp do strony logowania
+// (to jest dodatkowe zabezpieczenie, główna logika jest w middleware)
+if (Astro.locals.isAuthenticated) {
+  return Astro.redirect("/shopping-lists");
+}
 ---
 
 <AuthLayout title="Zaloguj się">
