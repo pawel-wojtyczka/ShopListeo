@@ -79,6 +79,25 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
         sameSite: "lax",
         maxAge: 60 * 60 * 24 * 7, // 7 dni
       });
+
+      // Dodajemy specjalne cookie dla Supabase
+      cookies.set("sb-access-token", session.access_token, {
+        path: "/",
+        httpOnly: true,
+        secure: import.meta.env.PROD,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7, // 7 dni
+      });
+
+      if (session.refresh_token) {
+        cookies.set("sb-refresh-token", session.refresh_token, {
+          path: "/",
+          httpOnly: true,
+          secure: import.meta.env.PROD,
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 7, // 7 dni
+        });
+      }
     }
 
     // Mapujemy dane użytkownika do UserDTO

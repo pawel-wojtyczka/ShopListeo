@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   ShoppingListItemDTO,
   UpdateShoppingListRequest,
@@ -6,11 +6,9 @@ import type {
   UpdateShoppingListItemRequest,
   UpdateShoppingListItemResponse,
   AddItemToShoppingListRequest,
-  AddItemToShoppingListResponse,
   ShoppingListDetailResponse,
 } from "@/types";
-// Importuj klienta Supabase i usługi toast
-import { supabaseClient } from "@/db/supabase.client";
+// Importuj usługi toast
 import { showSuccessToast, showErrorToast } from "@/lib/services/toast-service";
 
 // Model widoku dla pojedynczego elementu listy zakupów (zgodnie z planem)
@@ -34,63 +32,100 @@ export function useShoppingListDetail(listId: string) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isUpdating, setIsUpdating] = useState<boolean>(false); // Ogólny stan aktualizacji
   const [error, setError] = useState<string | null>(null);
+  const retryCount = useRef(0);
+  const maxRetries = 3; // Maksymalna liczba prób
+  const retryDelay = 500; // Opóźnienie między próbami w ms
 
   // Funkcja do pobierania szczegółów listy
-  const fetchListDetails = useCallback(async () => {
-    console.log(`[useShoppingListDetail] Fetching details for list ID: ${listId}`);
-    setIsLoading(true);
-    setError(null);
-    setViewModel(null); // Wyczyść poprzednie dane na czas ładowania
-
-    try {
-      // Pobierz sesję i token
-      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-      if (sessionError || !sessionData?.session) {
-        throw new Error(sessionError?.message || "User not authenticated");
-      }
-      const token = sessionData.session.access_token;
-
-      // Wywołaj API
-      const response = await fetch(`/api/shopping-lists/${listId}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Błąd API (${response.status}): ${errorData.error || response.statusText}`);
+  const fetchListDetails = useCallback(
+    async (isRetry = false) => {
+      // Jeśli to nie jest ponowna próba, resetujemy stan
+      if (!isRetry) {
+        console.log(`[useShoppingListDetail] Fetching details for list ID: ${listId}`);
+        setIsLoading(true);
+        setError(null);
+        setViewModel(null); // Wyczyść poprzednie dane na czas ładowania
+      } else {
+        console.log(
+          `[useShoppingListDetail] Retrying fetch for list ID: ${listId}, attempt: ${retryCount.current + 1}`
+        );
       }
 
-      const data: ShoppingListDetailResponse = await response.json();
+      try {
+        // Używamy nowego endpointu klienta zamiast standardowego API
+        // Nie potrzebujemy już pobierać tokena, ponieważ autentykacja odbywa się przez cookie
+        const response = await fetch(`/api/client/shopping-lists/${listId}`, {
+          method: "GET",
+          credentials: "include", // Dołączamy cookies do zapytania
+        });
 
-      // Zmapuj odpowiedź API na ViewModel
-      const fetchedViewModel: ShoppingListDetailViewModel = {
-        id: data.id,
-        title: data.title,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
-        items: data.items.map((item: ShoppingListItemDTO) => ({
-          ...item,
-          isEditingName: false, // Domyślny stan dla widoku
-          isUpdating: false, // Domyślny stan dla widoku
-        })),
-      };
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`Błąd API (${response.status}): ${errorData.error || response.statusText}`);
+        }
 
-      setViewModel(fetchedViewModel);
-      console.log("[useShoppingListDetail] List details loaded:", fetchedViewModel);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas pobierania szczegółów listy.";
-      console.error("[useShoppingListDetail] Error fetching details:", errorMessage);
-      setError(errorMessage);
-      showErrorToast("Błąd pobierania listy", { description: errorMessage });
-      // Ustawiamy viewModel na null w przypadku błędu, aby komponent mógł to obsłużyć
-      setViewModel(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [listId]); // Zależność od listId
+        const data: ShoppingListDetailResponse = await response.json();
+
+        // Zmapuj odpowiedź API na ViewModel
+        const fetchedViewModel: ShoppingListDetailViewModel = {
+          id: data.id,
+          title: data.title,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+          items: data.items.map((item: ShoppingListItemDTO) => ({
+            ...item,
+            isEditingName: false, // Domyślny stan dla widoku
+            isUpdating: false, // Domyślny stan dla widoku
+          })),
+        };
+
+        setViewModel(fetchedViewModel);
+        retryCount.current = 0; // Resetuj licznik prób po sukcesie
+        console.log("[useShoppingListDetail] List details loaded:", fetchedViewModel);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas pobierania szczegółów listy.";
+        console.error("[useShoppingListDetail] Error fetching details:", errorMessage);
+
+        // Sprawdź, czy błąd dotyczy uwierzytelniania i czy możemy spróbować ponownie
+        const isAuthError =
+          errorMessage.includes("zalogowany") ||
+          errorMessage.includes("401") ||
+          errorMessage.includes("authentication");
+
+        if (isAuthError && retryCount.current < maxRetries) {
+          // Jeśli to błąd uwierzytelniania, spróbuj ponownie po krótkim opóźnieniu
+          retryCount.current += 1;
+          console.log(
+            `[useShoppingListDetail] Auth error detected, scheduling retry #${retryCount.current} in ${retryDelay}ms`
+          );
+
+          // Nie ustawiamy błędu ani nie pokazujemy toastu dla automatycznych ponownych prób
+          setTimeout(() => {
+            fetchListDetails(true);
+          }, retryDelay);
+
+          return; // Wyjdź wcześniej, nie ustawiaj stanu błędu ani nie kończ ładowania
+        }
+
+        // Jeśli to nie błąd auth lub przekroczyliśmy limit prób, pokaż błąd
+        setError(errorMessage);
+
+        // Pokaż toast błędu tylko jeśli wyczerpaliśmy ponowne próby lub to nie jest błąd uwierzytelniania
+        if (!isAuthError || retryCount.current >= maxRetries) {
+          showErrorToast("Błąd pobierania listy", { description: errorMessage });
+        }
+
+        // Ustawiamy viewModel na null w przypadku błędu, aby komponent mógł to obsłużyć
+        setViewModel(null);
+        retryCount.current = 0; // Resetuj licznik prób po wyświetleniu błędu
+      } finally {
+        if (retryCount.current === 0 || retryCount.current >= maxRetries) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [listId]
+  ); // Zależność od listId
 
   // Pobranie danych przy pierwszym renderowaniu lub zmianie listId
   useEffect(() => {
@@ -123,20 +158,14 @@ export function useShoppingListDetail(listId: string) {
       setError(null);
 
       try {
-        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-        if (sessionError || !sessionData?.session) {
-          throw new Error(sessionError?.message || "User not authenticated");
-        }
-        const token = sessionData.session.access_token;
-
         const requestBody: UpdateShoppingListRequest = { title: trimmedTitle };
 
-        const response = await fetch(`/api/shopping-lists/${listId}`, {
+        const response = await fetch(`/api/client/shopping-lists/${listId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include", // Dołączamy cookies do zapytania
           body: JSON.stringify(requestBody),
         });
 
@@ -200,20 +229,14 @@ export function useShoppingListDetail(listId: string) {
       });
 
       try {
-        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-        if (sessionError || !sessionData?.session) {
-          throw new Error(sessionError?.message || "User not authenticated");
-        }
-        const token = sessionData.session.access_token;
-
         const requestBody: UpdateShoppingListItemRequest = { purchased: newPurchasedStatus };
 
-        const response = await fetch(`/api/shopping-lists/${listId}/items/${itemId}`, {
+        const response = await fetch(`/api/client/shopping-lists/${listId}/items/${itemId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include", // Dołączamy cookies do zapytania
           body: JSON.stringify(requestBody),
         });
 
@@ -248,82 +271,72 @@ export function useShoppingListDetail(listId: string) {
         setError(errorMessage); // Ustaw ogólny błąd hooka
         showErrorToast("Błąd aktualizacji produktu", { description: errorMessage });
 
-        // Przywróć stan w razie błędu
+        // Przywrócenie oryginalnego stanu listy w przypadku błędu
         setViewModel((prev) => {
           if (!prev) return null;
           const revertedItems = [...prev.items];
-          const revertedIndex = revertedItems.findIndex((item) => item.id === itemId);
-          if (revertedIndex !== -1) {
-            // Przywróć oryginalny stan produktu
-            revertedItems[revertedIndex] = { ...originalItem, isUpdating: false };
+          const revertIndex = revertedItems.findIndex((item) => item.id === itemId);
+          if (revertIndex !== -1) {
+            revertedItems[revertIndex] = {
+              ...originalItem,
+              isUpdating: false, // Zakończ ładowanie
+            };
           }
           return { ...prev, items: revertedItems };
         });
-        // Nie rzucamy błędu dalej, bo został obsłużony przez toast i revert stanu
       }
     },
-    [listId, viewModel] // Zależności obejmują teraz viewModel, aby mieć dostęp do items
+    [listId, viewModel]
   );
 
-  // Funkcja do usuwania elementu z listy
   const deleteItem = useCallback(
     async (itemId: string) => {
       if (!viewModel) return;
 
-      const itemToDelete = viewModel.items.find((item) => item.id === itemId);
-      if (!itemToDelete) {
-        console.error(`Item with id ${itemId} not found for deletion.`);
+      const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
+      if (itemIndex === -1) {
+        console.error(`[deleteItem] Item with id ${itemId} not found.`);
+        showErrorToast("Błąd", { description: "Nie znaleziono produktu do usunięcia." });
         return;
       }
 
-      // Zapamiętaj oryginalną listę do ewentualnego przywrócenia
-      const originalItems = [...viewModel.items];
+      const itemToDelete = viewModel.items[itemIndex];
 
-      // Optymistyczne usunięcie z UI
+      // Aktualizacja optymistyczna UI (usuń z listy)
       setViewModel((prev) => {
         if (!prev) return null;
-        return { ...prev, items: prev.items.filter((item) => item.id !== itemId) };
+        const updatedItems = prev.items.filter((item) => item.id !== itemId);
+        return { ...prev, items: updatedItems };
       });
 
       try {
-        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-        if (sessionError || !sessionData?.session) {
-          throw new Error(sessionError?.message || "User not authenticated");
-        }
-        const token = sessionData.session.access_token;
-
-        const response = await fetch(`/api/shopping-lists/${listId}/items/${itemId}`, {
+        const response = await fetch(`/api/client/shopping-lists/${listId}/items/${itemId}`, {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include", // Dołączamy cookies do zapytania
         });
 
         if (!response.ok) {
-          // W przypadku błędu 404 (Not Found) serwer mógł już usunąć element - traktujemy jako sukces?
-          // Na razie rzucamy błąd dla wszystkich statusów != 2xx
           const errorData = await response.json().catch(() => ({}));
           throw new Error(`Błąd API (${response.status}): ${errorData.error || response.statusText}`);
         }
 
-        // Status 204 No Content oznacza sukces
-        showSuccessToast("Produkt usunięty", {
-          description: `Produkt "${itemToDelete.itemName}" został usunięty z listy.`,
-        });
+        // Potwierdzenie usunięcia
+        console.log(`[deleteItem] Successfully deleted item ${itemId}`);
+        // Nie pokazujemy osobnego toastu dla usunięć, aby nie zaśmiecać interfejsu
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas usuwania produktu.";
-        setError(errorMessage); // Ustaw ogólny błąd
+        setError(errorMessage);
         showErrorToast("Błąd usuwania produktu", { description: errorMessage });
 
-        // Przywróć stan w razie błędu (cofnij optymistyczne usunięcie)
+        // Przywrócenie usuniętego produktu
         setViewModel((prev) => {
           if (!prev) return null;
-          return { ...prev, items: originalItems }; // Przywróć zapamiętaną listę
+          const restoredItems = [...prev.items];
+          // Dodaj produkt z powrotem, zachowując oryginalną kolejność
+          restoredItems.splice(itemIndex, 0, itemToDelete);
+          return { ...prev, items: restoredItems };
         });
       }
-      // Nie ma potrzeby ustawiać isUpdating globalnie dla usuwania
-      // Ewentualnie można by ustawić isUpdating na true dla usuwanego elementu przed usunięciem go z UI,
-      // ale przy optymistycznym usunięciu element znika od razu.
     },
     [listId, viewModel]
   );
@@ -335,48 +348,49 @@ export function useShoppingListDetail(listId: string) {
 
       const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
       if (itemIndex === -1) {
-        console.error(`Item with id ${itemId} not found for name update.`);
+        console.error(`[updateItemName] Item with id ${itemId} not found.`);
+        showErrorToast("Błąd", { description: "Nie znaleziono produktu do zaktualizowania." });
         return;
       }
 
       const originalItem = viewModel.items[itemIndex];
-
-      // Walidacja długości
       const trimmedName = newName.trim();
-      if (trimmedName.length === 0 || trimmedName.length > 128) {
-        showErrorToast("Nieprawidłowa nazwa produktu", {
-          description: "Nazwa musi zawierać od 1 do 128 znaków.",
+
+      // Walidacja
+      if (trimmedName === "") {
+        showErrorToast("Nieprawidłowa nazwa", {
+          description: "Nazwa produktu nie może być pusta.",
         });
-        throw new Error("Invalid item name length");
+        return;
       }
 
       if (trimmedName === originalItem.itemName) {
-        return; // Bez zmian
+        // Bez zmian, wyjdź bez aktualizacji API/stanu
+        return;
       }
 
-      // Oznacz element jako aktualizowany (stan ładowania per element)
+      // Aktualizacja optymistyczna UI
       setViewModel((prev) => {
         if (!prev) return null;
         const updatedItems = [...prev.items];
-        updatedItems[itemIndex] = { ...originalItem, isUpdating: true };
+        updatedItems[itemIndex] = {
+          ...originalItem,
+          itemName: trimmedName,
+          isEditingName: false, // Zakończ edycję
+          isUpdating: true, // Oznacz jako aktualizowany
+        };
         return { ...prev, items: updatedItems };
       });
 
       try {
-        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-        if (sessionError || !sessionData?.session) {
-          throw new Error(sessionError?.message || "User not authenticated");
-        }
-        const token = sessionData.session.access_token;
-
         const requestBody: UpdateShoppingListItemRequest = { itemName: trimmedName };
 
-        const response = await fetch(`/api/shopping-lists/${listId}/items/${itemId}`, {
+        const response = await fetch(`/api/client/shopping-lists/${listId}/items/${itemId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include", // Dołączamy cookies do zapytania
           body: JSON.stringify(requestBody),
         });
 
@@ -387,7 +401,7 @@ export function useShoppingListDetail(listId: string) {
 
         const data: UpdateShoppingListItemResponse = await response.json();
 
-        // Potwierdzenie aktualizacji - zastosuj dane z serwera
+        // Potwierdzenie aktualizacji
         setViewModel((prev) => {
           if (!prev) return null;
           const confirmedItems = [...prev.items];
@@ -395,133 +409,141 @@ export function useShoppingListDetail(listId: string) {
           if (confirmedIndex !== -1) {
             confirmedItems[confirmedIndex] = {
               ...confirmedItems[confirmedIndex],
-              itemName: data.itemName,
-              updatedAt: data.updatedAt,
+              itemName: data.itemName, // Użyj danych z serwera (mogą być znormalizowane)
+              updatedAt: data.updatedAt, // Zaktualizuj updatedAt
               isUpdating: false, // Zakończ ładowanie
             };
           }
           return { ...prev, items: confirmedItems };
         });
-
-        showSuccessToast("Nazwa produktu zaktualizowana");
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas aktualizacji nazwy produktu.";
         setError(errorMessage);
         showErrorToast("Błąd aktualizacji nazwy", { description: errorMessage });
 
-        // Przywróć stan w razie błędu
+        // Przywrócenie oryginalnego stanu
         setViewModel((prev) => {
           if (!prev) return null;
           const revertedItems = [...prev.items];
-          const revertedIndex = revertedItems.findIndex((item) => item.id === itemId);
-          if (revertedIndex !== -1) {
-            // Przywróć tylko stan ładowania, nazwa w inpucie pozostaje bez zmian
-            revertedItems[revertedIndex] = { ...revertedItems[revertedIndex], isUpdating: false };
-            // Można też przywrócić originalItem.itemName, ale to może być mylące dla użytkownika
-            // revertedItems[revertedIndex] = { ...originalItem, isUpdating: false };
+          const revertIndex = revertedItems.findIndex((item) => item.id === itemId);
+          if (revertIndex !== -1) {
+            revertedItems[revertIndex] = { ...originalItem, isUpdating: false };
           }
           return { ...prev, items: revertedItems };
         });
-        throw err; // Rzuć błąd, aby komponent ProductItem mógł zareagować (np. nie zmieniać stanu lokalnego)
       }
     },
     [listId, viewModel]
   );
 
-  // Funkcja do dodawania wielu elementów do listy
   const addItems = useCallback(
-    async (itemNames: string[]) => {
-      if (!viewModel || itemNames.length === 0) return;
+    async (items: string[]) => {
+      if (!viewModel || items.length === 0) return;
 
-      // Opcjonalnie: Można by dodać wskaźnik ładowania dla obszaru dodawania
-      // setIsUpdating(true); // Lub dedykowany stan `isAdding`?
-      setError(null);
+      // Filtrowanie pustych nazw
+      const validItems = items.map((item) => item.trim()).filter((item) => item.length > 0);
+      if (validItems.length === 0) return;
 
-      // Przygotuj dane do wysłania
-      const itemsToAdd: AddItemToShoppingListRequest[] = itemNames.map((name) => ({
-        itemName: name,
+      setIsUpdating(true);
+      const newItemsTemp = validItems.map((itemName, index) => ({
+        id: `temp-${Date.now()}-${index}`, // Tymczasowe ID
+        itemName,
         purchased: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isEditingName: false,
+        isUpdating: true, // Oznacz jako aktualizowane
       }));
-      const addedItemsViewModels: ProductItemViewModel[] = []; // Do optymistycznej aktualizacji
-      const errors: string[] = [];
+
+      // Optymistyczna aktualizacja UI
+      setViewModel((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          items: [...prev.items, ...newItemsTemp],
+        };
+      });
 
       try {
-        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-        if (sessionError || !sessionData?.session) {
-          throw new Error(sessionError?.message || "User not authenticated");
-        }
-        const token = sessionData.session.access_token;
-
-        // Wykonaj żądania równolegle
-        const results = await Promise.allSettled(
-          itemsToAdd.map((itemData) =>
-            fetch(`/api/shopping-lists/${listId}/items`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(itemData),
-            }).then(async (response) => {
-              if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                // Rzuć błąd specyficzny dla tego elementu
-                throw new Error(
-                  `(${response.status}) ${errorData.error || response.statusText} for "${itemData.itemName}"`
-                );
-              }
-              return response.json() as Promise<AddItemToShoppingListResponse>;
-            })
-          )
+        // Wywołujemy API dla każdego produktu oddzielnie, zgodnie z definicją typu
+        const promises = validItems.map((itemName) =>
+          fetch(`/api/client/shopping-lists/${listId}/items`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include", // Dołączamy cookies do zapytania
+            body: JSON.stringify({ itemName, purchased: false } as AddItemToShoppingListRequest),
+          }).then((response) => {
+            if (!response.ok) {
+              return Promise.reject(
+                new Error(`Błąd API (${response.status}) dla "${itemName}": ${response.statusText}`)
+              );
+            }
+            return response.json() as Promise<ShoppingListItemDTO>;
+          })
         );
 
-        // Przetwórz wyniki
-        results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
-            const newItemData = result.value;
-            // Przygotuj ViewModel dla nowego elementu
-            addedItemsViewModels.push({
-              ...newItemData,
-              itemName: newItemData.itemName, // Upewnij się, że itemName jest obecne
-              isEditingName: false,
-              isUpdating: false,
-            });
-          } else {
-            // Zbierz komunikaty o błędach
-            errors.push(result.reason?.message || `Unknown error adding "${itemsToAdd[index].itemName}"`);
-          }
+        // Czekamy na zakończenie wszystkich zapytań
+        const results = await Promise.allSettled(promises);
+
+        // Zbieramy pomyślnie dodane produkty
+        const successfulItems = results
+          .filter((result): result is PromiseFulfilledResult<ShoppingListItemDTO> => result.status === "fulfilled")
+          .map((result) => result.value);
+
+        // Zbieramy błędy
+        const failedItems = results
+          .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+          .map((result) => result.reason);
+
+        // Zamień tymczasowe elementy na te z odpowiedzi API
+        setViewModel((prev) => {
+          if (!prev) return null;
+
+          // Usuń wszystkie tymczasowe elementy
+          const withoutTemp = prev.items.filter((item) => !item.id.startsWith("temp-"));
+
+          // Dodaj wszystkie nowe elementy z odpowiedzi API
+          return {
+            ...prev,
+            items: [
+              ...withoutTemp,
+              ...successfulItems.map((item) => ({
+                ...item,
+                isEditingName: false,
+                isUpdating: false,
+              })),
+            ],
+          };
         });
 
-        // Aktualizuj stan - dodaj tylko pomyślnie dodane elementy
-        if (addedItemsViewModels.length > 0) {
-          setViewModel((prev) => {
-            if (!prev) return null;
-            // Dodaj nowe elementy do istniejącej listy
-            const updatedItems = [...prev.items, ...addedItemsViewModels];
-            return { ...prev, items: updatedItems };
+        if (successfulItems.length > 0) {
+          showSuccessToast("Dodano produkty", {
+            description: `Dodano ${successfulItems.length} ${successfulItems.length === 1 ? "produkt" : "produkty"} do listy.`,
           });
         }
 
-        // Pokaż podsumowanie w toastach
-        if (addedItemsViewModels.length > 0) {
-          showSuccessToast(`Dodano ${addedItemsViewModels.length} produktów`, {
-            description: errors.length > 0 ? `Nie udało się dodać ${errors.length} produktów.` : undefined,
-          });
-        }
-        if (errors.length > 0) {
-          showErrorToast(`Nie udało się dodać ${errors.length} produktów`, {
-            description: errors.join("; "), // Pokaż szczegóły błędów
+        if (failedItems.length > 0) {
+          showErrorToast("Nie udało się dodać wszystkich produktów", {
+            description: `Nie udało się dodać ${failedItems.length} produktów.`,
           });
         }
       } catch (err) {
-        // Ogólny błąd (np. brak sesji)
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas dodawania produktów.";
         setError(errorMessage);
         showErrorToast("Błąd dodawania produktów", { description: errorMessage });
-        // Tutaj nie rzucamy błędu dalej, bo obsłużyliśmy go przez toast
+
+        // Usuń tymczasowe elementy w przypadku błędu
+        setViewModel((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            items: prev.items.filter((item) => !item.id.startsWith("temp-")),
+          };
+        });
       } finally {
-        // Opcjonalnie: zakończ stan ładowania
-        // setIsUpdating(false);
+        setIsUpdating(false);
       }
     },
     [listId, viewModel]

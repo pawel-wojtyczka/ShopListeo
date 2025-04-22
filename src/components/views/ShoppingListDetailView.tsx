@@ -4,6 +4,7 @@ import { useShoppingListDetail } from "@/lib/hooks/useShoppingListDetail";
 import EditableShoppingListTitle from "@/components/shared/EditableShoppingListTitle"; // Importuj nowy komponent
 import ProductList from "@/components/features/shopping-list/ProductList"; // Importuj ProductList
 import ProductInputArea from "@/components/features/shopping-list/ProductInputArea"; // Importuj ProductInputArea
+import { Loader2 } from "lucide-react"; // Ikona ładowania
 
 interface ShoppingListDetailViewProps {
   listId: string;
@@ -16,24 +17,66 @@ const ShoppingListDetailView: React.FC<ShoppingListDetailViewProps> = ({ listId 
 
   // Obsługa stanu ładowania
   if (isLoading) {
-    // TODO: Zastąpić lepszym komponentem Skeleton/Spinner z Shadcn
-    return <div className="container mx-auto p-4 text-center">Ładowanie danych listy...</div>;
+    return (
+      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-lg">Ładowanie szczegółów listy zakupów...</p>
+        <p className="text-sm text-muted-foreground mt-2">Prosimy o cierpliwość, trwa pobieranie danych...</p>
+      </div>
+    );
   }
 
-  // Obsługa błędów
+  // Obsługa błędów - unikamy pokazywania błędów autoryzacji, ponieważ są one obsługiwane
+  // przez mechanizm automatycznych ponownych prób w hooku
   if (error) {
-    // TODO: Ulepszyć wyświetlanie błędu
-    return <div className="container mx-auto p-4 text-center text-red-600">Błąd: {error}</div>;
+    // Ignorujemy tymczasowe błędy uwierzytelniania
+    const isAuthError = error.includes("zalogowany") || error.includes("401") || error.includes("authentication");
+
+    // Dla błędów uwierzytelniania pokazujemy przyjazny komunikat o ładowaniu zamiast błędu
+    if (isAuthError) {
+      return (
+        <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-lg">Inicjowanie sesji...</p>
+        </div>
+      );
+    }
+
+    // Dla innych błędów pokazujemy faktyczny komunikat
+    return (
+      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 max-w-lg w-full">
+          <h2 className="text-lg font-semibold text-destructive mb-2">Wystąpił błąd</h2>
+          <p className="text-sm text-destructive/90">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            Odśwież stronę
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  // TODO: Zaimplementować obsługę braku danych (opcjonalne, jeśli API może zwrócić null/pusty obiekt)
-  // if (!title && !items.length) {
-  //   return <div className="container mx-auto p-4 text-center">Nie znaleziono listy o podanym ID.</div>;
-  // }
+  // Obsługa sytuacji, gdy lista jest pusta (brak tytułu i elementów)
+  if (!title && items.length === 0) {
+    return (
+      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[50vh]">
+        <p className="text-lg">Lista zakupów jest pusta lub nie istnieje.</p>
+        <button
+          onClick={() => (window.location.href = "/shopping-lists")}
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Powrót do listy zakupów
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 flex flex-col gap-6">
-      <h1 className="text-2xl font-bold mb-4">Szczegóły Listy Zakupów (ID: {listId})</h1>
+      <h1 className="text-2xl font-bold mb-4">Szczegóły Listy Zakupów</h1>
 
       {/* Użyj komponentu EditableShoppingListTitle */}
       <div className="mb-6">

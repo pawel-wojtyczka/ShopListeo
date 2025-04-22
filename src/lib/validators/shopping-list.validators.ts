@@ -43,3 +43,30 @@ export const updateShoppingListSchema = z.object({
     .min(1, { message: "Tytuł listy zakupów nie może być pusty" })
     .max(255, { message: "Tytuł listy zakupów nie może przekraczać 255 znaków" }),
 });
+
+/**
+ * Schemat walidacji dla dodawania elementu do listy zakupów
+ */
+export const addItemToShoppingListSchema = z.object({
+  itemName: z
+    .string()
+    .min(1, { message: "Nazwa produktu nie może być pusta" })
+    .max(128, { message: "Nazwa produktu nie może przekraczać 128 znaków" }),
+  purchased: z.boolean().optional().default(false),
+});
+
+/**
+ * Schemat walidacji dla aktualizacji elementu listy zakupów
+ */
+export const updateShoppingListItemSchema = z
+  .object({
+    itemName: z
+      .string()
+      .min(1, { message: "Nazwa produktu nie może być pusta" })
+      .max(128, { message: "Nazwa produktu nie może przekraczać 128 znaków" })
+      .optional(),
+    purchased: z.boolean().optional(),
+  })
+  .refine((data) => data.itemName !== undefined || data.purchased !== undefined, {
+    message: "Co najmniej jedno pole musi być podane: nazwa produktu lub status zakupu",
+  });
