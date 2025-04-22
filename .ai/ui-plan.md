@@ -69,6 +69,9 @@ ShopListeo to aplikacja webowa do zarządzania listami zakupów z minimalistyczn
   - Lista list zakupów (nazwa, ikona usunięcia)
   - Przycisk "Utwórz nową listę zakupów"
   - Sortowanie według daty (najnowsze na górze)
+  - Informacje o zalogowanym użytkowniku
+  - Przycisk "Wyloguj"
+
 - **Kluczowe komponenty**:
   - Boczna nawigacja
   - Lista list zakupów
