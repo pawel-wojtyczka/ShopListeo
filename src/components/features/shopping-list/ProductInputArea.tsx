@@ -46,9 +46,9 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
   return (
     <div className="p-4 border rounded-lg shadow-sm bg-card">
       <h3 className="text-lg font-medium mb-2">Dodaj nowe produkty</h3>
-      <p className="text-sm text-muted-foreground mb-3">Wpisz nazwy produktów, każdy w nowej linii.</p>
+      <p className="text-sm text-muted-foreground mb-3">Powiedz co chcesz kupić przy najbliższych zakupach..</p>
       <Textarea
-        placeholder="np.\nMleko\nChleb\nJajka"
+        placeholder="Napisz lub podyktuj Twoją listę zakupów, obojętnie jak.. nasz agent AI zajmie się resztą.. :-)"
         value={textareaValue}
         onChange={handleTextareaChange}
         className="mb-3 min-h-[80px]"
