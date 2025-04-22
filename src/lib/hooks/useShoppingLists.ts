@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { ShoppingListSummaryDTO, CreateShoppingListRequest, CreateShoppingListResponse } from "../../types";
 import { showSuccessToast, showErrorToast } from "../services/toast-service";
 import { supabaseClient } from "../../db/supabase.client";
+import { useAuth } from "../auth/AuthContext";
 
 // Typ dla modelu widoku pojedynczego elementu list zakupów
 interface ShoppingListItemViewModel extends ShoppingListSummaryDTO {
@@ -33,8 +34,44 @@ export function useShoppingLists() {
     pagination: null,
   });
 
+  // Pobieramy stan autoryzacji z kontekstu
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
+
+  // Efekt do pobierania list zakupów przy inicjalizacji i gdy zmienia się status autoryzacji
+  useEffect(() => {
+    // Nie pobieramy list, jeśli autoryzacja jest w trakcie ładowania
+    if (isAuthLoading) {
+      return;
+    }
+
+    // Nie pobieramy list, jeśli użytkownik nie jest zalogowany
+    if (!isAuthenticated || !user) {
+      setViewModel((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: "Użytkownik nie jest zalogowany",
+        lists: [],
+      }));
+      return;
+    }
+
+    // Pobieramy listy, gdy użytkownik jest zalogowany
+    fetchShoppingLists();
+  }, [isAuthenticated, isAuthLoading, user]);
+
   // Funkcja do pobierania list zakupów
   const fetchShoppingLists = async () => {
+    // Jeśli użytkownik nie jest zalogowany, nie pobieramy list
+    if (!isAuthenticated || !user) {
+      setViewModel((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: "Użytkownik nie jest zalogowany",
+        lists: [],
+      }));
+      return;
+    }
+
     setViewModel((prev) => ({ ...prev, isLoading: true, error: null }));
     console.log("[useShoppingLists] Fetching shopping lists..."); // Log start
 
@@ -67,15 +104,12 @@ export function useShoppingLists() {
       const apiUrl = new URL("/api/shopping-lists", window.location.origin);
       apiUrl.searchParams.set("page", "1");
       apiUrl.searchParams.set("pageSize", "20"); // Default page size
-      // You can add default sort/order if needed, e.g.:
-      // apiUrl.searchParams.set("sort", "createdAt");
-      // apiUrl.searchParams.set("order", "desc");
 
       console.log("[useShoppingLists] Fetching URL:", apiUrl.toString());
 
       const response = await fetch(apiUrl.toString(), {
-        // Use the constructed URL
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
       });
@@ -255,11 +289,6 @@ export function useShoppingLists() {
       });
     }
   };
-
-  // Pobranie list przy pierwszym renderowaniu
-  useEffect(() => {
-    fetchShoppingLists();
-  }, []);
 
   // Zwrócenie stanu i funkcji do użycia w komponencie
   return {

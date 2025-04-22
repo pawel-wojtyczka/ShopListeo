@@ -11,11 +11,50 @@ export const GET: APIRoute = async ({ request, locals, cookies }) => {
     return new Response(JSON.stringify({ message: "Błąd serwera: Klient Supabase niedostępny." }), { status: 500 });
   }
 
-  // Try to get the token from cookies first, then Authorization header
-  const token = cookies.get("authToken")?.value || request.headers.get("Authorization")?.replace("Bearer ", "");
+  // Sprawdź użytkownika bezpośrednio z lokalnego kontekstu
+  const {
+    user: userFromLocals,
+    authUser,
+    isAuthenticated,
+  } = locals as AstroLocals & { authUser: UserDTO | null; isAuthenticated: boolean };
+
+  console.log("API /api/users/me: Checking authentication from middleware locals:", {
+    userExists: !!userFromLocals,
+    authUserExists: !!authUser,
+    isAuthenticated,
+  });
+
+  // Jeśli użytkownik jest już dostępny w lokalnym kontekście z middleware, użyj go
+  if (userFromLocals) {
+    console.log(`API /api/users/me: Using authenticated user from middleware: ${userFromLocals.email}`);
+
+    // Mapujemy dane użytkownika do UserDTO
+    const userDTO: UserDTO = {
+      id: userFromLocals.id,
+      email: userFromLocals.email || "",
+      registrationDate: userFromLocals.created_at || "",
+      lastLoginDate: userFromLocals.last_sign_in_at || null,
+      isAdmin: userFromLocals.app_metadata?.isAdmin || false,
+    };
+
+    return new Response(JSON.stringify(userDTO), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Jeśli nie ma użytkownika w lokalnym kontekście, sprawdź token
+  const authHeader = request.headers.get("Authorization");
+  const token = cookies.get("authToken")?.value || (authHeader ? authHeader.replace("Bearer ", "") : null);
+
+  console.log("API /api/users/me: Auth check details:", {
+    hasCookieToken: !!cookies.get("authToken")?.value,
+    hasAuthHeader: !!authHeader,
+    tokenExists: !!token,
+  });
 
   if (!token) {
-    console.log("API /api/users/me: No token found.");
+    console.log("API /api/users/me: No token found in cookies or Authorization header.");
     return new Response(JSON.stringify({ message: "Brak autoryzacji." }), { status: 401 });
   }
 

@@ -1,0 +1,14 @@
+---
+import MainLayout from "@/layouts/MainLayout.astro";
+import ShoppingListsView from "@/components/ShoppingListsView";
+import { ToastProvider } from "@/components/ToastProvider";
+
+// Wyłączamy prerendering, ponieważ strona jest dynamiczna
+export const prerender = false;
+---
+
+<MainLayout title="Twoje Listy Zakupów">
+  <ToastProvider client:load>
+    <ShoppingListsView client:load />
+  </ToastProvider>
+</MainLayout>

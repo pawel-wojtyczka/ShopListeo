@@ -53,19 +53,33 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   let isAuthenticated = false;
 
   console.log("Middleware: Attempting to get user via supabase.auth.getUser()...");
-  const {
-    data: { user },
-    error: getUserError,
-  } = await supabase.auth.getUser();
+  const { data, error: getUserError } = await supabase.auth.getUser();
 
-  if (getUserError || !user) {
+  // Pobieramy sesję osobno, ponieważ getUser nie zwraca sesji bezpośrednio
+  const { data: sessionData } = await supabase.auth.getSession();
+  const session = sessionData?.session;
+
+  if (getUserError || !data.user) {
     console.log("Middleware: User not found or error. Auth session missing!");
     isAuthenticated = false;
     authUser = null;
   } else {
     // Użytkownik jest zalogowany
+    const user = data.user;
     console.log(`Middleware: User verified: ${user.email}`);
     isAuthenticated = true;
+
+    // Jeśli mamy aktywną sesję, ustawiamy token sesji jako cookie
+    if (session?.access_token) {
+      console.log("Middleware: Setting authToken cookie with session token");
+      cookies.set("authToken", session.access_token, {
+        path: "/",
+        httpOnly: false, // Musi być false, aby JavaScript mógł dostać się do tego cookie
+        secure: import.meta.env.PROD, // true w produkcji, false w środowisku deweloperskim
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7, // 7 dni
+      });
+    }
 
     // Mapujemy dane użytkownika do UserDTO
     authUser = {
@@ -78,7 +92,7 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   }
 
   // Ustawiamy dane autoryzacyjne w kontekście lokalnym
-  (locals as AstroLocals).user = user;
+  (locals as AstroLocals).user = data.user;
   (locals as AstroLocals & { authUser: UserDTO | null; isAuthenticated: boolean }).authUser = authUser;
   (locals as AstroLocals & { authUser: UserDTO | null; isAuthenticated: boolean }).isAuthenticated = isAuthenticated;
   console.log("Middleware: Locals set", { isAuthenticated, userId: authUser?.id });
