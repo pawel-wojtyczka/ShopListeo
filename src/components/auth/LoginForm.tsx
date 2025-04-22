@@ -3,17 +3,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import { Button } from "@/components/ui/button"; // Assuming Shadcn UI alias is configured
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For API errors
-import { ReloadIcon } from "@radix-ui/react-icons"; // For loading spinner
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ReloadIcon } from "@radix-ui/react-icons";
 
 import type { LoginUserRequest } from "../../types";
 
-// Define Zod schema for validation
+// Schema definition for login form validation
 const loginSchema = z.object({
   email: z.string().email({ message: "Nieprawidłowy format adresu email." }),
   password: z.string().min(1, { message: "Hasło jest wymagane." }),
@@ -39,18 +39,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isSubmitting, apiError 
   });
 
   const handleFormSubmit = (values: LoginFormValues) => {
-    console.log("[LoginForm] handleFormSubmit triggered with values:", values);
-    // We pass the validated data up to the LoginView
     onSubmit(values);
   };
 
   return (
     <Card>
-      <CardHeader>
-        {/* Title is in the Astro page, no need for CardTitle here unless desired */}
-        {/* <CardTitle>Zaloguj się</CardTitle> */}
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
           {apiError && (
             <Alert variant="destructive">
@@ -101,7 +95,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isSubmitting, apiError 
           </a>
         </p>
         <p>
-          <a href="/reset-password" className="font-medium text-primary underline-offset-4 hover:underline">
+          <a href="/recover" className="font-medium text-primary underline-offset-4 hover:underline">
             Nie pamiętasz hasła?
           </a>
         </p>

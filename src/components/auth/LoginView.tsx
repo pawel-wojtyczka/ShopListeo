@@ -1,47 +1,29 @@
 import React, { useState } from "react";
-import { PageHeader } from "../PageHeader";
 import LoginForm from "./LoginForm";
 import type { LoginUserRequest } from "../../types";
-import { supabaseClient } from "../../db/supabase.client";
 
 const LoginView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const handleLogin = async (data: LoginUserRequest) => {
-    console.log("[LoginView] handleLogin triggered with data:", data);
     setIsSubmitting(true);
     setApiError(null);
-    console.log("Attempting Supabase login with:", data.email);
 
     try {
-      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
+      // This is just a placeholder - actual authentication logic will be implemented later
+      console.log("Login attempt with:", data);
 
-      if (authError) {
-        console.error("Supabase login error:", authError);
-        let friendlyMessage = "Nieprawidłowy email lub hasło.";
-        if (authError.message.includes("Invalid login credentials")) {
-          friendlyMessage = "Nieprawidłowy email lub hasło.";
-        } else if (authError.message.includes("Email not confirmed")) {
-          friendlyMessage = "Adres email nie został potwierdzony.";
-        }
-        throw new Error(friendlyMessage);
+      // Simulate API request delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // For now, we'll add a simple simulation to show the UI flow
+      if (data.email === "error@example.com") {
+        throw new Error("Nieprawidłowy email lub hasło.");
       }
 
-      if (!authData || !authData.session || !authData.user) {
-        console.error("Supabase login response missing data:", authData);
-        throw new Error("Logowanie nie powiodło się. Brak danych sesji.");
-      }
-
-      console.log(`Supabase login successful for user: ${authData.user.email}`);
-      console.log("Session automatically handled by Supabase client (using cookies).");
-
-      // Re-adding client-side redirect after successful login
-      console.log("[LoginView] Redirecting to /...");
-      window.location.assign("/"); // Use assign for navigation
+      // Success would normally redirect to the home page
+      // This will be implemented in the actual authentication logic
     } catch (error) {
       console.error("Login error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
@@ -50,12 +32,7 @@ const LoginView: React.FC = () => {
     }
   };
 
-  return (
-    <>
-      <PageHeader title="Zaloguj się" />
-      <LoginForm onSubmit={handleLogin} isSubmitting={isSubmitting} apiError={apiError} />
-    </>
-  );
+  return <LoginForm onSubmit={handleLogin} isSubmitting={isSubmitting} apiError={apiError} />;
 };
 
 export default LoginView;

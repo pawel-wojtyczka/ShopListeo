@@ -1,54 +1,51 @@
 import React from "react";
-import { useAuth } from "@/lib/auth/AuthContext"; // Adjust path if necessary
-import { Button } from "@/components/ui/button"; // Use Button for logout
+import { Button } from "@/components/ui/button";
 
+// This is a mock component for now
+// It will be integrated with the actual authentication logic later
 const AuthStatus: React.FC = () => {
-  const { user, isLoading, logout } = useAuth();
+  // Mock state for demonstration
+  const isAuthenticated = false;
+  const userName = "user@example.com";
 
-  const handleLogout = async () => {
-    // Perform logout via API first
-    try {
-      const response = await fetch("/api/auth/logout", { method: "POST" });
-      if (!response.ok) {
-        console.error("Logout API call failed:", response.status);
-        // Optionally show an error message to the user
-      }
-    } catch (error) {
-      console.error("Error during logout API call:", error);
-      // Optionally show an error message
-    }
-    // Always clear client-side state and redirect, even if API fails
-    logout(); // This function from AuthContext handles clearing state and redirecting
+  const handleLoginClick = () => {
+    window.location.href = "/login";
   };
 
-  if (isLoading) {
-    return <p>Sprawdzanie statusu...</p>;
-  }
+  const handleRegisterClick = () => {
+    window.location.href = "/register";
+  };
 
-  if (user) {
+  const handleLogoutClick = () => {
+    // This will be implemented with the actual authentication logic later
+    console.log("Logout clicked");
+  };
+
+  if (isAuthenticated) {
     return (
-      <>
-        <p>Zalogowano jako:</p>
-        <p className="font-medium break-words">{user.email}</p>
-        {/* Use Button component for better styling and consistency */}
-        <Button
-          variant="link"
-          onClick={handleLogout}
-          className="text-red-500 hover:underline mt-1 w-full justify-start p-0 h-auto"
-        >
-          Wyloguj
+      <div className="flex flex-col gap-2">
+        <div className="text-sm">
+          Zalogowano jako <span className="font-medium">{userName}</span>
+        </div>
+        <Button variant="outline" size="sm" className="w-full" onClick={handleLogoutClick}>
+          Wyloguj się
         </Button>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <p>Niezalogowany</p>
-      <a href="/login" className="text-primary hover:underline">
-        Zaloguj się
-      </a>
-    </>
+    <div className="flex flex-col gap-2">
+      <div className="text-sm mb-1">Nie jesteś zalogowany</div>
+      <div className="flex gap-2">
+        <Button variant="default" size="sm" className="flex-1" onClick={handleLoginClick}>
+          Zaloguj
+        </Button>
+        <Button variant="outline" size="sm" className="flex-1" onClick={handleRegisterClick}>
+          Zarejestruj
+        </Button>
+      </div>
+    </div>
   );
 };
 

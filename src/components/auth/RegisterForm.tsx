@@ -2,24 +2,24 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import type { RegisterUserRequest } from "../../types";
 
-// Define Zod schema for validation, including password confirmation
+// Schema definition for registration form validation
 const registerSchema = z
   .object({
     email: z.string().email({ message: "Nieprawidłowy format adresu email." }),
-    password: z.string().min(8, { message: "Hasło musi mieć co najmniej 8 znaków." }),
-    confirmPassword: z.string(),
+    password: z.string().min(8, { message: "Hasło musi mieć minimum 8 znaków." }),
+    confirmPassword: z.string().min(1, { message: "Potwierdź hasło." }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Hasła muszą być takie same.",
-    path: ["confirmPassword"], // Attach error to confirmPassword field
+    message: "Hasła nie są zgodne.",
+    path: ["confirmPassword"],
   });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -49,8 +49,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isSubmitting, api
 
   return (
     <Card>
-      <CardHeader>{/* <CardTitle>Zarejestruj się</CardTitle> */}</CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
           {apiError && (
             <Alert variant="destructive">
@@ -91,7 +90,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isSubmitting, api
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-2 text-sm">
+      <CardFooter className="flex justify-center text-sm">
         <p>
           Masz już konto?{" "}
           <a href="/login" className="font-medium text-primary underline-offset-4 hover:underline">

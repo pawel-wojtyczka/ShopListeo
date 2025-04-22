@@ -2,12 +2,10 @@
 import AuthLayout from "../layouts/AuthLayout.astro";
 import LoginView from "../components/auth/LoginView";
 
-const pageTitle = "Zaloguj się";
+export const prerender = false;
 ---
 
-<AuthLayout title={pageTitle}>
-  <h1 class="text-2xl font-semibold tracking-tight text-center mb-6">{pageTitle}</h1>
-
-  {/* Render the React component, using client:idle */}
-  <LoginView client:idle />
+<AuthLayout title="Zaloguj się">
+  <h1 class="text-2xl font-semibold tracking-tight text-center mb-6">Zaloguj się</h1>
+  <LoginView client:load />
 </AuthLayout>
