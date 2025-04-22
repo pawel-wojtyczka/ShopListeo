@@ -6,6 +6,8 @@ import { ViewTransitions } from "astro:transitions";
 // Import the AuthProvider and AuthStatus component
 import { AuthProvider } from "@/lib/auth/AuthContext";
 import AuthStatus from "@/components/auth/AuthStatus"; // Adjust path if necessary
+// Import ToastProvider
+import { ToastProvider } from "@/components/ToastProvider";
 
 interface Props {
   title?: string;
@@ -42,14 +44,17 @@ const { title = "ShopListeo" } = Astro.props;
 
           {/* Poprawiony komentarz: Auth Status Area - Now rendered by React */}
           <div id="auth-status-area" class="mt-auto text-sm text-muted-foreground p-2 border-t">
-            {/* Render the AuthStatus component */}
+            {/* Render the AuthStatus component - Should have context again */}
             <AuthStatus client:load />
           </div>
         </div>
 
-        {/* Poprawiony komentarz: Główny obszar treści */}
+        {/* Poprawiony komentarz: Główny obszar treści - Wrapped with ToastProvider */}
         <main class="flex-1 overflow-auto p-6">
-          <slot />
+          {/* Wrap slot content with ToastProvider */}
+          <ToastProvider client:load>
+            <slot />
+          </ToastProvider>
         </main>
       </div>
     </AuthProvider>

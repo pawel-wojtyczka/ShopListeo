@@ -2,31 +2,48 @@ import { useShoppingLists } from "../lib/hooks/useShoppingLists";
 import { PageHeader } from "./ui/PageHeader";
 import { CreateListButton } from "./shopping-lists/CreateListButton";
 import { ShoppingLists } from "./shopping-lists/ShoppingLists";
+import type { ShoppingListSummaryDTO, PaginationResponse } from "@/types"; // Import types
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert"; // Import Alert components
+import { Terminal } from "lucide-react"; // Import icon
 
-export default function ShoppingListsView() {
-  // Używamy custom hooka do zarządzania stanem i wywołań API
-  const { lists, isLoading, error, createList, deleteList } = useShoppingLists();
+// Define props for the component
+interface ShoppingListsViewProps {
+  initialLists: ShoppingListSummaryDTO[];
+  initialPagination: PaginationResponse | null;
+  fetchError: string | null;
+}
 
-  // Funkcja do tworzenia nowej listy i przekierowania
+export default function ShoppingListsView({ initialLists, initialPagination, fetchError }: ShoppingListsViewProps) {
+  // Initialize hook *without* arguments - hook will use props internally
+  const { lists, isLoading, error, createList, deleteList } = useShoppingLists({
+    initialLists,
+    initialPagination,
+    fetchError,
+  });
+
+  // Function to create a new list and redirect
   const handleCreateList = async () => {
     const newListId = await createList();
     if (newListId) {
-      // Przekierowanie do szczegółów nowej listy
       window.location.href = `/shopping-lists/${newListId}`;
     }
   };
 
-  // Funkcja do usuwania listy
+  // Function to delete a list
   const handleDeleteList = async (listId: string) => {
     await deleteList(listId);
   };
 
-  // Jeśli wystąpił błąd podczas ładowania list
-  if (error && !isLoading) {
+  // Use the error state derived from initial fetch or subsequent client errors
+  const displayError = error;
+  if (displayError && !isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-4">
-        <div className="text-destructive text-lg font-medium mb-2">Wystąpił błąd podczas ładowania list zakupów</div>
-        <p className="text-muted-foreground">{error}</p>
+      <div className="container mx-auto p-4 flex flex-col items-center">
+        <Alert variant="destructive" className="w-full max-w-md">
+          <Terminal className="h-4 w-4" />
+          <AlertTitle>Błąd</AlertTitle>
+          <AlertDescription>Wystąpił błąd podczas ładowania list zakupów: {displayError}</AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -37,7 +54,6 @@ export default function ShoppingListsView() {
         <PageHeader title="Twoje Listy Zakupów" />
         <CreateListButton onCreateList={handleCreateList} isCreating={isLoading} />
       </div>
-
       <ShoppingLists lists={lists} isLoading={isLoading} onDeleteList={handleDeleteList} />
     </div>
   );

@@ -9,6 +9,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  authCheckCompleted: number;
   login: (token: string, rememberMe?: boolean) => void;
   logout: () => void;
 }
@@ -19,6 +20,7 @@ const defaultAuthContext: AuthContextType = {
   token: null,
   isLoading: true,
   isAuthenticated: false,
+  authCheckCompleted: 0,
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   login: () => {},
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(false);
   const [lastCheck, setLastCheck] = useState<number>(0);
+  const [authCheckCounter, setAuthCheckCounter] = useState<number>(0);
 
   // Funkcja sprawdzająca status autentykacji
   const checkAuthStatus = async () => {
@@ -100,6 +103,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log("[AuthContext] User data received:", userData);
           setUser(userData); // Update user state
           setIsLoading(false); // Explicit set isLoading to false after successful auth
+          setAuthCheckCounter((prev) => prev + 1);
+          console.log("[AuthContext] Auth check successful, counter incremented to:", authCheckCounter + 1);
 
           // Jeśli mamy userDTO ale nie mamy tokenu, nadal jesteśmy zalogowani (przez cookies/middleware)
           if (!sessionToken && userData) {
@@ -141,8 +146,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     user,
     token,
-    isLoading: isLoading && isCheckingAuth, // Tylko gdy ładujemy i sprawdzamy auth
-    isAuthenticated: !!user, // Jeśli mamy obiekt użytkownika, jesteśmy zalogowani (niezależnie od tokenu)
+    isLoading: isLoading,
+    isAuthenticated: !!user, // If we have a user object, we are logged in (regardless of token)
+    authCheckCompleted: authCheckCounter,
     login: (newToken: string, rememberMe = false) => {
       console.log("[AuthContext] login called with token");
       if (rememberMe) {
@@ -183,6 +189,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isCheckingAuth,
     isAuthenticated: !!user,
     lastCheck: new Date(lastCheck).toISOString(),
+    authCheckCompleted: value.authCheckCompleted,
   });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
