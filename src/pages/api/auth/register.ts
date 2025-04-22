@@ -1,98 +1,148 @@
-import { z } from "zod";
 import type { APIRoute } from "astro";
-import type { RegisterUserRequest } from "../../../types";
-import { AuthService } from "../../../lib/auth.service";
+import { z } from "zod";
+import { AuthService } from "@/lib/auth.service";
+import { getSupabaseAdmin } from "@/db/supabase.server";
 
-// Schemat walidacji Zod dla rejestracji
-const registerUserSchema = z.object({
-  email: z.string().email({ message: "Podaj poprawny adres email" }),
+// Schema walidacji dla rejestracji
+const registerSchema = z.object({
+  email: z.string().email("Nieprawidłowy adres email"),
   password: z
     .string()
-    .min(8, { message: "Hasło musi zawierać co najmniej 8 znaków" })
-    .regex(/.*[A-Z].*/, { message: "Hasło musi zawierać co najmniej jedną wielką literę" })
-    .regex(/.*[a-z].*/, { message: "Hasło musi zawierać co najmniej jedną małą literę" })
-    .regex(/.*\d.*/, { message: "Hasło musi zawierać co najmniej jedną cyfrę" })
-    .regex(/.*[!@#$%^&*()_+{}[\]:;<>,.?~\\/-].*/, {
-      message: "Hasło musi zawierać co najmniej jeden znak specjalny",
-    }),
+    .min(8, "Hasło musi mieć co najmniej 8 znaków")
+    .max(100, "Hasło może mieć maksymalnie 100 znaków"),
 });
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
-    // Pobieranie danych z żądania
-    const requestData = (await request.json()) as RegisterUserRequest;
+    console.log("Otrzymano żądanie rejestracji");
 
-    // Walidacja danych wejściowych
-    const validationResult = registerUserSchema.safeParse(requestData);
-
-    if (!validationResult.success) {
-      // Błąd walidacji - zwróć odpowiedni komunikat błędu
-      const errorDetails = validationResult.error.errors.map((err) => err.message);
+    // Sprawdź, czy zmienne środowiskowe są ustawione
+    if (!process.env.PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Brakujące zmienne środowiskowe dla Supabase");
       return new Response(
         JSON.stringify({
-          error: "Nieprawidłowe dane rejestracji",
-          details: errorDetails,
+          success: false,
+          message: "Brak konfiguracji bazy danych. Sprawdź zmienne środowiskowe.",
         }),
         {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
+          status: 500,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
     }
 
-    // Pobieranie klienta Supabase z kontekstu
-    const supabase = locals.supabase;
+    // Pobierz dane z żądania
+    const body = await request.json();
 
-    // Utworzenie instancji serwisu autentykacji
+    // Walidacja danych wejściowych
+    const result = registerSchema.safeParse(body);
+    if (!result.success) {
+      console.log("Błąd walidacji danych:", result.error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Błędne dane wejściowe",
+          errors: result.error.errors,
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    const { email, password } = result.data;
+    console.log(`Próba rejestracji dla: ${email}`);
+
+    // Inicjalizacja klienta Supabase i usługi autoryzacji
+    const supabase = getSupabaseAdmin();
     const authService = new AuthService(supabase);
 
-    // Rejestracja użytkownika przy użyciu serwisu
+    // Próba rejestracji
     try {
-      const registerResponse = await authService.registerUser(validationResult.data);
+      const userData = await authService.registerUser({ email, password });
 
-      // Zwrócenie informacji o utworzonym użytkowniku
-      return new Response(JSON.stringify(registerResponse), {
-        status: 201, // Created
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (serviceError) {
-      // Obsługa błędów z warstwy serwisowej
-      const errorMessage = serviceError instanceof Error ? serviceError.message : "Nieznany błąd rejestracji";
+      console.log("Rejestracja zakończona sukcesem:", userData);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Rejestracja zakończona sukcesem",
+          user: userData,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Błąd rejestracji:", error);
 
-      // Jeśli błąd dotyczy istniejącego użytkownika, zwróć 409 Conflict
-      if (errorMessage.includes("już istnieje")) {
+      // Bardziej szczegółowe komunikaty błędów
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (errorMessage.includes("connect to database")) {
         return new Response(
           JSON.stringify({
-            error: errorMessage,
+            success: false,
+            message: "Nie można połączyć się z bazą danych. Sprawdź konfigurację serwera.",
           }),
           {
-            status: 409,
-            headers: { "Content-Type": "application/json" },
+            status: 500,
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
         );
       }
 
-      // Dla pozostałych błędów serwisowych zwróć 500 Internal Server Error
+      // Sprawdź, czy użytkownik już istnieje
+      if (errorMessage.includes("already exists") || errorMessage.includes("already registered")) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "Użytkownik z tym adresem email już istnieje",
+          }),
+          {
+            status: 400,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      }
+
       return new Response(
         JSON.stringify({
-          error: errorMessage,
+          success: false,
+          message: `Błąd rejestracji: ${errorMessage || "Nieznany błąd"}`,
         }),
         {
           status: 500,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
     }
   } catch (error) {
-    console.error("Błąd podczas rejestracji użytkownika:", error);
-
+    console.error("Nieoczekiwany błąd podczas rejestracji:", error);
     return new Response(
       JSON.stringify({
-        error: "Wystąpił błąd podczas przetwarzania żądania rejestracji",
+        success: false,
+        message: "Wystąpił nieoczekiwany błąd podczas rejestracji",
+        error: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
   }

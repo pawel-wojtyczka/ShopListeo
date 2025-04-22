@@ -1,15 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PageHeader } from "../PageHeader";
 import RegisterForm from "./RegisterForm";
 import type { RegisterUserRequest, RegisterUserResponse } from "../../types";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const RegisterView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [isDevelopmentEnv, setIsDevelopmentEnv] = useState(false);
+
+  // Sprawdź, czy jesteśmy w środowisku deweloperskim, ale tylko po stronie klienta
+  useEffect(() => {
+    // Sprawdzamy, czy window istnieje (jesteśmy po stronie klienta)
+    if (typeof window !== "undefined") {
+      const hostname = window.location.hostname;
+      setIsDevelopmentEnv(hostname === "localhost" || hostname === "127.0.0.1");
+    }
+  }, []);
+
+  // Przekierowanie po pomyślnej rejestracji
+  useEffect(() => {
+    let redirectTimer: NodeJS.Timeout;
+    if (registrationSuccess && typeof window !== "undefined") {
+      redirectTimer = setTimeout(() => {
+        window.location.href = "/login";
+      }, 3000);
+    }
+    return () => {
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
+    };
+  }, [registrationSuccess]);
 
   const handleRegister = async (data: RegisterUserRequest) => {
     setIsSubmitting(true);
     setApiError(null);
+    setRegistrationSuccess(false);
     console.log("Attempting registration with:", data);
 
     try {
@@ -47,28 +75,10 @@ const RegisterView: React.FC = () => {
         throw new Error(String(errorMessage));
       }
 
-      const successData = responseData as RegisterUserResponse;
-      console.log("Registration successful, received token:", successData.token);
+      // Pokaż informację o sukcesie
+      setRegistrationSuccess(true);
 
-      // Registration successful, treat as login: store token and dispatch event
-      // Assuming API returns a token immediately usable for login
-      // For simplicity, using localStorage directly. In a real app, consider sessionStorage too or based on a flag.
-      localStorage.setItem("authToken", successData.token);
-      console.log("Token stored in localStorage after registration");
-
-      // Dispatch authChange event to update layout/global state
-      window.dispatchEvent(
-        new CustomEvent("authChange", {
-          detail: {
-            isAuthenticated: true,
-            user: { id: successData.id, email: successData.email },
-          },
-        })
-      );
-      console.log("Dispatched authChange event after registration");
-
-      // Redirect to the main page
-      window.location.href = "/";
+      // Przekierowanie jest obsługiwane przez useEffect
     } catch (error) {
       console.error("Registration fetch error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd podczas rejestracji.");
@@ -80,7 +90,39 @@ const RegisterView: React.FC = () => {
   return (
     <>
       <PageHeader title="Zarejestruj się" />
-      <RegisterForm onSubmit={handleRegister} isSubmitting={isSubmitting} apiError={apiError} />
+      {registrationSuccess ? (
+        <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+          <AlertTitle>Rejestracja zakończona sukcesem!</AlertTitle>
+          <AlertDescription>
+            <p>Twoje konto zostało utworzone. Za chwilę zostaniesz przekierowany na stronę logowania.</p>
+
+            <p className="mt-2 text-sm">
+              <strong>Ważne:</strong> W zależności od konfiguracji systemu, może być wymagane potwierdzenie adresu
+              email, zanim będziesz mógł się zalogować. Sprawdź swoją skrzynkę email.
+            </p>
+
+            {isDevelopmentEnv && (
+              <p className="mt-2 text-sm">
+                <strong>Uwaga dla deweloperów:</strong> W środowisku deweloperskim może być wymagane ręczne
+                potwierdzenie adresu email. Sprawdź panel administracyjny Supabase lub logi.
+              </p>
+            )}
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <>
+          {apiError && apiError.includes("Sprawdź klucze Supabase") && (
+            <Alert className="mb-4 bg-yellow-50 text-yellow-800 border-yellow-200">
+              <AlertTitle>Problem z konfiguracją</AlertTitle>
+              <AlertDescription>
+                Wykryto problem z konfiguracją Supabase. Administrator systemu powinien sprawdzić klucze API w pliku
+                .env.
+              </AlertDescription>
+            </Alert>
+          )}
+          <RegisterForm onSubmit={handleRegister} isSubmitting={isSubmitting} apiError={apiError} />
+        </>
+      )}
     </>
   );
 };

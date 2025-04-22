@@ -1,0 +1,27 @@
+<mermaid_diagram>
+graph LR
+    subgraph Frontend
+        A["User"]
+        B["Astro Page:\nLogin / Register / Recover"]
+        C["React Auth Form"]
+        M["Astro Middleware"]
+    end
+
+    subgraph Backend
+        D["API Endpoints:\nregister, login,\nlogout, request-reset,\nset-new-password"]
+        V["Validation & Error Logging"]
+        E["Supabase Auth"]
+        F["Database:\nUsers & errors_log"]
+    end
+
+    A ==> B:::thick
+    B ==> C:::thick
+    C ==> D:::thick
+    D ==> E:::thick
+    E ==> F:::thick
+    D -- "Validation\nand errors"--> V
+    V -.-> F
+    M -- "Route protection"--> B
+
+    classDef thick stroke:#333,stroke-width:2px;
+</mermaid_diagram> 

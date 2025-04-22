@@ -10,6 +10,9 @@ const PROTECTED_ROUTES = ["/", "/shopping-lists", "/profile"];
 // Ścieżki dostępne tylko dla niezalogowanych użytkowników
 const AUTH_ROUTES = ["/login", "/register", "/reset-password", "/set-new-password"];
 
+// Ścieżki API związane z autoryzacją, które powinny być dostępne bez logowania
+const AUTH_API_ROUTES = ["/api/auth/register", "/api/auth/login", "/api/auth/reset-password"];
+
 // Ścieżki dostępne tylko dla administratorów
 const ADMIN_ROUTES = ["/admin"];
 
@@ -101,18 +104,21 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   // 4. Apply redirection rules
   const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
+  const isAuthApiRoute = AUTH_API_ROUTES.some((route) => pathname.startsWith(route));
   const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route));
 
   console.log("Middleware: Checking redirects for path:", pathname, {
     isProtectedRoute,
     isAuthRoute,
+    isAuthApiRoute,
     isAdminRoute,
     isAuthenticated,
   });
 
   // Redirect to login if trying to access protected route while logged out
-  if (isProtectedRoute && !isAuthenticated && pathname !== "/login") {
-    console.log("Middleware: Redirecting to /login (protected route, not authenticated, not already on /login)");
+  // (except auth routes and auth API routes)
+  if (isProtectedRoute && !isAuthenticated && !isAuthRoute && !isAuthApiRoute) {
+    console.log("Middleware: Redirecting to /login (protected route, not authenticated, not auth route)");
     return redirect("/login");
   }
 

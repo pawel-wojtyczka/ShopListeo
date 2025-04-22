@@ -60,3 +60,8 @@ function getSupabaseAdminClient() {
 
 // Eksport funkcji pobierającej instancję klienta admina
 export const supabaseAdminClient = getSupabaseAdminClient();
+
+// Eksport funkcji do użycia w API endpoints
+export function getSupabaseAdmin() {
+  return getSupabaseAdminClient();
+}

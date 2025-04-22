@@ -47,8 +47,17 @@ Obecne metody tworzenia list zakupowych (np. zapisywanie na kartce, w notatniku 
 
 ### US-006
 - Tytuł: Bezpieczny dostęp i uwierzytelnianie
-- Opis: Jako użytkownik chcę mieć pewność, że mój dostęp do systemu jest bezpieczny, a moje dane są odpowiednio chronione.
-- Kryteria akceptacji: System musi wdrożyć mechanizmy uwierzytelniania i autoryzacji, zapewniając przechowywanie danych zgodne z najlepszymi praktykami bezpieczeństwa.
+- Opis: Jako użytkownik chcę mieć możliwość rejestracji i logowania się do systemu w sposób zapewniający bezpieczeństwo moich danych.
+- Kryteria akceptacji:
+  - Logowanie i rejestracja odbywają się na dedykowanych stronach.
+  - Logowanie wymaga podania adresu email i hasła.
+  - Rejestracja wymaga podania adresu email, hasła i potwierdzenia hasła.
+  - Użytkownik MOŻE korzystać z tworzenia reguł "ad-hoc" bez logowania się do systemu (US-001).
+  - Użytkownik NIE MOŻE korzystać z funkcji tworzenia i edycji list zakupów bez logowania się do systemu (US-002, US-003, US-004, US-005).
+  - Użytkownik może logować się do systemu poprzez przycisk w prawym górnym rogu.
+  - Użytkownik może się wylogować z systemu poprzez przycisk w prawym górnym rogu w głównym @Layout.astro.
+  - Nie korzystamy z zewnętrznych serwisów logowania (np. Google, GitHub).
+  - Odzyskiwanie hasła powinno być możliwe.
 
 ## 6. Metryki sukcesu
 - Procent list zakupów generowanych przez AI, które zostały zatwierdzone jako kompletne przez użytkowników.
@@ -56,3 +65,5 @@ Obecne metody tworzenia list zakupowych (np. zapisywanie na kartce, w notatniku 
 - Dokładność i możliwość odtworzenia pełnej historii rozmowy między użytkownikiem a asystentem AI.
 - Szybkość reakcji systemu przy oznaczaniu produktów jako zakupione oraz finalizacji listy.
 - Liczba zarejestrowanych błędów oraz efektywność procesu obsługi błędów (na podstawie danych zapisanych w bazie `errors_log`). 
+
+
