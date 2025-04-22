@@ -203,7 +203,10 @@ export function useShoppingLists({
         let errorJson = { message: response.statusText };
         try {
           errorJson = await response.json();
-        } catch (_) {
+        } catch (
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          _
+        ) {
           /* Ignore parsing error - fix linter */
         }
 
@@ -228,6 +231,7 @@ export function useShoppingLists({
       }));
       showSuccessToast("Lista zakupów została usunięta", {
         description: `Lista "${listTitle}" została pomyślnie usunięta.`,
+        duration: 3000, // Standardowa długość dla powiadomień o sukcesie
       });
     } catch (err) {
       // Revert optimistic update on error
@@ -239,6 +243,7 @@ export function useShoppingLists({
       console.error(`[useShoppingLists] Delete list ${listId} catch block error:`, err);
       showErrorToast("Nie udało się usunąć listy zakupów", {
         description: err instanceof Error ? err.message : "Nieznany błąd podczas usuwania listy",
+        duration: 5000, // Dłuższy czas dla błędów
       });
     }
   };

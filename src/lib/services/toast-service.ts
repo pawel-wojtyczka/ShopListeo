@@ -24,6 +24,7 @@ export function showSuccessToast(message: string, options?: ToastOptions): void 
     id: options?.id,
     duration: options?.duration || 3000,
     description: options?.description,
+    className: "toast-notification",
     action: options?.action
       ? {
           label: options.action.label,
@@ -43,6 +44,7 @@ export function showErrorToast(message: string, options?: ToastOptions): void {
     id: options?.id,
     duration: options?.duration || 5000, // Dłuższy czas dla błędów
     description: options?.description,
+    className: "toast-notification",
     action: options?.action
       ? {
           label: options.action.label,
@@ -62,6 +64,7 @@ export function showInfoToast(message: string, options?: ToastOptions): void {
     id: options?.id,
     duration: options?.duration || 3000,
     description: options?.description,
+    className: "toast-notification",
     action: options?.action
       ? {
           label: options.action.label,
@@ -81,6 +84,7 @@ export function showWarningToast(message: string, options?: ToastOptions): void 
     id: options?.id,
     duration: options?.duration || 4000,
     description: options?.description,
+    className: "toast-notification",
     action: options?.action
       ? {
           label: options.action.label,

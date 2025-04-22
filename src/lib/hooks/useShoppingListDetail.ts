@@ -189,11 +189,15 @@ export function useShoppingListDetail(listId: string) {
 
         showSuccessToast("Tytuł zaktualizowany", {
           description: `Tytuł listy został zmieniony na "${data.title}".`,
+          duration: 3000, // Standardowa długość dla powiadomień o sukcesie
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas aktualizacji tytułu.";
         setError(errorMessage);
-        showErrorToast("Błąd aktualizacji tytułu", { description: errorMessage });
+        showErrorToast("Błąd aktualizacji tytułu", {
+          description: errorMessage,
+          duration: 5000, // Dłuższy czas dla błędów
+        });
         throw err; // Rzuć błąd dalej, aby komponent mógł zareagować
       } finally {
         setIsUpdating(false);
@@ -209,7 +213,10 @@ export function useShoppingListDetail(listId: string) {
       const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
       if (itemIndex === -1) {
         console.error(`[toggleItemPurchased] Item with id ${itemId} not found.`);
-        showErrorToast("Błąd", { description: "Nie znaleziono produktu do zaktualizowania." });
+        showErrorToast("Błąd", {
+          description: "Nie znaleziono produktu do zaktualizowania.",
+          duration: 5000, // Dłuższy czas dla błędów
+        });
         return;
       }
 
@@ -269,7 +276,10 @@ export function useShoppingListDetail(listId: string) {
         const errorMessage =
           err instanceof Error ? err.message : "Nieznany błąd podczas aktualizacji statusu produktu.";
         setError(errorMessage); // Ustaw ogólny błąd hooka
-        showErrorToast("Błąd aktualizacji produktu", { description: errorMessage });
+        showErrorToast("Błąd aktualizacji produktu", {
+          description: errorMessage,
+          duration: 5000, // Dłuższy czas dla błędów
+        });
 
         // Przywrócenie oryginalnego stanu listy w przypadku błędu
         setViewModel((prev) => {
@@ -296,7 +306,10 @@ export function useShoppingListDetail(listId: string) {
       const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
       if (itemIndex === -1) {
         console.error(`[deleteItem] Item with id ${itemId} not found.`);
-        showErrorToast("Błąd", { description: "Nie znaleziono produktu do usunięcia." });
+        showErrorToast("Błąd", {
+          description: "Nie znaleziono produktu do usunięcia.",
+          duration: 5000, // Dłuższy czas dla błędów
+        });
         return;
       }
 
@@ -326,7 +339,10 @@ export function useShoppingListDetail(listId: string) {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas usuwania produktu.";
         setError(errorMessage);
-        showErrorToast("Błąd usuwania produktu", { description: errorMessage });
+        showErrorToast("Błąd usuwania produktu", {
+          description: errorMessage,
+          duration: 5000, // Dłuższy czas dla błędów
+        });
 
         // Przywrócenie usuniętego produktu
         setViewModel((prev) => {
@@ -349,7 +365,10 @@ export function useShoppingListDetail(listId: string) {
       const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
       if (itemIndex === -1) {
         console.error(`[updateItemName] Item with id ${itemId} not found.`);
-        showErrorToast("Błąd", { description: "Nie znaleziono produktu do zaktualizowania." });
+        showErrorToast("Błąd", {
+          description: "Nie znaleziono produktu do zaktualizowania.",
+          duration: 5000, // Dłuższy czas dla błędów
+        });
         return;
       }
 
@@ -360,6 +379,7 @@ export function useShoppingListDetail(listId: string) {
       if (trimmedName === "") {
         showErrorToast("Nieprawidłowa nazwa", {
           description: "Nazwa produktu nie może być pusta.",
+          duration: 5000, // Dłuższy czas dla błędów
         });
         return;
       }
@@ -419,7 +439,10 @@ export function useShoppingListDetail(listId: string) {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas aktualizacji nazwy produktu.";
         setError(errorMessage);
-        showErrorToast("Błąd aktualizacji nazwy", { description: errorMessage });
+        showErrorToast("Błąd aktualizacji nazwy", {
+          description: errorMessage,
+          duration: 5000, // Dłuższy czas dla błędów
+        });
 
         // Przywrócenie oryginalnego stanu
         setViewModel((prev) => {
@@ -521,18 +544,23 @@ export function useShoppingListDetail(listId: string) {
         if (successfulItems.length > 0) {
           showSuccessToast("Dodano produkty", {
             description: `Dodano ${successfulItems.length} ${successfulItems.length === 1 ? "produkt" : "produkty"} do listy.`,
+            duration: 3000, // Standardowa długość dla powiadomień o sukcesie
           });
         }
 
         if (failedItems.length > 0) {
           showErrorToast("Nie udało się dodać wszystkich produktów", {
             description: `Nie udało się dodać ${failedItems.length} produktów.`,
+            duration: 5000, // Dłuższy czas dla błędów
           });
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas dodawania produktów.";
         setError(errorMessage);
-        showErrorToast("Błąd dodawania produktów", { description: errorMessage });
+        showErrorToast("Błąd dodawania produktów", {
+          description: errorMessage,
+          duration: 5000, // Dłuższy czas dla błędów
+        });
 
         // Usuń tymczasowe elementy w przypadku błędu
         setViewModel((prev) => {
