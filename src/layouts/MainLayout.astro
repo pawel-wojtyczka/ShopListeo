@@ -8,15 +8,15 @@ import { AuthProvider } from "@/lib/auth/AuthContext";
 import AuthStatus from "@/components/auth/AuthStatus"; // Adjust path if necessary
 // Import ToastProvider
 import { ToastProvider } from "@/components/ToastProvider";
-import type { AstroLocals } from "@/types/locals"; // Import AstroLocals
+// import type { AstroLocals } from "@/types/locals"; // Usunięto nieużywany import
 
 interface Props {
   title?: string;
 }
 
 const { title = "ShopListeo" } = Astro.props;
-// Get the mapped UserDTO from locals (authUser)
-const { authUser } = Astro.locals as AstroLocals;
+// Usunięto pobieranie authUser, nie jest już przekazywane do AuthStatus
+// const { authUser } = Astro.locals as AstroLocals;
 // Remove dynamic key logic
 // const authKey = Astro.locals.user ? 'user-logged-in' : 'user-logged-out';
 ---
@@ -32,7 +32,7 @@ const { authUser } = Astro.locals as AstroLocals;
     <ViewTransitions />
   </head>
   <body class="h-full bg-background text-foreground antialiased">
-    <AuthProvider client:load>
+    <AuthProvider client:only="react">
       <div class="flex h-full min-h-screen flex-col md:flex-row">
         {/* Poprawiony komentarz: Nawigacja boczna */}
         <div class="w-64 border-r hidden md:block p-4 flex flex-col justify-between">
@@ -51,8 +51,9 @@ const { authUser } = Astro.locals as AstroLocals;
 
           {/* Poprawiony komentarz: Auth Status Area - Now rendered by React */}
           <div id="auth-status-area" class="mt-auto text-sm text-muted-foreground p-2 border-t">
-            {/* Pass the mapped authUser from locals */}
-            <AuthStatus client:load initialUser={authUser} />
+            {/* Usunięto prop initialUser */}
+            <AuthStatus client:load />
+            {/* Nadal używamy client:load */}
           </div>
         </div>
 

@@ -5,10 +5,7 @@
 ### 1.1. `users`
 - `id` UUID PRIMARY KEY
 - `email` VARCHAR(128) NOT NULL UNIQUE
-- `password_hash` TEXT NOT NULL
 - `admin` BOOLEAN NOT NULL DEFAULT FALSE
-- `registration_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-- `last_login_date` TIMESTAMP
 - `updated_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 
 ### 1.2. `conversations`

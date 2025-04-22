@@ -1,27 +1,24 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/AuthContext";
-import type { UserDTO } from "@/types"; // Import UserDTO type
+// import type { UserDTO } from "@/types"; // Usunięto nieużywany import
 
-// Define props
-interface AuthStatusProps {
-  initialUser?: UserDTO | null; // Accept optional initial user from props
-}
+// Usunięto propsy - komponent polega tylko na kontekście
+// interface AuthStatusProps {
+//   initialUser?: UserDTO | null;
+// }
 
-// Komponent wyświetlający status autentykacji
-const AuthStatus: React.FC<AuthStatusProps> = ({ initialUser }) => {
-  // Pobieramy dane autentykacji z kontekstu
-  // Destructure user as contextUser to avoid naming conflict
+// Komponent wyświetlający status autentykacji (UPROSZCZONY DO DEBUGOWANIA)
+const AuthStatus: React.FC = () => {
+  // Usunięto propsy z definicji
   const { user: contextUser, logout, isLoading } = useAuth();
+  // displayUser bazuje teraz TYLKO na kontekście
+  const displayUser = contextUser;
 
-  // Determine the user to display: prioritize context, fallback to initial prop
-  const displayUser = contextUser ?? initialUser;
-
-  // Use displayUser for logging
-  console.log("[AuthStatus] Rendering with state:", {
-    isAuthenticated: !!displayUser, // Based on displayUser
+  console.log("[AuthStatus] Rendering with state (context only):", {
+    isAuthenticated: !!displayUser,
     hasContextUser: !!contextUser,
-    hasInitialUser: !!initialUser,
+    // hasInitialUser: false, // Usunięte
     displayUser,
     isLoading,
   });
@@ -35,10 +32,18 @@ const AuthStatus: React.FC<AuthStatusProps> = ({ initialUser }) => {
   };
 
   const handleLogoutClick = async () => {
-    await logout();
+    console.log("[AuthStatus] handleLogoutClick triggered!");
+    try {
+      console.log("[AuthStatus] Attempting to call logout() from context...");
+      await logout();
+      console.log("[AuthStatus] logout() call completed (or promise resolved).");
+    } catch (error) {
+      console.error("[AuthStatus] Error caught during await logout():", error);
+    }
+    console.log("[AuthStatus] handleLogoutClick finished.");
   };
 
-  // If we have a user (from context or props) - RENDER LOGGED IN STATE
+  // Przywrócona logika renderowania
   if (displayUser) {
     return (
       <div className="flex flex-col gap-2">
@@ -52,8 +57,6 @@ const AuthStatus: React.FC<AuthStatusProps> = ({ initialUser }) => {
     );
   }
 
-  // If no user and context is loading - RENDER LOADING STATE
-  // Check context's isLoading state
   if (isLoading) {
     return (
       <div className="flex flex-col gap-2">
@@ -62,7 +65,6 @@ const AuthStatus: React.FC<AuthStatusProps> = ({ initialUser }) => {
     );
   }
 
-  // If no user and not loading - RENDER LOGGED OUT STATE
   return (
     <div className="flex flex-col gap-2">
       <div className="text-sm mb-1">Nie jesteś zalogowany</div>
@@ -76,22 +78,6 @@ const AuthStatus: React.FC<AuthStatusProps> = ({ initialUser }) => {
       </div>
     </div>
   );
-
-  // Original logic commented out for clarity of the new approach
-  /*
-  // Gdy użytkownik jest zalogowany (ignorujemy stan isLoading)
-  if (user) {
-    // ... render logged in ...
-  }
-  // Gdy użytkownik nie jest zalogowany i nie ładujemy
-  if (!isLoading) {
-     // ... render logged out ...
-  }
-  // Stan ładowania - renderowany tylko gdy nie mamy użytkownika
-  return (
-    // ... render loading ...
-  );
-  */
 };
 
 export default AuthStatus;

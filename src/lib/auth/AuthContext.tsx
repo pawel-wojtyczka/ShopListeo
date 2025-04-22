@@ -11,7 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   authCheckCompleted: number;
   login: (token: string, rememberMe?: boolean) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 // Domyślne wartości kontekstu
@@ -24,7 +24,7 @@ const defaultAuthContext: AuthContextType = {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   login: () => {},
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  logout: () => {},
+  logout: async () => {},
 };
 
 // Utworzenie kontekstu
@@ -48,91 +48,88 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Funkcja sprawdzająca status autentykacji
   const checkAuthStatus = async () => {
-    if (isCheckingAuth) return; // Zapobiegamy wielu równoczesnym wywołaniom
+    if (isCheckingAuth) {
+      console.log("[AuthContext] checkAuthStatus: Already checking, returning."); // Log 1
+      return;
+    }
 
     setIsCheckingAuth(true);
-    console.log("[AuthContext] checkAuthStatus running...");
+    console.log("[AuthContext] checkAuthStatus: Starting..."); // Log 2
 
     try {
       // Próbujemy pobrać token z localStorage lub sessionStorage
+      console.log("[AuthContext] checkAuthStatus: Getting stored token..."); // Log 3
       const storedToken = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-
-      // Próbujemy też pobrać token bezpośrednio z sesji Supabase
       let sessionToken = storedToken;
+      console.log(`[AuthContext] checkAuthStatus: Stored token found: ${!!storedToken}`); // Log 4
 
       try {
         // Pobieramy sesję z Supabase Client
-        console.log("[AuthContext] Trying to get Supabase session");
-        const { data: sessionData } = await supabaseClient.auth.getSession();
-        console.log("[AuthContext] Supabase session response:", {
+        console.log("[AuthContext] checkAuthStatus: Getting Supabase session..."); // Log 5
+        const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+        if (sessionError) {
+          console.error("[AuthContext] checkAuthStatus: Error getting Supabase session:", sessionError); // Log 6a
+        }
+        console.log("[AuthContext] checkAuthStatus: Supabase getSession response received.", {
           hasSession: !!sessionData?.session,
-          hasToken: !!sessionData?.session?.access_token,
-        });
+        }); // Log 6b
 
         if (sessionData?.session?.access_token) {
           sessionToken = sessionData.session.access_token;
-          console.log("[AuthContext] Got token from Supabase session");
+          console.log("[AuthContext] checkAuthStatus: Token updated from Supabase session."); // Log 7
         }
       } catch (error) {
-        console.error("[AuthContext] Error getting Supabase session:", error);
+        console.error("[AuthContext] checkAuthStatus: CATCH block for Supabase session error:", error); // Log 8
       }
 
       // Aktualizujemy stan tokenu
+      console.log(`[AuthContext] checkAuthStatus: Setting token state: ${!!sessionToken}`); // Log 9
       setToken(sessionToken);
 
-      // If no token AND no user is currently set, we still check with API, since cookies may have valid session
-      // the middleware might be able to verify the user even without a token in localStorage/sessionStorage
-      console.log(`[AuthContext] Token: ${!!sessionToken}, Current User: ${!!user}. Fetching /api/users/me...`);
-
+      console.log(
+        `[AuthContext] checkAuthStatus: Attempting to fetch /api/users/me... Token included: ${!!sessionToken}`
+      ); // Log 10
       try {
-        // Dodajemy token do headers, jeśli jest dostępny
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (sessionToken) {
           headers["Authorization"] = `Bearer ${sessionToken}`;
         }
 
-        console.log("[AuthContext] Sending request to /api/users/me with headers:", headers);
         const response = await fetch("/api/users/me", { headers });
-        console.log(`[AuthContext] /api/users/me response status: ${response.status}`);
+        console.log(`[AuthContext] checkAuthStatus: Fetch /api/users/me completed. Status: ${response.status}`); // Log 11
 
         if (response.ok) {
           const userData: UserDTO = await response.json();
-          console.log("[AuthContext] User data received:", userData);
-          setUser(userData); // Update user state
-          setIsLoading(false); // Explicit set isLoading to false after successful auth
+          console.log("[AuthContext] checkAuthStatus: User data received, setting user state.", userData); // Log 12
+          setUser(userData);
+          console.log("[AuthContext] checkAuthStatus: Setting isLoading=false (fetch OK)."); // Log 13a
+          setIsLoading(false);
           setAuthCheckCounter((prev) => prev + 1);
-          console.log("[AuthContext] Auth check successful, counter incremented to:", authCheckCounter + 1);
-
-          // Jeśli mamy userDTO ale nie mamy tokenu, nadal jesteśmy zalogowani (przez cookies/middleware)
-          if (!sessionToken && userData) {
-            console.log("[AuthContext] User authenticated via server-side session (no client token)");
-          }
         } else {
-          // Clear user and token if request fails
-          console.log("[AuthContext] Auth check failed, clearing state.");
+          console.log("[AuthContext] checkAuthStatus: Fetch not OK, clearing user state."); // Log 14
           setUser(null);
           localStorage.removeItem("authToken");
           sessionStorage.removeItem("authToken");
-          setIsLoading(false); // Explicit set isLoading to false after failed auth
+          console.log("[AuthContext] checkAuthStatus: Setting isLoading=false (fetch not OK)."); // Log 13b
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error("[AuthContext] Error fetching /api/users/me:", error);
-        setUser(null); // Clear user on fetch error
+        console.error("[AuthContext] checkAuthStatus: CATCH block for fetch /api/users/me error:", error); // Log 15
+        setUser(null);
         localStorage.removeItem("authToken");
         sessionStorage.removeItem("authToken");
-        setIsLoading(false); // Explicit set isLoading to false after error
+        console.log("[AuthContext] checkAuthStatus: Setting isLoading=false (fetch catch block)."); // Log 13c
+        setIsLoading(false);
       }
     } catch (error) {
-      console.error("[AuthContext] Unexpected error in checkAuthStatus:", error);
+      console.error("[AuthContext] checkAuthStatus: CATCH block for outer try:", error); // Log 16
       setUser(null);
-      setIsLoading(false); // Explicit set isLoading to false after unexpected error
+      console.log("[AuthContext] checkAuthStatus: Setting isLoading=false (outer catch block)."); // Log 13d
+      setIsLoading(false);
     } finally {
-      console.log("[AuthContext] Setting isCheckingAuth to false");
+      console.log("[AuthContext] checkAuthStatus: Finally block. Setting isCheckingAuth=false."); // Log 17
       setIsCheckingAuth(false);
-      setLastCheck(Date.now()); // Zapisujemy czas ostatniego sprawdzenia
+      setLastCheck(Date.now());
     }
   };
 
@@ -146,8 +143,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     user,
     token,
-    isLoading: isLoading,
-    isAuthenticated: !!user, // If we have a user object, we are logged in (regardless of token)
+    isLoading: isCheckingAuth || isLoading,
+    isAuthenticated: !!user,
     authCheckCompleted: authCheckCounter,
     login: (newToken: string, rememberMe = false) => {
       console.log("[AuthContext] login called with token");
@@ -163,36 +160,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
       checkAuthStatus();
     },
     logout: async () => {
-      console.log("[AuthContext] logout called - using API endpoint");
+      console.log("[AuthContext] logout: Function entered.");
 
       // Wyczyść lokalne stany natychmiast (dla szybszej reakcji UI)
-      setUser(null);
-      setToken(null);
-      localStorage.removeItem("authToken");
-      sessionStorage.removeItem("authToken");
-      console.log("[AuthContext] Local state and storage cleared.");
+      try {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem("authToken");
+        sessionStorage.removeItem("authToken");
+        console.log("[AuthContext] logout: Local state and storage cleared.");
+      } catch (e) {
+        console.error("[AuthContext] logout: Error clearing local state:", e);
+      }
 
       // Wywołaj serwerowy endpoint wylogowania
+      console.log("[AuthContext] logout: Attempting to fetch /api/auth/logout...");
       try {
         const response = await fetch("/api/auth/logout", {
           method: "POST",
         });
+        console.log(`[AuthContext] logout: Fetch completed. Status: ${response.status}`);
 
         if (!response.ok && response.status !== 204) {
-          // 204 is success with no content
-          console.error(`[AuthContext] Logout API endpoint failed with status: ${response.status}`);
-          // Opcjonalnie: Pokaż błąd użytkownikowi
+          console.error(`[AuthContext] logout: Logout API endpoint failed with status: ${response.status}`);
         } else {
-          console.log("[AuthContext] Logout API endpoint successful.");
+          console.log("[AuthContext] logout: Logout API endpoint successful or completed (status 204).");
         }
       } catch (error) {
-        console.error("[AuthContext] Error calling logout API endpoint:", error);
-        // Opcjonalnie: Pokaż błąd użytkownikowi
+        console.error("[AuthContext] logout: Error during fetch call:", error);
       }
 
       // Przekieruj do strony logowania (niezależnie od wyniku API, stan lokalny jest już wyczyszczony)
-      console.log("[AuthContext] Redirecting to /login");
-      window.location.href = "/login";
+      console.log("[AuthContext] logout: Attempting redirect to /login...");
+      try {
+        window.location.href = "/login";
+      } catch (e) {
+        console.error("[AuthContext] logout: Error during redirect:", e);
+      }
     },
   };
 
