@@ -7,7 +7,7 @@ Usługa OpenRouter ma na celu integrację interfejsu API OpenRouter z systemem c
    - Komunikatu systemowego (np. "You are a helpful assistant.")
    - Komunikatu użytkownika (np. "Enter your query here")
    - Ustrukturyzowanej odpowiedzi poprzez response_format, np. `{ type: 'json_schema', json_schema: { name: 'llm_response', strict: true, schema: { /* JSON Schema Object */ } } }`
-   - Nazwy modelu (np. "openrouter-llm-model")
+   - Nazwy modelu (np. "openai/chatgpt-4o-latest")
    - Parametrów modelu (np. `{ max_tokens: 512, temperature: 0.7 }`)
 3. Wysyłanie żądań do API OpenRouter oraz przetwarzanie odpowiedzi zgodnie z ustalonym schematem.
 4. Obsługę błędów i logowanie zdarzeń, zapewniając stabilność i bezpieczeństwo komunikacji.

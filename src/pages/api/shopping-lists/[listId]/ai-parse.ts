@@ -4,12 +4,18 @@ import { getErrorMessage } from "@/lib/utils/error";
 import { supabaseClient } from "@/db/supabase.client";
 import type { AstroLocals } from "@/types/locals";
 
+// Bezpośrednie użycie wartości klucza zamiast zmiennej środowiskowej
+// To rozwiązanie tymczasowe, docelowo należy rozwiązać problem ze zmiennymi środowiskowymi
+const HARDCODED_API_KEY = "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";
+
 export const POST: APIRoute = async ({ params, request, locals }) => {
   // Dodaję identyfikator żądania dla łatwiejszego śledzenia
   const requestId = crypto.randomUUID();
   console.log(`[${requestId}] [ai-parse] Otrzymano żądanie POST z ${request.url}`);
 
   try {
+    console.log(`[${requestId}] [ai-parse] Używam bezpośrednio skonfigurowanego klucza API`);
+
     // Pobieramy dane uwierzytelniające bezpośrednio z middleware locals
     const { user, isAuthenticated, authUser } = locals as AstroLocals & { isAuthenticated: boolean };
 
@@ -97,61 +103,116 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     }
 
     // Initialize OpenRouter service
-    console.log(`[${requestId}] [ai-parse] Inicjalizacja serwisu OpenRouter`);
+    console.log(`[${requestId}] [ai-parse] Inicjalizacja serwisu OpenRouter z bezpośrednio podanym kluczem API`);
     try {
-      const openRouter = new OpenRouterService();
+      // Używamy bezpośrednio zdefiniowanego klucza
+      const openRouter = new OpenRouterService(HARDCODED_API_KEY);
 
-      // Set system message to instruct AI about the task
-      openRouter.updateSystemMessage(`You are a helpful shopping list assistant. Your task is to:
-1. Analyze the user's input text
-2. Extract product names
-3. Return them as a JSON array of objects with 'name' property
-4. Keep product names simple and clear
-5. Remove any duplicates
-6. Standardize product names (e.g., lowercase, remove unnecessary details)
-7. Return maximum 50 products`);
+      // Przygotuj zapytanie ręcznie z wymaganymi parametrami
+      console.log(`[${requestId}] [ai-parse] Przygotowywanie zapytania do OpenRouter`);
+      const requestPayload = {
+        model: "openai/gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are a helpful shopping list assistant. Extract product names from the user's input and return as JSON with a 'products' array. Each product should have a 'name' property. Keep names simple, remove duplicates, and limit to 50 items.`,
+          },
+          {
+            role: "user",
+            content: `Parse this shopping list text into product names: "${text}"`,
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+        max_tokens: 1000,
+      };
 
-      // Send request to OpenRouter
       console.log(`[${requestId}] [ai-parse] Wysyłanie zapytania do OpenRouter, długość tekstu: ${text.length} znaków`);
-      const response = await openRouter.sendChatRequest({
-        message: text,
+      const response = await fetch(`${openRouter.getBaseUrl()}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openRouter.getApiKey()}`,
+        },
+        body: JSON.stringify(requestPayload),
       });
 
-      if (response.error) {
-        console.error(`[${requestId}] [ai-parse] Błąd odpowiedzi OpenRouter: ${response.error}`);
-        return new Response(JSON.stringify({ error: "Failed to process text with AI", details: response.error }), {
-          status: 500,
-        });
-      }
-
-      // Parse the response to get products array
-      console.log(`[${requestId}] [ai-parse] Przetwarzanie odpowiedzi z OpenRouter`);
-      try {
-        const parsedContent = JSON.parse(response.content);
-        if (!Array.isArray(parsedContent.products)) {
-          console.error(`[${requestId}] [ai-parse] Nieprawidłowy format odpowiedzi: products nie jest tablicą`);
-          console.error(`[${requestId}] [ai-parse] Otrzymana odpowiedź: ${JSON.stringify(parsedContent)}`);
-          throw new Error("Invalid response format");
-        }
-
-        console.log(`[${requestId}] [ai-parse] Sukces, znaleziono ${parsedContent.products.length} produktów`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[${requestId}] [ai-parse] Błąd API OpenRouter: ${response.status} ${errorText}`);
         return new Response(
-          JSON.stringify({
-            products: parsedContent.products,
-          }),
+          JSON.stringify({ error: "Failed to process text with AI", details: `API error: ${response.status}` }),
           {
-            status: 200,
+            status: 500,
           }
         );
-      } catch (error) {
-        console.error(`[${requestId}] [ai-parse] Błąd parsowania odpowiedzi AI: ${getErrorMessage(error)}`);
-        console.error(`[${requestId}] [ai-parse] Surowa odpowiedź: ${response.content}`);
-        return new Response(JSON.stringify({ error: "Failed to parse AI response", details: getErrorMessage(error) }), {
-          status: 500,
-        });
+      }
+
+      // Parse the response
+      console.log(`[${requestId}] [ai-parse] Otrzymano odpowiedź z OpenRouter, status: ${response.status}`);
+      try {
+        const responseData = await response.json();
+        console.log(`[${requestId}] [ai-parse] Odpowiedź OpenRouter:`, JSON.stringify(responseData, null, 2));
+
+        // Sprawdź, czy odpowiedź ma oczekiwaną strukturę
+        if (!responseData.choices || !responseData.choices[0]?.message?.content) {
+          console.error(`[${requestId}] [ai-parse] Nieprawidłowa struktura odpowiedzi:`, responseData);
+          return new Response(
+            JSON.stringify({ error: "Invalid response from AI", details: "Missing choices or content" }),
+            {
+              status: 500,
+            }
+          );
+        }
+
+        // Próba parsowania JSON z zawartości wiadomości
+        const contentStr = responseData.choices[0].message.content;
+        try {
+          const contentJson = JSON.parse(contentStr);
+
+          // Sprawdź, czy zawiera tablicę produktów
+          if (!contentJson.products || !Array.isArray(contentJson.products)) {
+            console.error(`[${requestId}] [ai-parse] Brak tablicy products w odpowiedzi:`, contentJson);
+            return new Response(
+              JSON.stringify({
+                error: "Invalid response format",
+                details: "Response does not contain products array",
+              }),
+              { status: 500 }
+            );
+          }
+
+          console.log(`[${requestId}] [ai-parse] Sukces, znaleziono ${contentJson.products.length} produktów`);
+          return new Response(
+            JSON.stringify({
+              products: contentJson.products,
+            }),
+            {
+              status: 200,
+            }
+          );
+        } catch (parseError) {
+          console.error(`[${requestId}] [ai-parse] Błąd parsowania JSON z zawartości:`, contentStr, parseError);
+          return new Response(
+            JSON.stringify({
+              error: "Failed to parse AI response content as JSON",
+              details: getErrorMessage(parseError),
+              content: contentStr.substring(0, 200), // Wysyłamy pierwszy fragment odpowiedzi dla diagnostyki
+            }),
+            { status: 500 }
+          );
+        }
+      } catch (responseError) {
+        console.error(`[${requestId}] [ai-parse] Błąd parsowania odpowiedzi:`, responseError);
+        return new Response(
+          JSON.stringify({ error: "Failed to parse AI response", details: getErrorMessage(responseError) }),
+          {
+            status: 500,
+          }
+        );
       }
     } catch (error) {
-      console.error(`[${requestId}] [ai-parse] Błąd inicjalizacji OpenRouter: ${getErrorMessage(error)}`);
+      console.error(`[${requestId}] [ai-parse] Błąd inicjalizacji lub wywołania OpenRouter: ${getErrorMessage(error)}`);
       return new Response(JSON.stringify({ error: "OpenRouter service error", details: getErrorMessage(error) }), {
         status: 500,
       });

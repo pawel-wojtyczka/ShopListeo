@@ -50,11 +50,35 @@ export class OpenRouterService {
   private retryCount = 0;
 
   constructor(
-    apiKey: string = process.env.OPENROUTER_API_KEY ?? "",
-    baseUrl: string = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
+    apiKey: string = import.meta.env.OPENROUTER_API_KEY ?? "",
+    baseUrl: string = import.meta.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
     defaultModelParams: Partial<ModelParams> = {}
   ) {
+    console.log("[OpenRouterService] Inicjalizacja z parametrami:", {
+      hasApiKey: !!apiKey,
+      apiKeyLength: apiKey?.length ?? 0,
+      baseUrl,
+      envVars: {
+        OPENROUTER_API_KEY_DEFINED: typeof import.meta.env.OPENROUTER_API_KEY !== "undefined",
+        OPENROUTER_BASE_URL_DEFINED: typeof import.meta.env.OPENROUTER_BASE_URL !== "undefined",
+        NODE_ENV: import.meta.env.NODE_ENV,
+        DEV: import.meta.env.DEV,
+        PROD: import.meta.env.PROD,
+      },
+    });
+
     if (!apiKey) {
+      console.error("[OpenRouterService] Brak klucza API OpenRouter!", {
+        allEnvKeys: Object.keys(import.meta.env)
+          .filter((key) => !key.includes("PASSWORD") && !key.includes("SECRET"))
+          .join(", "),
+        processEnvKeys:
+          typeof process !== "undefined"
+            ? Object.keys(process.env || {})
+                .filter((key) => !key.includes("PASSWORD") && !key.includes("SECRET"))
+                .join(", ")
+            : "process.env niedostępne",
+      });
       throw new Error("OpenRouter API key is required");
     }
 
@@ -63,7 +87,7 @@ export class OpenRouterService {
     this.defaultModelParams = {
       max_tokens: 512,
       temperature: 0.7,
-      model_name: "openrouter-llm-model",
+      model_name: "openai/gpt-4o",
       ...defaultModelParams,
     };
     this.systemMessage = "You are a helpful assistant.";
@@ -139,6 +163,8 @@ export class OpenRouterService {
    * Formatuje żądanie zgodnie z wymaganiami API OpenRouter
    */
   private formatRequest(): RequestPayload {
+    console.log("[OpenRouterService] Formatowanie zapytania z modelem:", this.defaultModelParams.model_name);
+
     return {
       messages: [
         {
@@ -154,23 +180,7 @@ export class OpenRouterService {
       max_tokens: this.defaultModelParams.max_tokens,
       temperature: this.defaultModelParams.temperature,
       response_format: {
-        type: "json",
-        schema: {
-          type: "object",
-          properties: {
-            products: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  name: { type: "string" },
-                },
-                required: ["name"],
-              },
-            },
-          },
-          required: ["products"],
-        },
+        type: "json_object",
       },
     };
   }
@@ -202,11 +212,54 @@ export class OpenRouterService {
    */
   private async parseResponse(response: Response): Promise<LLMResponse> {
     try {
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
+      const responseText = await response.text();
+      console.log("[OpenRouterService] Otrzymana surowa odpowiedź z API:", responseText);
 
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        this.log(
+          "error",
+          `Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
+        );
+        console.error("[OpenRouterService] Nieprawidłowy format JSON w odpowiedzi:", responseText);
+        return {
+          content: "",
+          error: `Invalid JSON response: ${parseError instanceof Error ? parseError.message : "Unknown error"}`,
+        };
+      }
+
+      console.log("[OpenRouterService] Sparsowana odpowiedź z API:", JSON.stringify(data, null, 2));
+
+      // Sprawdź pełną strukturę odpowiedzi
+      if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+        this.log("error", "API response missing choices array or choices array is empty");
+        console.error("[OpenRouterService] Brak tablicy choices w odpowiedzi lub jest pusta:", data);
+        return {
+          content: "",
+          error: "API response missing choices array or choices array is empty",
+        };
+      }
+
+      const firstChoice = data.choices[0];
+      if (!firstChoice.message) {
+        this.log("error", "API response missing message in first choice");
+        console.error("[OpenRouterService] Brak message w pierwszym elemencie choices:", firstChoice);
+        return {
+          content: "",
+          error: "API response missing message in first choice",
+        };
+      }
+
+      const content = firstChoice.message.content;
       if (!content) {
-        throw new Error("No content in response");
+        this.log("error", "API response missing content in message");
+        console.error("[OpenRouterService] Brak content w message pierwszego elementu choices:", firstChoice.message);
+        return {
+          content: "",
+          error: "API response missing content in message",
+        };
       }
 
       return {
@@ -215,6 +268,7 @@ export class OpenRouterService {
       };
     } catch (error) {
       this.log("error", `Failed to parse API response: ${error instanceof Error ? error.message : "Unknown error"}`);
+      console.error("[OpenRouterService] Nieoczekiwany błąd przy przetwarzaniu odpowiedzi:", error);
       return {
         content: "",
         error: "Failed to parse API response",
@@ -254,5 +308,19 @@ export class OpenRouterService {
    */
   public updateUserMessage(message: string): void {
     this.userMessage = message;
+  }
+
+  /**
+   * Zwraca aktualny klucz API
+   */
+  public getApiKey(): string {
+    return this.apiKey;
+  }
+
+  /**
+   * Zwraca aktualny bazowy URL API
+   */
+  public getBaseUrl(): string {
+    return this.baseUrl;
   }
 }
