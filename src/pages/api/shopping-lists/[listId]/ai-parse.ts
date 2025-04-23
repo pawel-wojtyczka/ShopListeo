@@ -81,6 +81,21 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       });
     }
 
+    // Pobierz istniejące produkty z listy zakupów
+    console.log(`[${requestId}] [ai-parse] Pobieranie istniejących produktów z listy ${listId}`);
+    const { data: existingItems, error: itemsError } = await supabase
+      .from("shopping_list_items")
+      .select("id, item_name")
+      .eq("shopping_list_id", listId)
+      .order("created_at", { ascending: true });
+
+    if (itemsError) {
+      console.error(`[${requestId}] [ai-parse] Błąd pobierania produktów: ${itemsError.message}`);
+      return new Response(JSON.stringify({ error: "Failed to fetch existing products", details: itemsError.message }), {
+        status: 500,
+      });
+    }
+
     // Get text content from request body
     console.log(`[${requestId}] [ai-parse] Parsowanie danych z ciała żądania`);
     let body;
@@ -108,6 +123,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       // Używamy bezpośrednio zdefiniowanego klucza
       const openRouter = new OpenRouterService(HARDCODED_API_KEY);
 
+      // Formatowanie istniejących produktów do przekazania asystentowi AI
+      const existingProductsList = existingItems.map((item) => item.item_name).join(", ");
+
       // Przygotuj zapytanie ręcznie z wymaganymi parametrami
       console.log(`[${requestId}] [ai-parse] Przygotowywanie zapytania do OpenRouter`);
       const requestPayload = {
@@ -115,11 +133,26 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
         messages: [
           {
             role: "system",
-            content: `You are a helpful shopping list assistant. Extract product names from the user's input and return as JSON with a 'products' array. Each product should have a 'name' property. Keep names simple, remove duplicates, and limit to 50 items.`,
+            content: `Jesteś asystentem, który ma pomóc zarządzać listą zakupów. Twoje zadanie to:
+
+1. Analizować nowy tekst użytkownika z informacjami o produktach do dodania lub usunięcia
+2. Uwzględniać istniejące produkty na liście
+3. Zwrócić zaktualizowaną listę produktów
+
+Zasady:
+- Jeżeli jest mowa o określonej ilości (np. "kilogram czereśni"), dodaj tę informację przy produkcie (np. "1 kg czereśni")
+- Gdy użytkownik wspomina o usunięciu produktu (np. "nie kupuj masła", "usuń masło", "bez masła"), usuń ten produkt z listy
+- Zachowaj wszystkie istniejące produkty, których użytkownik nie prosił o usunięcie
+- Usuń duplikaty i ogranicz listę do 50 pozycji
+- Utrzymuj proste nazwy produktów
+
+Zwróć odpowiedź w formacie JSON z tablicą 'products', gdzie każdy produkt ma właściwość 'name'.`,
           },
           {
             role: "user",
-            content: `Parse this shopping list text into product names: "${text}"`,
+            content: `Istniejące produkty na mojej liście zakupów: ${existingProductsList || "brak produktów"}
+
+Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, usuń te, o których napisałem, że nie chcę ich kupować): "${text}"`,
           },
         ],
         response_format: { type: "json_object" },
@@ -178,6 +211,21 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
                 error: "Invalid response format",
                 details: "Response does not contain products array",
               }),
+              { status: 500 }
+            );
+          }
+
+          // Usuwamy wszystkie istniejące elementy z listy zakupów
+          console.log(`[${requestId}] [ai-parse] Usuwanie istniejących elementów z listy ${listId}`);
+          const { error: deleteError } = await supabase
+            .from("shopping_list_items")
+            .delete()
+            .eq("shopping_list_id", listId);
+
+          if (deleteError) {
+            console.error(`[${requestId}] [ai-parse] Błąd usuwania istniejących elementów: ${deleteError.message}`);
+            return new Response(
+              JSON.stringify({ error: "Failed to clear existing items", details: deleteError.message }),
               { status: 500 }
             );
           }

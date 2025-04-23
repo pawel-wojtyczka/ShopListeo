@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { showErrorToast } from "@/lib/services/toast-service";
+import { showErrorToast, showSuccessToast } from "@/lib/services/toast-service";
 
 interface ProductInputAreaProps {
   listId: string;
@@ -52,7 +52,19 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
 
       // Add products to the list
       await onAddItems(productNames);
+
+      // Powiadomienie o pomyślnej operacji
+      showSuccessToast("Lista zaktualizowana", {
+        description: `Zaktualizowano listę zakupów o ${productNames.length} ${
+          productNames.length === 1 ? "produkt" : productNames.length < 5 ? "produkty" : "produktów"
+        }`,
+      });
+
       setTextareaValue("");
+
+      // Odświeżenie widoku poprzez przekierowanie na tę samą stronę
+      // Dodajemy parametr _t z aktualnym czasem, aby uniknąć buforowania
+      window.location.href = `${window.location.pathname}?_t=${Date.now()}`;
     } catch (error) {
       console.error("[ProductInputArea] Error:", error);
       showErrorToast("Błąd podczas przetwarzania tekstu", {
