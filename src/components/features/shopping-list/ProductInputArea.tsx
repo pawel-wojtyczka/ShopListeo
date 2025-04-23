@@ -5,7 +5,12 @@ import { showErrorToast, showSuccessToast } from "@/lib/services/toast-service";
 
 interface ProductInputAreaProps {
   listId: string;
-  onAddItems: (items: string[]) => Promise<void>;
+  onAddItems: (items: { name: string; purchased: boolean }[]) => Promise<void>;
+}
+
+interface Product {
+  name: string;
+  purchased: boolean;
 }
 
 const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems }) => {
@@ -48,15 +53,19 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
         responseData.products?.length || 0
       );
 
-      const productNames = responseData.products.map((product: { name: string }) => product.name);
+      // Przetwarzanie produktów z uwzględnieniem statusu purchased
+      const products: Product[] = responseData.products.map((product: Product) => ({
+        name: product.name,
+        purchased: product.purchased || false,
+      }));
 
       // Add products to the list
-      await onAddItems(productNames);
+      await onAddItems(products);
 
       // Powiadomienie o pomyślnej operacji
       showSuccessToast("Lista zaktualizowana", {
-        description: `Zaktualizowano listę zakupów o ${productNames.length} ${
-          productNames.length === 1 ? "produkt" : productNames.length < 5 ? "produkty" : "produktów"
+        description: `Zaktualizowano listę zakupów o ${products.length} ${
+          products.length === 1 ? "produkt" : products.length < 5 ? "produkty" : "produktów"
         }`,
       });
 

@@ -460,18 +460,18 @@ export function useShoppingListDetail(listId: string) {
   );
 
   const addItems = useCallback(
-    async (items: string[]) => {
+    async (items: { name: string; purchased: boolean }[]) => {
       if (!viewModel || items.length === 0) return;
 
       // Filtrowanie pustych nazw
-      const validItems = items.map((item) => item.trim()).filter((item) => item.length > 0);
+      const validItems = items.filter((item) => item.name.trim().length > 0);
       if (validItems.length === 0) return;
 
       setIsUpdating(true);
-      const newItemsTemp = validItems.map((itemName, index) => ({
+      const newItemsTemp = validItems.map((item, index) => ({
         id: `temp-${Date.now()}-${index}`, // Tymczasowe ID
-        itemName,
-        purchased: false,
+        itemName: item.name.trim(),
+        purchased: item.purchased,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         isEditingName: false,
@@ -489,18 +489,21 @@ export function useShoppingListDetail(listId: string) {
 
       try {
         // Wywołujemy API dla każdego produktu oddzielnie, zgodnie z definicją typu
-        const promises = validItems.map((itemName) =>
+        const promises = validItems.map((item) =>
           fetch(`/api/client/shopping-lists/${listId}/items`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             credentials: "include", // Dołączamy cookies do zapytania
-            body: JSON.stringify({ itemName, purchased: false } as AddItemToShoppingListRequest),
+            body: JSON.stringify({
+              itemName: item.name.trim(),
+              purchased: item.purchased,
+            } as AddItemToShoppingListRequest),
           }).then((response) => {
             if (!response.ok) {
               return Promise.reject(
-                new Error(`Błąd API (${response.status}) dla "${itemName}": ${response.statusText}`)
+                new Error(`Błąd API (${response.status}) dla "${item.name}": ${response.statusText}`)
               );
             }
             return response.json() as Promise<ShoppingListItemDTO>;

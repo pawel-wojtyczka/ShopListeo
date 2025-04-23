@@ -81,11 +81,11 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       });
     }
 
-    // Pobierz istniejące produkty z listy zakupów
+    // Pobierz istniejące produkty z listy zakupów wraz ze statusem purchased
     console.log(`[${requestId}] [ai-parse] Pobieranie istniejących produktów z listy ${listId}`);
     const { data: existingItems, error: itemsError } = await supabase
       .from("shopping_list_items")
-      .select("id, item_name")
+      .select("id, item_name, purchased")
       .eq("shopping_list_id", listId)
       .order("created_at", { ascending: true });
 
@@ -117,6 +117,12 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       });
     }
 
+    // Przygotuj obecną listę produktów ze statusem purchased
+    const productsWithStatus = existingItems.map((item) => ({
+      name: item.item_name,
+      purchased: item.purchased,
+    }));
+
     // Initialize OpenRouter service
     console.log(`[${requestId}] [ai-parse] Inicjalizacja serwisu OpenRouter z bezpośrednio podanym kluczem API`);
     try {
@@ -124,7 +130,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       const openRouter = new OpenRouterService(HARDCODED_API_KEY);
 
       // Formatowanie istniejących produktów do przekazania asystentowi AI
-      const existingProductsList = existingItems.map((item) => item.item_name).join(", ");
+      const existingProductsFormatted = JSON.stringify(productsWithStatus);
 
       // Przygotuj zapytanie ręcznie z wymaganymi parametrami
       console.log(`[${requestId}] [ai-parse] Przygotowywanie zapytania do OpenRouter`);
@@ -136,21 +142,23 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
             content: `Jesteś asystentem, który ma pomóc zarządzać listą zakupów. Twoje zadanie to:
 
 1. Analizować nowy tekst użytkownika z informacjami o produktach do dodania lub usunięcia
-2. Uwzględniać istniejące produkty na liście
+2. Uwzględniać istniejące produkty na liście wraz z ich statusem (purchased: true/false)
 3. Zwrócić zaktualizowaną listę produktów
 
 Zasady:
 - Jeżeli jest mowa o określonej ilości (np. "kilogram czereśni"), dodaj tę informację przy produkcie (np. "1 kg czereśni")
 - Gdy użytkownik wspomina o usunięciu produktu (np. "nie kupuj masła", "usuń masło", "bez masła"), usuń ten produkt z listy
 - Zachowaj wszystkie istniejące produkty, których użytkownik nie prosił o usunięcie
+- Zachowaj status purchased dla istniejących produktów
+- Nowo dodane produkty powinny mieć status purchased: false (chyba że użytkownik wyraźnie mówi, że już je kupił)
 - Usuń duplikaty i ogranicz listę do 50 pozycji
 - Utrzymuj proste nazwy produktów
 
-Zwróć odpowiedź w formacie JSON z tablicą 'products', gdzie każdy produkt ma właściwość 'name'.`,
+Zwróć odpowiedź w formacie JSON z tablicą 'products', gdzie każdy produkt ma właściwości 'name' i 'purchased' (boolean).`,
           },
           {
             role: "user",
-            content: `Istniejące produkty na mojej liście zakupów: ${existingProductsList || "brak produktów"}
+            content: `Istniejące produkty na mojej liście zakupów (format JSON): ${existingProductsFormatted}
 
 Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, usuń te, o których napisałem, że nie chcę ich kupować): "${text}"`,
           },
@@ -213,6 +221,17 @@ Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, u
               }),
               { status: 500 }
             );
+          }
+
+          // Sprawdź, czy produkty mają wymagane pola
+          for (const product of contentJson.products) {
+            if (!Object.prototype.hasOwnProperty.call(product, "name")) {
+              product.name = "Produkt bez nazwy";
+            }
+            // Jeśli AI nie określiło statusu purchased, ustaw domyślnie na false
+            if (!Object.prototype.hasOwnProperty.call(product, "purchased")) {
+              product.purchased = false;
+            }
           }
 
           // Usuwamy wszystkie istniejące elementy z listy zakupów
