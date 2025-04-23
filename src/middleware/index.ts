@@ -19,6 +19,9 @@ const AUTH_API_ROUTES = [
   "/api/auth/set-new-password",
 ];
 
+// Ścieżki API związane z listami zakupów - chronione, ale bez przekierowania
+const SHOPPING_LIST_API_ROUTES = ["/api/shopping-lists/", "/api/client/shopping-lists/"];
+
 // Ścieżki dostępne tylko dla administratorów
 const ADMIN_ROUTES = ["/admin"];
 
@@ -120,19 +123,21 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthApiRoute = AUTH_API_ROUTES.some((route) => pathname.startsWith(route));
+  const isShoppingListApiRoute = SHOPPING_LIST_API_ROUTES.some((route) => pathname.startsWith(route));
   const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route));
 
   console.log("Middleware: Checking redirects for path:", pathname, {
     isProtectedRoute,
     isAuthRoute,
     isAuthApiRoute,
+    isShoppingListApiRoute,
     isAdminRoute,
     isAuthenticated,
   });
 
   // Przekierowanie na stronę logowania, gdy próbujemy uzyskać dostęp do chronionej strony będąc niezalogowanym
   // (z wyjątkiem ścieżek autoryzacyjnych i API autoryzacji)
-  if (isProtectedRoute && !isAuthenticated && !isAuthRoute && !isAuthApiRoute) {
+  if (isProtectedRoute && !isAuthenticated && !isAuthRoute && !isAuthApiRoute && !isShoppingListApiRoute) {
     console.log("Middleware: Redirecting to /login (protected route, not authenticated, not auth route)");
     return redirect("/login");
   }

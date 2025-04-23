@@ -1,17 +1,16 @@
 import React, { useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { showErrorToast } from "@/lib/services/toast-service";
 
 interface ProductInputAreaProps {
-  listId: string; // Potrzebne dla przyszłego API
-  // Funkcja do obsługi dodawania elementów
-  onAddItems: (itemNames: string[]) => Promise<void>;
-  // TODO: Dodać prop isAdding do obsługi stanu ładowania?
+  listId: string;
+  onAddItems: (items: string[]) => Promise<void>;
 }
 
 const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems }) => {
   const [textareaValue, setTextareaValue] = useState("");
-  const [isAdding, setIsAdding] = useState(false); // Stan ładowania dodawania
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleTextareaChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextareaValue(event.target.value);
@@ -19,25 +18,46 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
 
   const handleAddClick = async () => {
     const trimmedValue = textareaValue.trim();
-    if (!trimmedValue) return; // Nie dodawaj pustych
+    if (!trimmedValue) return;
 
-    // Podziel na linie, usuń puste linie i białe znaki na początku/końcu
-    const itemNames = trimmedValue
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-
-    if (itemNames.length === 0) return; // Nic do dodania
-
-    console.log(`[ProductInputArea] Próba dodania ${itemNames.length} elementów do listy ${listId}:`, itemNames);
     setIsAdding(true);
 
     try {
-      await onAddItems(itemNames);
-      setTextareaValue(""); // Wyczyść pole po pomyślnym dodaniu
+      console.log("[ProductInputArea] Wysyłanie tekstu do przetworzenia przez AI, ListId:", listId);
+
+      // Call the AI endpoint
+      const response = await fetch(`/api/shopping-lists/${listId}/ai-parse`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: trimmedValue }),
+      });
+
+      console.log("[ProductInputArea] Odpowiedź z API, status:", response.status);
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        console.error("[ProductInputArea] Błąd API:", responseData);
+        throw new Error(responseData.error || responseData.details || "Failed to process text with AI");
+      }
+
+      console.log(
+        "[ProductInputArea] Pomyślnie przetworzono tekst, znaleziono produktów:",
+        responseData.products?.length || 0
+      );
+
+      const productNames = responseData.products.map((product: { name: string }) => product.name);
+
+      // Add products to the list
+      await onAddItems(productNames);
+      setTextareaValue("");
     } catch (error) {
-      console.error("[ProductInputArea] Błąd podczas wywoływania onAddItems:", error);
-      // Błąd zostanie obsłużony i pokazany przez hook/toast service
+      console.error("[ProductInputArea] Error:", error);
+      showErrorToast("Błąd podczas przetwarzania tekstu", {
+        description: error instanceof Error ? error.message : "Nieznany błąd podczas przetwarzania tekstu",
+      });
     } finally {
       setIsAdding(false);
     }
@@ -55,7 +75,7 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
         disabled={isAdding}
       />
       <Button onClick={handleAddClick} disabled={!textareaValue.trim() || isAdding}>
-        {isAdding ? "Dodawanie..." : "Dodaj produkty"}
+        {isAdding ? "Przetwarzanie..." : "Dodaj produkty"}
       </Button>
     </div>
   );

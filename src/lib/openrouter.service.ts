@@ -22,11 +22,7 @@ interface RequestPayload {
   temperature: number;
   response_format?: {
     type: string;
-    json_schema?: {
-      name: string;
-      strict: boolean;
-      schema: Record<string, unknown>;
-    };
+    schema?: Record<string, unknown>;
   };
 }
 
@@ -158,18 +154,22 @@ export class OpenRouterService {
       max_tokens: this.defaultModelParams.max_tokens,
       temperature: this.defaultModelParams.temperature,
       response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "llm_response",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              content: { type: "string" },
-              error: { type: "string", optional: true },
+        type: "json",
+        schema: {
+          type: "object",
+          properties: {
+            products: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                },
+                required: ["name"],
+              },
             },
-            required: ["content"],
           },
+          required: ["products"],
         },
       },
     };
@@ -203,8 +203,14 @@ export class OpenRouterService {
   private async parseResponse(response: Response): Promise<LLMResponse> {
     try {
       const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+
+      if (!content) {
+        throw new Error("No content in response");
+      }
+
       return {
-        content: data.choices?.[0]?.message?.content ?? "",
+        content,
         error: data.error?.message,
       };
     } catch (error) {
