@@ -39,6 +39,8 @@ interface AuthProviderProps {
 
 // Dostawca kontekstu autoryzacji
 export function AuthProvider({ children }: AuthProviderProps) {
+  console.log("%c[AuthContext] AuthProvider rendering/re-rendering...", "color: orange; font-weight: bold;");
+
   const [user, setUser] = useState<UserDTO | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -65,8 +67,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // For now, rely on the token passed to login or found initially
       const { data: sessionData } = await supabaseClient.auth.getSession();
       let currentToken = token;
+      // Add logging to see the tokens being compared
+      console.log("[AuthContext] fetchUserData: Comparing tokens.", {
+        stateToken: token,
+        supabaseSessionToken: sessionData?.session?.access_token?.substring(0, 10) + "...", // Log only prefix for security
+      });
+
       if (sessionData?.session?.access_token && sessionData.session.access_token !== token) {
-        console.log("[AuthContext] fetchUserData: Found different token in Supabase session, updating state.");
+        console.warn(
+          "[AuthContext] fetchUserData: Token mismatch detected! Supabase session token is different from state token. Updating state token."
+        );
+        console.log(
+          "[AuthContext] fetchUserData: Details - State Token:",
+          token?.substring(0, 10) + "...",
+          "Supabase Token:",
+          sessionData.session.access_token.substring(0, 10) + "..."
+        );
         currentToken = sessionData.session.access_token;
         // Update storage/cookie if needed - careful about loops
         setToken(currentToken); // Update state, this might trigger another effect run, be cautious
@@ -106,11 +122,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(false); // Set loading false when done
       setLastCheck(Date.now());
     }
-  }, [token, user, isLoading]); // Depend on token state
+  }, [token]); // ONLY depend on the token. State setters (setUser, setIsLoading)
+  // do not need to be dependencies for the function's identity.
 
   // Effect for initial auth check (reading stored token)
   useEffect(() => {
-    console.log("[AuthContext] useEffect [initial mount]: Checking stored token...");
+    console.log(
+      "%c[AuthContext] useEffect [MOUNT]: Running check for stored token...",
+      "color: blue; font-weight: bold;"
+    );
     let storedToken: string | null = null;
     try {
       // Prioritize cookie, then localStorage, then sessionStorage
