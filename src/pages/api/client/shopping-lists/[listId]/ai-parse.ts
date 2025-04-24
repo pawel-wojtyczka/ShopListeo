@@ -141,20 +141,19 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
             role: "system",
             content: `Jesteś asystentem, który ma pomóc zarządzać listą zakupów. Twoje zadanie to:
 
-1. Analizować nowy tekst użytkownika z informacjami o produktach do dodania lub usunięcia
-2. Uwzględniać istniejące produkty na liście wraz z ich statusem (purchased: true/false)
-3. Zwrócić zaktualizowaną listę produktów
+1. Analizować nowy tekst użytkownika z informacjami o produktach do dodania lub usunięcia.
+2. Uwzględniać istniejące produkty na liście wraz z ich statusem (purchased: true/false).
+3. Zwrócić **kompletną i finalną** listę produktów po zastosowaniu wszystkich zmian (dodanie, usunięcie, zachowanie).
 
 Zasady:
-- Jeżeli jest mowa o określonej ilości (np. "kilogram czereśni"), dodaj tę informację przy produkcie (np. "1 kg czereśni")
-- Gdy użytkownik wspomina o usunięciu produktu (np. "nie kupuj masła", "usuń masło", "bez masła"), usuń ten produkt z listy
-- Zachowaj wszystkie istniejące produkty, których użytkownik nie prosił o usunięcie
-- Zachowaj status purchased dla istniejących produktów
-- Nowo dodane produkty powinny mieć status purchased: false (chyba że użytkownik wyraźnie mówi, że już je kupił)
-- Usuń duplikaty i ogranicz listę do 50 pozycji
-- Utrzymuj proste nazwy produktów
+- Jeżeli jest mowa o określonej ilości (np. "kilogram czereśni"), dodaj tę informację przy produkcie (np. "1 kg czereśni").
+- **Kluczowe:** Gdy użytkownik wspomina o usunięciu produktu (np. "nie kupuj masła", "usuń masło", "bez masła", "już mam masło"), **MUSISZ** usunąć ten produkt z finalnej listy. Nie dołączaj go do odpowiedzi.
+- Zachowaj wszystkie istniejące produkty, których użytkownik **nie prosił** o usunięcie. Ich status 'purchased' powinien zostać zachowany.
+- Nowo dodane produkty powinny mieć status purchased: false (chyba że użytkownik wyraźnie mówi, że już je kupił).
+- Usuń duplikaty (case-insensitive, np. "Mleko" i "mleko" to to samo) i ogranicz listę do 50 pozycji.
+- Utrzymuj proste nazwy produktów.
 
-Zwróć odpowiedź w formacie JSON z tablicą 'products', gdzie każdy produkt ma właściwości 'name' i 'purchased' (boolean).`,
+Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie każdy produkt ma właściwości 'name' (string) i 'purchased' (boolean). Upewnij się, że odpowiedź to poprawny JSON.`,
           },
           {
             role: "user",
@@ -258,7 +257,6 @@ Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, u
               shopping_list_id: listId,
               item_name: product.name,
               purchased: product.purchased || false,
-              user_id: userId,
             }));
 
             const { error: insertError } = await supabase.from("shopping_list_items").insert(itemsToInsert);

@@ -12,8 +12,17 @@ interface ShoppingListDetailViewProps {
 
 const ShoppingListDetailView: React.FC<ShoppingListDetailViewProps> = ({ listId }) => {
   // Użyj hooka do zarządzania stanem
-  const { title, items, isLoading, error, updateTitle, toggleItemPurchased, deleteItem, updateItemName, addItems } =
-    useShoppingListDetail(listId);
+  const {
+    title, // Używamy bezpośrednio title
+    items, // Używamy bezpośrednio items
+    isLoading,
+    error,
+    updateTitle,
+    toggleItemPurchased,
+    deleteItem,
+    updateItemName,
+    refreshListAfterAiUpdate, // Pobierz nową funkcję
+  } = useShoppingListDetail(listId);
 
   // Obsługa stanu ładowania
   if (isLoading) {
@@ -60,10 +69,11 @@ const ShoppingListDetailView: React.FC<ShoppingListDetailViewProps> = ({ listId 
   }
 
   // Obsługa sytuacji, gdy lista jest pusta (brak tytułu i elementów)
-  if (!title && items.length === 0) {
+  if (title === null && items === null) {
+    // Sprawdzamy, czy oba są null (początkowy stan lub błąd)
     return (
       <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[50vh]">
-        <p className="text-lg">Lista zakupów jest pusta lub nie istnieje.</p>
+        <p className="text-lg">Lista zakupów jest pusta lub wystąpił błąd ładowania.</p>
         <button
           onClick={() => (window.location.href = "/shopping-lists")}
           className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
@@ -78,19 +88,19 @@ const ShoppingListDetailView: React.FC<ShoppingListDetailViewProps> = ({ listId 
     <div className="container mx-auto p-4 flex flex-col gap-6">
       <h1 className="text-2xl font-bold mb-4">Szczegóły Listy Zakupów</h1>
 
-      {/* Użyj komponentu EditableShoppingListTitle */}
+      {/* Użyj komponentu EditableShoppingListTitle - używamy title */}
       <div className="mb-6">
-        <EditableShoppingListTitle initialTitle={title} listId={listId} onUpdateTitle={updateTitle} />
+        <EditableShoppingListTitle initialTitle={title ?? "Nowa lista"} listId={listId} onUpdateTitle={updateTitle} />
       </div>
 
-      {/* Obszar dodawania produktów */}
-      <ProductInputArea listId={listId} onAddItems={addItems} />
+      {/* Obszar dodawania produktów - Zmieniono prop onAddItems */}
+      <ProductInputArea listId={listId} onAddItems={refreshListAfterAiUpdate} />
 
-      {/* Lista produktów */}
+      {/* Lista produktów - używamy items */}
       <div>
         <h3 className="text-lg font-medium mb-2">Produkty</h3>
         <ProductList
-          items={items}
+          items={items ?? []} // Użyj pustej tablicy, jeśli items jest null
           listId={listId}
           onTogglePurchase={toggleItemPurchased}
           onDeleteItem={deleteItem}

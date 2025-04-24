@@ -5,7 +5,6 @@ import type {
   UpdateShoppingListResponse,
   UpdateShoppingListItemRequest,
   UpdateShoppingListItemResponse,
-  AddItemToShoppingListRequest,
   ShoppingListDetailResponse,
 } from "@/types";
 // Importuj usługi toast używając poprawnej ścieżki relatywnej
@@ -459,126 +458,22 @@ export function useShoppingListDetail(listId: string) {
     [listId, viewModel]
   );
 
-  const addItems = useCallback(
-    async (items: { name: string; purchased: boolean }[]) => {
-      if (!viewModel || items.length === 0) return;
+  // Zmieniono nazwę i logikę funkcji - teraz tylko odświeża listę
+  const refreshListAfterAiUpdate = useCallback(async () => {
+    console.log("[useShoppingListDetail] Refreshing list details after AI update...");
+    // Po prostu wywołaj funkcję pobierającą świeże dane z serwera
+    await fetchListDetails();
+    // Nie ma potrzeby obsługi błędów tutaj, fetchListDetails ma swoją obsługę
+    // Nie ma potrzeby optymistycznej aktualizacji
+    // Nie ma potrzeby wysyłania żądań POST
+  }, [fetchListDetails]); // Zależność od fetchListDetails
 
-      // Filtrowanie pustych nazw
-      const validItems = items.filter((item) => item.name.trim().length > 0);
-      if (validItems.length === 0) return;
-
-      setIsUpdating(true);
-      const newItemsTemp = validItems.map((item, index) => ({
-        id: `temp-${Date.now()}-${index}`, // Tymczasowe ID
-        itemName: item.name.trim(),
-        purchased: item.purchased,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isEditingName: false,
-        isUpdating: true, // Oznacz jako aktualizowane
-      }));
-
-      // Optymistyczna aktualizacja UI
-      setViewModel((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          items: [...prev.items, ...newItemsTemp],
-        };
-      });
-
-      try {
-        // Wywołujemy API dla każdego produktu oddzielnie, zgodnie z definicją typu
-        const promises = validItems.map((item) =>
-          fetch(`/api/client/shopping-lists/${listId}/items`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include", // Dołączamy cookies do zapytania
-            body: JSON.stringify({
-              itemName: item.name.trim(),
-              purchased: item.purchased,
-            } as AddItemToShoppingListRequest),
-          }).then((response) => {
-            if (!response.ok) {
-              return Promise.reject(
-                new Error(`Błąd API (${response.status}) dla "${item.name}": ${response.statusText}`)
-              );
-            }
-            return response.json() as Promise<ShoppingListItemDTO>;
-          })
-        );
-
-        // Czekamy na zakończenie wszystkich zapytań
-        const results = await Promise.allSettled(promises);
-
-        // Zbieramy pomyślnie dodane produkty
-        const successfulItems = results
-          .filter((result): result is PromiseFulfilledResult<ShoppingListItemDTO> => result.status === "fulfilled")
-          .map((result) => result.value);
-
-        // Zbieramy błędy
-        const failedItems = results
-          .filter((result): result is PromiseRejectedResult => result.status === "rejected")
-          .map((result) => result.reason);
-
-        // Zamień tymczasowe elementy na te z odpowiedzi API
-        setViewModel((prev) => {
-          if (!prev) return null;
-
-          // Usuń wszystkie tymczasowe elementy
-          const withoutTemp = prev.items.filter((item) => !item.id.startsWith("temp-"));
-
-          // Dodaj wszystkie nowe elementy z odpowiedzi API
-          return {
-            ...prev,
-            items: [
-              ...withoutTemp,
-              ...successfulItems.map((item) => ({
-                ...item,
-                isEditingName: false,
-                isUpdating: false,
-              })),
-            ],
-          };
-        });
-
-        if (successfulItems.length > 0) {
-          showSuccessToast("Dodano produkty", {
-            description: `Dodano ${successfulItems.length} ${successfulItems.length === 1 ? "produkt" : "produkty"} do listy.`,
-            duration: 3000, // Standardowa długość dla powiadomień o sukcesie
-          });
-        }
-
-        if (failedItems.length > 0) {
-          showErrorToast("Nie udało się dodać wszystkich produktów", {
-            description: `Nie udało się dodać ${failedItems.length} produktów.`,
-            duration: 5000, // Dłuższy czas dla błędów
-          });
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas dodawania produktów.";
-        setError(errorMessage);
-        showErrorToast("Błąd dodawania produktów", {
-          description: errorMessage,
-          duration: 5000, // Dłuższy czas dla błędów
-        });
-
-        // Usuń tymczasowe elementy w przypadku błędu
-        setViewModel((prev) => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            items: prev.items.filter((item) => !item.id.startsWith("temp-")),
-          };
-        });
-      } finally {
-        setIsUpdating(false);
-      }
-    },
-    [listId, viewModel]
-  );
+  // Funkcja pomocnicza do przełączania trybu edycji nazwy produktu
+  const toggleItemNameEditing = (/* itemId: string, isEditing: boolean */) => {
+    // Pełna implementacja tej funkcji jest niżej w kodzie pliku
+    // Ta linia jest tylko częścią skopiowanego fragmentu
+    // ... existing code ...
+  };
 
   // Zwrócenie stanu i funkcji do użycia w komponencie
   return {
@@ -591,12 +486,12 @@ export function useShoppingListDetail(listId: string) {
     isLoading,
     isUpdating, // Zwróć ogólny stan aktualizacji
     error,
-    updateTitle, // Dodano funkcję
-    toggleItemPurchased, // Dodano tutaj
-    deleteItem, // Dodano funkcję
-    updateItemName, // Dodano funkcję
-    addItems, // Dodano funkcję
-    // Przyszłe funkcje:
-    // addItem: async (itemName: string) => { /* ... */ },
+    fetchListDetails, // Nadal eksportujemy dla potencjalnego ręcznego odświeżania
+    updateTitle,
+    toggleItemPurchased,
+    deleteItem,
+    updateItemName,
+    refreshListAfterAiUpdate, // Eksportujemy nową funkcję
+    toggleItemNameEditing,
   };
 }

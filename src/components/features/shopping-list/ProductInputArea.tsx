@@ -71,9 +71,8 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
 
       setTextareaValue("");
 
-      // Odświeżenie widoku poprzez przekierowanie na tę samą stronę
-      // Dodajemy parametr _t z aktualnym czasem, aby uniknąć buforowania
-      window.location.href = `${window.location.pathname}?_t=${Date.now()}`;
+      // Usunięto odświeżenie widoku poprzez przeładowanie strony
+      // window.location.href = `${window.location.pathname}?_t=${Date.now()}`;
     } catch (error) {
       console.error("[ProductInputArea] Error:", error);
       showErrorToast("Błąd podczas przetwarzania tekstu", {
