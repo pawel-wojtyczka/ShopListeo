@@ -23,7 +23,13 @@ export default function ShoppingListsView({ initialLists, initialPagination, fet
 
   // Function to create a new list (bez przekierowania)
   const handleCreateList = async () => {
-    await createList(); // Wywołaj createList, hook odświeży dane
+    // Wywołaj createList i poczekaj na zwrócony ID
+    const newListId = await createList();
+    // Jeśli ID zostało zwrócone (lista utworzona pomyślnie),
+    // przekieruj na stronę szczegółów tej listy
+    if (newListId) {
+      window.location.href = `/list/${newListId}`;
+    }
   };
 
   // Function to delete a list
