@@ -1,10 +1,13 @@
-import React from "react";
+import * as React from "react";
+// Usunięto nieużywane importy useState i useEffect
 // Importuj hooka
 import { useShoppingListDetail } from "@/lib/hooks/useShoppingListDetail";
 import EditableShoppingListTitle from "@/components/shared/EditableShoppingListTitle"; // Importuj nowy komponent
 import ProductList from "@/components/features/shopping-list/ProductList"; // Importuj ProductList
 import ProductInputArea from "@/components/features/shopping-list/ProductInputArea"; // Importuj ProductInputArea
 import { Loader2 } from "lucide-react"; // Ikona ładowania
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 interface ShoppingListDetailViewProps {
   listId: string;
@@ -74,12 +77,9 @@ const ShoppingListDetailView: React.FC<ShoppingListDetailViewProps> = ({ listId 
     return (
       <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[50vh]">
         <p className="text-lg">Lista zakupów jest pusta lub wystąpił błąd ładowania.</p>
-        <button
-          onClick={() => (window.location.href = "/shopping-lists")}
-          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-        >
-          Powrót do listy zakupów
-        </button>
+        <Button variant="ghost" size="icon" onClick={() => (window.location.href = "/")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
       </div>
     );
   }

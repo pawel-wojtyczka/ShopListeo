@@ -3,8 +3,8 @@ import { createSupabaseServerInstance } from "../db/supabase.server";
 import type { AstroLocals } from "../types/locals";
 import type { UserDTO } from "../types";
 
-// Ścieżki wymagające autentykacji
-const PROTECTED_ROUTES = ["/", "/shopping-lists", "/profile"];
+// Ścieżki wymagające autentykacji - usunięto /shopping-lists
+const PROTECTED_ROUTES = ["/", "/profile"];
 
 // Ścieżki dostępne tylko dla niezalogowanych użytkowników (lub obu stanów)
 const AUTH_ROUTES = ["/login", "/register", "/reset-password", "/set-new-password", "/recover", "/recover-password"];
@@ -20,7 +20,8 @@ const AUTH_API_ROUTES = [
 ];
 
 // Ścieżki API związane z listami zakupów - chronione, ale bez przekierowania
-const SHOPPING_LIST_API_ROUTES = ["/api/shopping-lists/", "/api/client/shopping-lists/"];
+// Usunięto /api/shopping-lists/ z tej listy, ponieważ nie istnieje
+const SHOPPING_LIST_API_ROUTES = ["/api/client/shopping-lists/"];
 
 // Ścieżki dostępne tylko dla administratorów
 const ADMIN_ROUTES = ["/admin"];

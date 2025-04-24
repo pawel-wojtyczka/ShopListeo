@@ -46,7 +46,7 @@ export const ShoppingListItem = memo(function ShoppingListItem({ list, onDeleteL
       <CardHeader className="pb-2 flex sm:flex-row flex-col justify-between items-start gap-2">
         <div className="flex items-center gap-2">
           <ShoppingBagIcon className="h-5 w-5 text-primary" />
-          <a href={`/shopping-lists/${list.id}`} className="text-xl font-medium hover:underline">
+          <a href={`/list/${list.id}`} className="text-xl font-medium hover:underline">
             {list.title}
           </a>
         </div>

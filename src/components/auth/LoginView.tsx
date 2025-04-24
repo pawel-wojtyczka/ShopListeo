@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import * as React from "react";
+import { useState } from "react";
 import LoginForm from "./LoginForm";
 import type { LoginUserRequest } from "../../types";
+import { showSuccessToast } from "@/lib/services/toast-service";
 
 const LoginView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +29,9 @@ const LoginView: React.FC = () => {
       }
 
       // Przekierowanie po pomyślnym zalogowaniu na stronę list zakupowych
-      window.location.href = "/shopping-lists";
+      console.log("Login successful:", data);
+      showSuccessToast("Zalogowano pomyślnie!");
+      window.location.href = "/";
     } catch (error) {
       console.error("Login error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd");

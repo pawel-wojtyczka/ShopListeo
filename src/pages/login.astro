@@ -1,17 +1,21 @@
 ---
-import AuthLayout from "../layouts/AuthLayout.astro";
-import LoginView from "../components/auth/LoginView";
+import LoginView from "@/components/auth/LoginView.tsx";
+import AuthLayout from "@/layouts/AuthLayout.astro";
 
 export const prerender = false;
 
-// Przekierowanie zalogowanych użytkowników, jeśli spróbują uzyskać dostęp do strony logowania
+// Przekierowanie, jeśli użytkownik jest już zalogowany
 // (to jest dodatkowe zabezpieczenie, główna logika jest w middleware)
 if (Astro.locals.isAuthenticated) {
-  return Astro.redirect("/shopping-lists");
+  return Astro.redirect("/"); // Zmieniono z /shopping-lists
+}
+
+// If successful, redirect to the main page
+if (response.ok) {
+  return Astro.redirect("/");
 }
 ---
 
-<AuthLayout title="Zaloguj się">
-  <h1 class="text-2xl font-semibold tracking-tight text-center mb-6">Zaloguj się</h1>
+<AuthLayout title="Logowanie">
   <LoginView client:load />
 </AuthLayout>

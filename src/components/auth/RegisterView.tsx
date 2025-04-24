@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import * as React from "react";
+import { useState } from "react";
 import RegisterForm from "./RegisterForm";
 import type { RegisterUserRequest } from "../../types";
+import { showSuccessToast } from "@/lib/services/toast-service";
 
 const RegisterView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,8 +28,11 @@ const RegisterView: React.FC = () => {
         throw new Error(errorData.message || "Wystąpił błąd podczas rejestracji");
       }
 
-      // Pomyślna rejestracja - przekierowanie do strony list zakupowych
-      window.location.href = "/shopping-lists";
+      // Pomyślna rejestracja - pokazujemy toast i przekierowujemy
+      showSuccessToast("Rejestracja zakończona sukcesem!", {
+        description: "Możesz się teraz zalogować lub sprawdzić email w celu weryfikacji.",
+      });
+      window.location.href = "/";
     } catch (error) {
       console.error("Registration error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");

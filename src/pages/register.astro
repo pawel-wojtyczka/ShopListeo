@@ -7,7 +7,7 @@ export const prerender = false;
 // Przekierowanie zalogowanych użytkowników, jeśli spróbują uzyskać dostęp do strony rejestracji
 // (to jest dodatkowe zabezpieczenie, główna logika jest w middleware)
 if (Astro.locals.isAuthenticated) {
-  return Astro.redirect("/shopping-lists");
+  return Astro.redirect("/");
 }
 ---
 
