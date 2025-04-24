@@ -4,9 +4,9 @@ import { getErrorMessage } from "@/lib/utils/error";
 import { supabaseClient } from "@/db/supabase.client";
 import type { AstroLocals } from "@/types/locals";
 
-// Bezpośrednie użycie wartości klucza zamiast zmiennej środowiskowej
-// To rozwiązanie tymczasowe, docelowo należy rozwiązać problem ze zmiennymi środowiskowymi
-const HARDCODED_API_KEY = "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";
+// Pobieramy klucz API ze zmiennych środowiskowych
+// @ts-expect-error - Astro uses import.meta.env for server-side env vars, linter might not recognize it
+const OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
   // Dodaję identyfikator żądania dla łatwiejszego śledzenia
@@ -14,7 +14,17 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   console.log(`[${requestId}] [ai-parse] Otrzymano żądanie POST z ${request.url}`);
 
   try {
-    console.log(`[${requestId}] [ai-parse] Używam bezpośrednio skonfigurowanego klucza API`);
+    // Sprawdź, czy klucz API OpenRouter jest dostępny
+    if (!OPENROUTER_API_KEY) {
+      console.error(
+        `[${requestId}] [ai-parse] Brak klucza API OpenRouter w zmiennych środowiskowych (OPENROUTER_API_KEY)`
+      );
+      return new Response(
+        JSON.stringify({ error: "Configuration error", details: "OpenRouter API key is not configured" }),
+        { status: 500 }
+      );
+    }
+    console.log(`[${requestId}] [ai-parse] Klucz API OpenRouter załadowany ze zmiennych środowiskowych.`);
 
     // Pobieramy dane uwierzytelniające bezpośrednio z middleware locals
     const { user, isAuthenticated, authUser } = locals as AstroLocals & { isAuthenticated: boolean };
@@ -124,10 +134,10 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     }));
 
     // Initialize OpenRouter service
-    console.log(`[${requestId}] [ai-parse] Inicjalizacja serwisu OpenRouter z bezpośrednio podanym kluczem API`);
+    console.log(`[${requestId}] [ai-parse] Inicjalizacja serwisu OpenRouter z kluczem API ze zmiennych środowiskowych`);
     try {
-      // Używamy bezpośrednio zdefiniowanego klucza
-      const openRouter = new OpenRouterService(HARDCODED_API_KEY);
+      // Używamy klucza ze zmiennej środowiskowej
+      const openRouter = new OpenRouterService(OPENROUTER_API_KEY);
 
       // Formatowanie istniejących produktów do przekazania asystentowi AI
       const existingProductsFormatted = JSON.stringify(productsWithStatus);
