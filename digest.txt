@@ -33,7 +33,9 @@ Directory structure:
     │   │   ├── mocks/
     │   │   └── unit/
     │   │       ├── api/
-    │   │       │   └── shopping-lists.test.ts
+    │   │       │   ├── auth.test.ts
+    │   │       │   ├── shopping-lists.test.ts
+    │   │       │   └── users.test.ts
     │   │       └── hooks/
     │   │           └── useShoppingLists.test.ts
     │   ├── components/
@@ -796,29 +798,30 @@ File: vitest.config.ts
 ================================================
 /// <reference types="vitest" />
 import { defineConfig, mergeConfig } from "vite";
-import { configDefaults } from "vitest/config";
+import { configDefaults, defineConfig as defineVitestConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-export default mergeConfig(
-  defineConfig({
-    plugins: [react()],
-  }),
-  defineConfig({
-    test: {
-      globals: true,
-      environment: "jsdom",
-      setupFiles: ["./src/__tests__/setup.ts"],
-      include: ["src/__tests__/unit/**/*.{test,spec}.{ts,tsx}"],
-      exclude: [...configDefaults.exclude, ".astro", "dist"],
-      coverage: {
-        provider: "v8",
-        reporter: ["text", "json", "html"],
-        include: ["src/lib/**/*.{ts,tsx}"],
-        exclude: ["**/*.d.ts", "**/*.test.ts", "**/*.spec.ts"],
-      },
+const viteConfig = defineConfig({
+  plugins: [react()],
+});
+
+const vitestConfig = defineVitestConfig({
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: ["./src/__tests__/setup.ts"],
+    include: ["src/__tests__/unit/**/*.{test,spec}.{ts,tsx}"],
+    exclude: [...configDefaults.exclude, ".astro", "dist"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      include: ["src/lib/**/*.{ts,tsx}", "src/pages/api/**/*.ts"],
+      exclude: ["**/*.d.ts", "**/*.test.ts", "**/*.spec.ts"],
     },
-  })
-);
+  },
+});
+
+export default mergeConfig(viteConfig, vitestConfig);
 
 
 
@@ -1303,7 +1306,7 @@ import * as matchers from "@testing-library/jest-dom/matchers";
 import type { TestingLibraryMatchers } from "@testing-library/jest-dom/matchers";
 import { cleanup } from "@testing-library/react";
 import { setupServer } from "msw/node";
-import { rest } from "msw";
+import { http } from "msw";
 
 declare module "vitest" {
   interface Assertion<T> extends jest.Matchers<void, T>, TestingLibraryMatchers<T, void> {}
@@ -1315,7 +1318,7 @@ expect.extend(matchers);
 // Konfiguracja dla testów
 Object.defineProperty(window, "matchMedia", {
   writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -1327,7 +1330,7 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
-// Mockowanie localStorage
+// Mock localStorage
 const localStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
@@ -1336,7 +1339,7 @@ const localStorageMock = {
 };
 Object.defineProperty(window, "localStorage", { value: localStorageMock });
 
-// Mockowanie sessionStorage
+// Mock sessionStorage
 const sessionStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
@@ -1345,7 +1348,7 @@ const sessionStorageMock = {
 };
 Object.defineProperty(window, "sessionStorage", { value: sessionStorageMock });
 
-// Mockowanie fetch
+// Mock fetch
 const fetchMock = vi.fn();
 global.fetch = fetchMock;
 
@@ -1521,11 +1524,253 @@ export async function deleteTestUser(page: Page): Promise<void> {
 
 
 ================================================
+File: src/__tests__/unit/api/auth.test.ts
+================================================
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { server } from "../../setup";
+import { http } from "msw";
+
+// Mock Supabase client
+vi.mock("@supabase/supabase-js", () => ({
+  createClient: vi.fn(() => ({
+    auth: {
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
+      resetPasswordForEmail: vi.fn(),
+    },
+  })),
+}));
+
+describe("Auth API Endpoints", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("POST /api/auth/register", () => {
+    const validRegistration = {
+      email: "test@example.com",
+      password: "Test123!@#",
+      confirmPassword: "Test123!@#",
+    };
+
+    it("should register a new user with valid credentials", async () => {
+      server.use(
+        http.post("/api/auth/register", () => {
+          return Response.json(
+            {
+              message: "Rejestracja zakończona sukcesem",
+              user: { email: validRegistration.email },
+            },
+            { status: 201 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(validRegistration),
+      });
+
+      expect(response.status).toBe(201);
+      const data = await response.json();
+      expect(data.message).toBe("Rejestracja zakończona sukcesem");
+      expect(data.user.email).toBe(validRegistration.email);
+    });
+
+    it("should return 400 for invalid registration data", async () => {
+      const invalidRegistration = {
+        email: "invalid-email",
+        password: "short",
+        confirmPassword: "different",
+      };
+
+      server.use(
+        http.post("/api/auth/register", () => {
+          return Response.json(
+            {
+              error: "Nieprawidłowe dane rejestracji",
+              details: {
+                email: ["Nieprawidłowy format email"],
+                password: ["Hasło musi mieć minimum 8 znaków"],
+                confirmPassword: ["Hasła nie są identyczne"],
+              },
+            },
+            { status: 400 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(invalidRegistration),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("Nieprawidłowe dane rejestracji");
+      expect(data.details).toBeDefined();
+    });
+  });
+
+  describe("POST /api/auth/login", () => {
+    const validCredentials = {
+      email: "test@example.com",
+      password: "Test123!@#",
+    };
+
+    it("should login user with valid credentials", async () => {
+      server.use(
+        http.post("/api/auth/login", () => {
+          return Response.json(
+            {
+              message: "Logowanie zakończone sukcesem",
+              user: { email: validCredentials.email },
+            },
+            { status: 200 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(validCredentials),
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.message).toBe("Logowanie zakończone sukcesem");
+      expect(data.user.email).toBe(validCredentials.email);
+    });
+
+    it("should return 401 for invalid credentials", async () => {
+      const invalidCredentials = {
+        email: "test@example.com",
+        password: "wrongpassword",
+      };
+
+      server.use(
+        http.post("/api/auth/login", () => {
+          return Response.json(
+            {
+              error: "Nieprawidłowy email lub hasło",
+            },
+            { status: 401 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(invalidCredentials),
+      });
+
+      expect(response.status).toBe(401);
+      const data = await response.json();
+      expect(data.error).toBe("Nieprawidłowy email lub hasło");
+    });
+  });
+
+  describe("POST /api/auth/logout", () => {
+    it("should successfully logout user", async () => {
+      server.use(
+        http.post("/api/auth/logout", () => {
+          return Response.json(
+            {
+              message: "Wylogowano pomyślnie",
+            },
+            { status: 200 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.message).toBe("Wylogowano pomyślnie");
+    });
+  });
+
+  describe("POST /api/auth/request-reset", () => {
+    it("should send password reset email for valid address", async () => {
+      const email = "test@example.com";
+
+      server.use(
+        http.post("/api/auth/request-reset", () => {
+          return Response.json(
+            {
+              message: "Link do resetowania hasła został wysłany",
+            },
+            { status: 200 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/auth/request-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.message).toBe("Link do resetowania hasła został wysłany");
+    });
+
+    it("should return 400 for invalid email", async () => {
+      const invalidEmail = "invalid-email";
+
+      server.use(
+        http.post("/api/auth/request-reset", () => {
+          return Response.json(
+            {
+              error: "Nieprawidłowy format adresu email",
+            },
+            { status: 400 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/auth/request-reset", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: invalidEmail }),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("Nieprawidłowy format adresu email");
+    });
+  });
+});
+
+
+
+================================================
 File: src/__tests__/unit/api/shopping-lists.test.ts
 ================================================
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { server } from "../../setup";
-import { rest } from "msw";
+import { http } from "msw";
 
 // Mock Supabase client
 vi.mock("@supabase/supabase-js", () => ({
@@ -1574,14 +1819,14 @@ describe("Shopping Lists API Endpoints", () => {
   describe("GET /api/shopping-lists", () => {
     it("should return 401 when user is not authenticated", async () => {
       server.use(
-        rest.get("/api/shopping-lists", async (req, res, ctx) => {
-          const response = await fetch(req.url, {
-            headers: { ...req.headers },
+        http.get("/api/shopping-lists", async ({ request }) => {
+          const response = await fetch(request.url, {
+            headers: { ...request.headers },
           });
           expect(response.status).toBe(401);
           const data = await response.json();
           expect(data.error).toBe("Wymagane uwierzytelnienie");
-          return res(ctx.status(401), ctx.json({ error: "Wymagane uwierzytelnienie" }));
+          return Response.json({ error: "Wymagane uwierzytelnienie" }, { status: 401 });
         })
       );
     });
@@ -1598,8 +1843,8 @@ describe("Shopping Lists API Endpoints", () => {
       };
 
       server.use(
-        rest.get("/api/shopping-lists", async (req, res, ctx) => {
-          return res(ctx.status(200), ctx.json(mockLists));
+        http.get("/api/shopping-lists", () => {
+          return Response.json(mockLists, { status: 200 });
         })
       );
 
@@ -1622,14 +1867,14 @@ describe("Shopping Lists API Endpoints", () => {
 
     it("should return 401 when user is not authenticated", async () => {
       server.use(
-        rest.post("/api/shopping-lists", async (req, res, ctx) => {
-          const response = await fetch(req.url, {
+        http.post("/api/shopping-lists", async ({ request }) => {
+          const response = await fetch(request.url, {
             method: "POST",
-            headers: { ...req.headers },
+            headers: { ...request.headers },
             body: JSON.stringify(newList),
           });
           expect(response.status).toBe(401);
-          return res(ctx.status(401), ctx.json({ error: "Wymagane uwierzytelnienie" }));
+          return Response.json({ error: "Wymagane uwierzytelnienie" }, { status: 401 });
         })
       );
     });
@@ -1641,8 +1886,8 @@ describe("Shopping Lists API Endpoints", () => {
       };
 
       server.use(
-        rest.post("/api/shopping-lists", async (req, res, ctx) => {
-          return res(ctx.status(201), ctx.json(mockCreatedList));
+        http.post("/api/shopping-lists", () => {
+          return Response.json(mockCreatedList, { status: 201 });
         })
       );
 
@@ -1666,13 +1911,13 @@ describe("Shopping Lists API Endpoints", () => {
       };
 
       server.use(
-        rest.post("/api/shopping-lists", async (req, res, ctx) => {
-          return res(
-            ctx.status(400),
-            ctx.json({
+        http.post("/api/shopping-lists", () => {
+          return Response.json(
+            {
               error: "Nieprawidłowe dane wejściowe",
               details: { title: ["Required"] },
-            })
+            },
+            { status: 400 }
           );
         })
       );
@@ -1696,8 +1941,8 @@ describe("Shopping Lists API Endpoints", () => {
   describe("GET /api/shopping-lists/:id", () => {
     it("should return 404 for non-existent list", async () => {
       server.use(
-        rest.get("/api/shopping-lists/non-existent", async (req, res, ctx) => {
-          return res(ctx.status(404), ctx.json({ error: "Shopping list not found" }));
+        http.get("/api/shopping-lists/non-existent", () => {
+          return Response.json({ error: "Shopping list not found" }, { status: 404 });
         })
       );
 
@@ -1714,8 +1959,8 @@ describe("Shopping Lists API Endpoints", () => {
 
     it("should return list details for valid ID", async () => {
       server.use(
-        rest.get(`/api/shopping-lists/${mockList.id}`, async (req, res, ctx) => {
-          return res(ctx.status(200), ctx.json(mockList));
+        http.get(`/api/shopping-lists/${mockList.id}`, () => {
+          return Response.json(mockList, { status: 200 });
         })
       );
 
@@ -1744,8 +1989,8 @@ describe("Shopping Lists API Endpoints", () => {
       };
 
       server.use(
-        rest.put(`/api/shopping-lists/${mockList.id}`, async (req, res, ctx) => {
-          return res(ctx.status(200), ctx.json(mockUpdatedList));
+        http.put(`/api/shopping-lists/${mockList.id}`, () => {
+          return Response.json(mockUpdatedList, { status: 200 });
         })
       );
 
@@ -1767,8 +2012,8 @@ describe("Shopping Lists API Endpoints", () => {
   describe("DELETE /api/shopping-lists/:id", () => {
     it("should delete list for valid ID", async () => {
       server.use(
-        rest.delete(`/api/shopping-lists/${mockList.id}`, async (req, res, ctx) => {
-          return res(ctx.status(204));
+        http.delete(`/api/shopping-lists/${mockList.id}`, () => {
+          return new Response(null, { status: 204 });
         })
       );
 
@@ -1780,6 +2025,240 @@ describe("Shopping Lists API Endpoints", () => {
       });
 
       expect(response.status).toBe(204);
+    });
+  });
+});
+
+
+
+================================================
+File: src/__tests__/unit/api/users.test.ts
+================================================
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { server } from "../../setup";
+import { http } from "msw";
+
+// Mock Supabase client
+vi.mock("@supabase/supabase-js", () => ({
+  createClient: vi.fn(() => ({
+    auth: {
+      getUser: vi.fn(),
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    })),
+  })),
+}));
+
+describe("Users API Endpoints", () => {
+  const mockUser = {
+    id: "test-user-id",
+    email: "test@example.com",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("GET /api/users/me", () => {
+    it("should return user data for authenticated user", async () => {
+      server.use(
+        http.get("/api/users/me", () => {
+          return Response.json(mockUser, { status: 200 });
+        })
+      );
+
+      const response = await fetch("/api/users/me", {
+        headers: {
+          Authorization: "Bearer test-token",
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data).toEqual(mockUser);
+    });
+
+    it("should return 401 when not authenticated", async () => {
+      server.use(
+        http.get("/api/users/me", () => {
+          return Response.json(
+            {
+              error: "Brak autoryzacji",
+            },
+            { status: 401 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/users/me");
+      expect(response.status).toBe(401);
+      const data = await response.json();
+      expect(data.error).toBe("Brak autoryzacji");
+    });
+  });
+
+  describe("GET /api/users/:id", () => {
+    it("should return user data for valid ID", async () => {
+      server.use(
+        http.get(`/api/users/${mockUser.id}`, () => {
+          return Response.json(mockUser, { status: 200 });
+        })
+      );
+
+      const response = await fetch(`/api/users/${mockUser.id}`, {
+        headers: {
+          Authorization: "Bearer test-token",
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data).toEqual(mockUser);
+    });
+
+    it("should return 404 for non-existent user", async () => {
+      server.use(
+        http.get("/api/users/non-existent", () => {
+          return Response.json(
+            {
+              error: "Użytkownik nie został znaleziony",
+            },
+            { status: 404 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/users/non-existent", {
+        headers: {
+          Authorization: "Bearer test-token",
+        },
+      });
+
+      expect(response.status).toBe(404);
+      const data = await response.json();
+      expect(data.error).toBe("Użytkownik nie został znaleziony");
+    });
+  });
+
+  describe("PUT /api/users/:id", () => {
+    const updates = {
+      email: "updated@example.com",
+    };
+
+    it("should update user data for valid ID", async () => {
+      const mockUpdatedUser = {
+        ...mockUser,
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
+
+      server.use(
+        http.put(`/api/users/${mockUser.id}`, () => {
+          return Response.json(mockUpdatedUser, { status: 200 });
+        })
+      );
+
+      const response = await fetch(`/api/users/${mockUser.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer test-token",
+        },
+        body: JSON.stringify(updates),
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data).toEqual(mockUpdatedUser);
+    });
+
+    it("should return 400 for invalid update data", async () => {
+      const invalidUpdates = {
+        email: "invalid-email",
+      };
+
+      server.use(
+        http.put(`/api/users/${mockUser.id}`, () => {
+          return Response.json(
+            {
+              error: "Nieprawidłowe dane aktualizacji",
+              details: {
+                email: ["Nieprawidłowy format email"],
+              },
+            },
+            { status: 400 }
+          );
+        })
+      );
+
+      const response = await fetch(`/api/users/${mockUser.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer test-token",
+        },
+        body: JSON.stringify(invalidUpdates),
+      });
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toBe("Nieprawidłowe dane aktualizacji");
+      expect(data.details).toBeDefined();
+    });
+  });
+
+  describe("DELETE /api/users/:id", () => {
+    it("should delete user for valid ID", async () => {
+      server.use(
+        http.delete(`/api/users/${mockUser.id}`, () => {
+          return Response.json(
+            {
+              message: "Użytkownik został usunięty",
+            },
+            { status: 200 }
+          );
+        })
+      );
+
+      const response = await fetch(`/api/users/${mockUser.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer test-token",
+        },
+      });
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.message).toBe("Użytkownik został usunięty");
+    });
+
+    it("should return 404 for non-existent user", async () => {
+      server.use(
+        http.delete("/api/users/non-existent", () => {
+          return Response.json(
+            {
+              error: "Użytkownik nie został znaleziony",
+            },
+            { status: 404 }
+          );
+        })
+      );
+
+      const response = await fetch("/api/users/non-existent", {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer test-token",
+        },
+      });
+
+      expect(response.status).toBe(404);
+      const data = await response.json();
+      expect(data.error).toBe("Użytkownik nie został znaleziony");
     });
   });
 });
