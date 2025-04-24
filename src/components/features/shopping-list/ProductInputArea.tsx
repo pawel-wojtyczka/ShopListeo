@@ -31,7 +31,7 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
       console.log("[ProductInputArea] Wysyłanie tekstu do przetworzenia przez AI, ListId:", listId);
 
       // Call the AI endpoint
-      const response = await fetch(`/api/shopping-lists/${listId}/ai-parse`, {
+      const response = await fetch(`/api/client/shopping-lists/${listId}/ai-parse`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -49,7 +49,7 @@ export function useShoppingLists({
   });
 
   // We still need auth context for user ID in create/delete actions
-  const { isAuthenticated, user, token } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   // REMOVED the useEffect that was responsible for the initial client-side fetch
   // The initial data is now provided via props.
@@ -68,19 +68,29 @@ export function useShoppingLists({
       console.log(`[useShoppingLists] Refetching shopping lists (Page: ${page})...`);
 
       try {
-        const apiUrl = new URL("/api/shopping-lists", window.location.origin);
+        // Zmieniamy URL na endpoint klienta
+        const apiUrl = new URL("/api/client/shopping-lists", window.location.origin);
         apiUrl.searchParams.set("page", page.toString());
         apiUrl.searchParams.set("pageSize", pageSize.toString());
 
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
+        // Usuwamy logikę dodawania nagłówka Authorization Bearer
+        // const headers: Record<string, string> = { "Content-Type": "application/json" };
+        // if (token) {
+        //   headers["Authorization"] = `Bearer ${token}`;
+        // }
 
-        const response = await fetch(apiUrl.toString(), { headers });
+        // Wywołujemy fetch bez nagłówka Authorization, ale z credentials: "include"
+        const response = await fetch(apiUrl.toString(), {
+          headers: { "Content-Type": "application/json" }, // Content-Type jest nadal potrzebny
+          credentials: "include", // Kluczowe dla używania sesji/ciasteczek
+        });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: response.statusText }));
+          // Dodajemy obsługę statusu 401 (Unauthorized)
+          if (response.status === 401) {
+            throw new Error("Sesja wygasła lub użytkownik nie jest zalogowany.");
+          }
           throw new Error(
             `Błąd podczas pobierania list (${response.status}): ${errorData.message || errorData.error || response.statusText}`
           );
@@ -101,7 +111,8 @@ export function useShoppingLists({
         showErrorToast("Nie udało się odświeżyć list zakupów", { description: errorMessage });
       }
     },
-    [isAuthenticated, user, token]
+    // Usuwamy token z zależności, bo już go nie używamy
+    [isAuthenticated, user] // Only need isAuthenticated and user now
   ); // Dependencies for the refetch function
 
   // Create and Delete functions remain largely the same,

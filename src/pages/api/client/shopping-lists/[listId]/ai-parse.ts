@@ -249,38 +249,54 @@ Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, u
             );
           }
 
-          console.log(`[${requestId}] [ai-parse] Sukces, znaleziono ${contentJson.products.length} produktów`);
-          return new Response(
-            JSON.stringify({
-              products: contentJson.products,
-            }),
-            {
-              status: 200,
+          // Wstawiamy nowe elementy do listy zakupów
+          if (contentJson.products.length > 0) {
+            console.log(
+              `[${requestId}] [ai-parse] Wstawianie ${contentJson.products.length} nowych elementów do listy ${listId}`
+            );
+            const itemsToInsert = contentJson.products.map((product: { name: string; purchased: boolean }) => ({
+              shopping_list_id: listId,
+              item_name: product.name,
+              purchased: product.purchased || false,
+              user_id: userId,
+            }));
+
+            const { error: insertError } = await supabase.from("shopping_list_items").insert(itemsToInsert);
+
+            if (insertError) {
+              console.error(`[${requestId}] [ai-parse] Błąd wstawiania nowych elementów: ${insertError.message}`);
+              return new Response(
+                JSON.stringify({ error: "Failed to insert new items", details: insertError.message }),
+                { status: 500 }
+              );
             }
-          );
-        } catch (parseError) {
-          console.error(`[${requestId}] [ai-parse] Błąd parsowania JSON z zawartości:`, contentStr, parseError);
-          return new Response(
-            JSON.stringify({
-              error: "Failed to parse AI response content as JSON",
-              details: getErrorMessage(parseError),
-              content: contentStr.substring(0, 200), // Wysyłamy pierwszy fragment odpowiedzi dla diagnostyki
-            }),
-            { status: 500 }
-          );
-        }
-      } catch (responseError) {
-        console.error(`[${requestId}] [ai-parse] Błąd parsowania odpowiedzi:`, responseError);
-        return new Response(
-          JSON.stringify({ error: "Failed to parse AI response", details: getErrorMessage(responseError) }),
-          {
-            status: 500,
+          } else {
+            console.log(`[${requestId}] [ai-parse] Brak nowych elementów do wstawienia po przetworzeniu przez AI.`);
           }
-        );
+
+          console.log(`[${requestId}] [ai-parse] Pomyślnie zaktualizowano listę ${listId}`);
+          return new Response(JSON.stringify({ products: contentJson.products }), { status: 200 });
+        } catch (jsonParseError) {
+          console.error(
+            `[${requestId}] [ai-parse] Błąd parsowania JSON z odpowiedzi AI: ${getErrorMessage(
+              jsonParseError
+            )}, Content: ${contentStr}`
+          );
+          return new Response(JSON.stringify({ error: "Failed to parse AI response", details: contentStr }), {
+            status: 500,
+          });
+        }
+      } catch (jsonError) {
+        console.error(`[${requestId}] [ai-parse] Błąd parsowania odpowiedzi OpenRouter: ${getErrorMessage(jsonError)}`);
+        return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
+          status: 500,
+        });
       }
-    } catch (error) {
-      console.error(`[${requestId}] [ai-parse] Błąd inicjalizacji lub wywołania OpenRouter: ${getErrorMessage(error)}`);
-      return new Response(JSON.stringify({ error: "OpenRouter service error", details: getErrorMessage(error) }), {
+    } catch (serviceError) {
+      console.error(
+        `[${requestId}] [ai-parse] Błąd inicjalizacji serwisu OpenRouter: ${getErrorMessage(serviceError)}`
+      );
+      return new Response(JSON.stringify({ error: "Failed to initialize AI service" }), {
         status: 500,
       });
     }
