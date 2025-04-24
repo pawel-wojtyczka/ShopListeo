@@ -48,6 +48,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState<boolean>(true); // Zaczynamy jako loading
   const [isAuthenticatedState, setIsAuthenticatedState] = useState<boolean>(false);
   const [authCheckCounter, setAuthCheckCounter] = useState<number>(0);
+  const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false); // Nowy stan
 
   // Funkcja do pobierania danych użytkownika przez API /api/users/me
   // Opiera się na ciasteczkach sesji sb-* wysyłanych automatycznie przez przeglądarkę
@@ -83,8 +84,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       console.log("[AuthContext] fetchUserData: Finished.");
       setIsLoading(false); // Kończymy ładowanie niezależnie od wyniku
+      if (!initialLoadComplete) {
+        setInitialLoadComplete(true); // Oznaczamy pierwsze ładowanie jako zakończone
+      }
     }
-  }, []); // Brak zależności, funkcja nie używa zmiennych z zewnątrz poza setterami stanu
+  }, [initialLoadComplete]); // Dodano initialLoadComplete jako zależność useCallback, aby uniknąć ostrzeżenia, chociaż nie jest to ściśle konieczne dla logiki.
 
   // Efekt do początkowego sprawdzenia autentykacji przy montowaniu komponentu
   useEffect(() => {
@@ -96,8 +100,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     fetchUserData();
 
     // Ten efekt powinien uruchomić się tylko raz przy montowaniu
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Pusta tablica zależności zapewnia uruchomienie tylko raz
+  }, [fetchUserData]); // Pusta tablica zależności zapewnia uruchomienie tylko raz
 
   // Funkcja logowania: po prostu odświeża dane użytkownika
   // Zakładamy, że API logowania (/api/auth/login) poprawnie ustawiło ciasteczka sb-*
@@ -154,7 +157,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     authCheckCompleted: value.authCheckCompleted,
   });
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Renderuj dzieci tylko po zakończeniu pierwszego ładowania
+  return <AuthContext.Provider value={value}>{initialLoadComplete ? children : null}</AuthContext.Provider>;
 }
 
 // Dodatkowe eksporty dla ułatwienia użycia

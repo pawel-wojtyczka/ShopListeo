@@ -1,14 +1,9 @@
 ---
 import "../styles/global.css";
-import { ViewTransitions } from "astro:transitions";
-// Removed UserDTO import, not needed here directly
-
-// Import the AuthProvider and AuthStatus component
-import { AuthProvider } from "@/lib/auth/AuthContext";
-import AuthStatus from "@/components/auth/AuthStatus"; // Adjust path if necessary
-// Import ToastProvider
-import { ToastProvider } from "@/components/ToastProvider";
-// import type { AstroLocals } from "@/types/locals"; // Usunięto nieużywany import
+// import { ViewTransitions } from "astro:transitions"; // Usunięto nieużywany import
+// import { AuthProvider } from "@/lib/auth/AuthContext"; // Usunięto import AuthProvider
+// Usunięto import AuthStatus i ToastProvider, będą renderowane przez MainLayoutContent
+import MainLayoutContent from "@/components/layouts/MainLayoutContent"; // Import nowego komponentu
 
 interface Props {
   title?: string;
@@ -29,39 +24,13 @@ const { title = "ShopListeo" } = Astro.props;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
-    <ViewTransitions />
+    {/* <ViewTransitions /> */}{/* Tymczasowo wyłączone do debugowania */}
   </head>
   <body class="h-full bg-background text-foreground antialiased">
-    <AuthProvider client:only="react">
-      <div class="flex h-full min-h-screen flex-col md:flex-row">
-        {/* Poprawiony komentarz: Nawigacja boczna */}
-        <div class="w-64 border-r hidden md:block p-4 flex flex-col justify-between">
-          <div>
-            <div class="text-xl font-bold mb-6">ShopListeo</div>
-            <nav class="space-y-2">
-              <a href="/" class:list={["flex items-center p-2 rounded-lg hover:bg-muted text-foreground"]}>
-                Listy zakupów
-              </a>
-              {/* Add more nav links here */}
-            </nav>
-          </div>
-
-          {/* Poprawiony komentarz: Auth Status Area - Now rendered by React */}
-          <div id="auth-status-area" class="mt-auto text-sm text-muted-foreground p-2 border-t">
-            {/* Usunięto prop initialUser */}
-            <AuthStatus client:load />
-            {/* Nadal używamy client:load */}
-          </div>
-        </div>
-
-        {/* Poprawiony komentarz: Główny obszar treści - Wrapped with ToastProvider */}
-        <main class="flex-1 overflow-auto p-6">
-          {/* Wrap slot content with ToastProvider */}
-          <ToastProvider client:load>
-            <slot />
-          </ToastProvider>
-        </main>
-      </div>
-    </AuthProvider>
+    {/* Usunięto AuthProvider - jest teraz wewnątrz MainLayoutContent */}
+    {/* Renderuj MainLayoutContent jako jedyną wyspę React */}
+    <MainLayoutContent client:load>
+      <slot />
+    </MainLayoutContent>
   </body>
 </html>

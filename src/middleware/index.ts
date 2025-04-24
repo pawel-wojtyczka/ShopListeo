@@ -108,8 +108,8 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
 
   // Ustawiamy dane autoryzacyjne w kontekście lokalnym
   (locals as AstroLocals).user = data.user;
-  (locals as AstroLocals & { authUser: UserDTO | null; isAuthenticated: boolean }).authUser = authUser;
-  (locals as AstroLocals & { authUser: UserDTO | null; isAuthenticated: boolean }).isAuthenticated = isAuthenticated;
+  (locals as AstroLocals & { userDTO: UserDTO | null; isAuthenticated: boolean }).userDTO = authUser;
+  (locals as AstroLocals & { userDTO: UserDTO | null; isAuthenticated: boolean }).isAuthenticated = isAuthenticated;
   console.log("Middleware: Locals set", { isAuthenticated, userId: authUser?.id });
 
   // Sprawdzamy reguły przekierowania
