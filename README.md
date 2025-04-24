@@ -1,165 +1,126 @@
-# 10x Astro Starter
+# ShopListeo
 
-A modern, opinionated starter template for building fast, accessible, and AI-friendly web applications.
+Aplikacja webowa zaprojektowana w celu uproszczenia procesu tworzenia i zarządzania listami zakupów. Główną cechą aplikacji jest wykorzystanie asystenta AI do inteligentnego parsowania tekstu wprowadzonego przez użytkownika i przekształcania go w uporządkowaną listę produktów. Umożliwia tworzenie, edycję list, oznaczanie zakupionych produktów oraz zarządzanie kontem. Zawiera również panel administracyjny.
 
 ## Tech Stack
 
-- [Astro](https://astro.build/) v5.5.5 - Modern web framework for building fast, content-focused websites
-- [React](https://react.dev/) v19.0.0 - UI library for building interactive components
-- [TypeScript](https://www.typescriptlang.org/) v5 - Type-safe JavaScript
-- [Tailwind CSS](https://tailwindcss.com/) v4.0.17 - Utility-first CSS framework
+### Główne Technologie
+- **[Astro](https://astro.build/) v5.5.5**: Nowoczesny web framework do budowy szybkich stron (SSR/SSG).
+- **[React](https://react.dev/) v19.0.0**: Biblioteka UI do budowy interaktywnych komponentów.
+- **[TypeScript](https://www.typescriptlang.org/) v5**: Statyczne typowanie dla JavaScript.
+- **[Tailwind CSS](https://tailwindcss.com/) v4.0.17**: Framework CSS typu utility-first.
+- **[Shadcn/ui](https://ui.shadcn.com/)**: Biblioteka komponentów UI oparta na Radix UI i Tailwind CSS.
 
-### Testing Tools
-- [Vitest](https://vitest.dev/) - Unit testing framework
-- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) - Testing utilities for React components
-- [Playwright](https://playwright.dev/) - End-to-end testing framework
-- [MSW](https://mswjs.io/) - API mocking library for tests
+### Backend & Baza Danych
+- **[Supabase](https://supabase.com/)**: Platforma Backend-as-a-Service (BaaS) z bazą danych PostgreSQL, uwierzytelnianiem i API.
 
-## Prerequisites
+### Sztuczna Inteligencja
+- **[OpenRouter.ai](https://openrouter.ai/)**: Agregator API modeli językowych (LLM) do przetwarzania list zakupów.
 
-- Node.js v22.14.0 (as specified in `.nvmrc`)
-- npm (comes with Node.js)
+### Narzędzia Deweloperskie
+- **[ESLint](https://eslint.org/) v9**: Lintowanie kodu.
+- **[Prettier](https://prettier.io/)**: Formatowanie kodu.
+- **[Zod](https://zod.dev/)**: Walidacja schematów danych.
+- **[React Hook Form](https://react-hook-form.com/)**: Zarządzanie formularzami w React.
+- **[Husky](https://typicode.github.io/husky/) & [lint-staged](https://github.com/okonet/lint-staged)**: Git hooks do automatyzacji sprawdzania jakości kodu.
 
-## Getting Started
+### Narzędzia Testowe
+- **[Vitest](https://vitest.dev/)**: Framework do testów jednostkowych i integracyjnych.
+- **[React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)**: Biblioteka do testowania komponentów React.
+- **[Playwright](https://playwright.dev/)**: Framework do testów End-to-End (E2E).
+- **[Mock Service Worker (MSW)](https://mswjs.io/)**: Biblioteka do mockowania API w testach.
 
-1. Clone the repository:
+## Wymagania Wstępne
 
-```bash
-git git@github.com:pawel-wojtyczka/ShopListeo.git
-cd ShopListeo
-```
+- Node.js v22.14.0 (zgodnie z `.nvmrc`)
+- npm (dostarczany z Node.js)
+- Dostęp do instancji Supabase (lokalnej lub zdalnej)
+- Klucz API dla OpenRouter.ai
 
-2. Install dependencies:
+## Rozpoczęcie Pracy Lokalnej
 
-```bash
-npm install
-```
+1.  Sklonuj repozytorium:
+    ```bash
+    git clone git@github.com:pawel-wojtyczka/ShopListeo.git
+    cd ShopListeo
+    ```
+2.  Zainstaluj zależności:
+    ```bash
+    npm install
+    ```
+3.  Skonfiguruj zmienne środowiskowe (utwórz plik `.env` na podstawie `.env.example` i uzupełnij wartości):
+    ```bash
+    cp .env.example .env
+    # Edytuj plik .env z własnymi kluczami Supabase i OpenRouter
+    ```
+4.  Uruchom serwer deweloperski:
+    ```bash
+    npm run dev
+    ```
+5.  Aplikacja będzie dostępna pod adresem `http://localhost:3000` (lub innym skonfigurowanym portem).
 
-3. Run the development server:
+## Dostępne Skrypty
 
-```bash
-npm run dev
-```
+-   `npm run dev`: Uruchamia serwer deweloperski Astro.
+-   `npm run build`: Buduje aplikację do wdrożenia produkcyjnego.
+-   `npm run preview`: Uruchamia podgląd zbudowanej aplikacji produkcyjnej.
+-   `npm run astro`: Dostęp do komend CLI Astro.
+-   `npm run lint`: Uruchamia ESLint do sprawdzenia jakości kodu.
+-   `npm run lint:fix`: Uruchamia ESLint z automatycznym poprawianiem błędów.
+-   `npm run format`: Uruchamia Prettier do formatowania kodu.
+-   `npm run test`: Uruchamia testy jednostkowe i integracyjne (Vitest).
+-   `npm run test:watch`: Uruchamia Vitest w trybie watch.
+-   `npm run test:coverage`: Uruchamia testy z generowaniem raportu pokrycia.
+-   `npm run test:ui`: Uruchamia interfejs graficzny Vitest UI.
+    *(Uwaga: Skrypty dla Playwright (`test:e2e*`) nie są zdefiniowane w `package.json`)*
 
-4. Build for production:
+## Wsparcie Rozwoju z AI
 
-```bash
-npm run build
-```
+Projekt jest skonfigurowany do współpracy z narzędziami AI w celu usprawnienia procesu deweloperskiego:
 
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint issues
-- `npm run test` - Run unit tests with Vitest
-- `npm run test:ui` - Run Vitest with UI
-- `npm run test:e2e` - Run end-to-end tests with Playwright
-
-## Project Structure
-
-```md
-.
-├── src/
-│   ├── layouts/    # Astro layouts
-│   ├── pages/      # Astro pages
-│   │   └── api/    # API endpoints
-│   ├── components/ # UI components (Astro & React)
-│   └── assets/     # Static assets
-├── public/         # Public assets
-├── tests/          # Test files
-│   ├── unit/       # Unit tests
-│   └── e2e/        # End-to-end tests
-```
-
-## AI Development Support
-
-This project is configured with AI development tools to enhance the development experience, providing guidelines for:
-
-- Project structure
-- Coding practices
-- Frontend development
-- Styling with Tailwind
-- Accessibility best practices
-- Astro and React guidelines
-
-### Cursor IDE
-
-The project includes AI rules in `.cursor/rules/` directory that help Cursor IDE understand the project structure and provide better code suggestions.
-
-### GitHub Copilot
-
-AI instructions for GitHub Copilot are available in `.github/copilot-instructions.md`
-
-### Windsurf
-
-The `.windsurfrules` file contains AI configuration for Windsurf.
-
-## Contributing
-
-Please follow the AI guidelines and coding practices defined in the AI configuration files when contributing to this project.
-
-## License
-
-MIT
+-   **Cursor IDE:** Reguły AI w katalogu `.cursor/rules/` pomagają IDE zrozumieć strukturę projektu i dostarczać lepsze sugestie kodu.
+-   **GitHub Copilot:** Instrukcje dla Copilota znajdują się w `.github/copilot-instructions.md`.
+-   **Windsurf:** Plik `.windsurfrules` zawiera konfigurację AI dla Windsurf.
 
 ## Testowanie
 
-Projekt ShopListeo używa dwóch głównych podejść do testowania:
+Projekt ShopListeo wykorzystuje kompleksowe podejście do testowania:
 
-### Testy jednostkowe (Vitest)
+### Testy Jednostkowe i Integracyjne (Vitest)
 
-Testy jednostkowe są oparte na Vitest i React Testing Library. Pozwalają na testowanie poszczególnych komponentów i funkcji w izolacji.
+Oparte na [Vitest](https://vitest.dev/) i [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/). Testują poszczególne komponenty React, hooki, funkcje pomocnicze i logikę serwisów w izolacji lub w małych grupach. Do mockowania API używany jest [MSW](https://mswjs.io/).
 
-Aby uruchomić testy jednostkowe:
-
+Aby uruchomić testy jednostkowe/integracyjne:
 ```bash
-# Jednorazowe uruchomienie wszystkich testów
+# Jednorazowe uruchomienie
 npm run test
 
-# Uruchomienie testów w trybie watch (automatyczne uruchamianie po zmianach)
+# Uruchomienie w trybie watch
 npm run test:watch
 
-# Uruchomienie testów z generowaniem raportów pokrycia
+# Uruchomienie z raportem pokrycia
 npm run test:coverage
 
-# Uruchomienie testów w UI Vitest
+# Uruchomienie z interfejsem graficznym
 npm run test:ui
-```
 
 ### Testy End-to-End (Playwright)
 
-Testy E2E są oparte na Playwright i testują aplikację jako całość z perspektywy użytkownika końcowego.
+Oparte na Playwright. Testują aplikację jako całość z perspektywy użytkownika końcowego, symulując interakcje w przeglądarce.
+(Aktualnie brak zdefiniowanych skryptów npm run test:e2e* w package.json. Należy je dodać, aby uruchomić testy E2E.)
 
-Aby uruchomić testy E2E:
+### Struktura Testów
 
-```bash
-# Instalacja przeglądarek potrzebnych do testów
-npx playwright install chromium
+src/__tests__/unit/: Testy jednostkowe dla komponentów, hooków, serwisów.
+src/__tests__/integration/: Testy integracyjne (np. interakcji komponentów, API).
+src/__tests__/e2e/: Testy End-to-End z Playwright.
+src/__tests__/helpers/: Funkcje pomocnicze dla testów (np. auth.ts).
+src/__tests__/setup.ts: Globalna konfiguracja dla Vitest (np. mockowanie, rozszerzenia matcherów).
 
-# Jednorazowe uruchomienie wszystkich testów E2E
-npm run test:e2e
+### Contributing
 
-# Uruchomienie testów E2E w trybie UI
-npm run test:e2e:ui
+Proszę o przestrzeganie wytycznych AI i praktyk kodowania zdefiniowanych w plikach konfiguracyjnych AI podczas pracy nad projektem. Używaj npm run lint i npm run format przed commitem.
 
-# Uruchomienie testów E2E w trybie debug
-npm run test:e2e:debug
-```
+### Licencja
 
-### Struktura testów
-
-- `src/**/*.test.ts(x)` - Testy jednostkowe dla komponentów i funkcji
-- `tests/e2e/*.spec.ts` - Testy E2E z Playwright
-- `tests/e2e/pages/` - Page Object Models dla testów E2E
-- `src/mocks/` - Mocki dla API do testów jednostkowych z MSW
-
-### Technologie testowe
-
-- Vitest - Framework do testów jednostkowych i integracyjnych
-- React Testing Library - Biblioteka do testowania komponentów React
-- MSW (Mock Service Worker) - Biblioteka do mockowania API
-- Playwright - Framework do testów E2E
-- Snapshot Testing - Do testowania UI
+MIT
