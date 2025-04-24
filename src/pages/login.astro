@@ -9,11 +9,6 @@ export const prerender = false;
 if (Astro.locals.isAuthenticated) {
   return Astro.redirect("/"); // Zmieniono z /shopping-lists
 }
-
-// If successful, redirect to the main page
-if (response.ok) {
-  return Astro.redirect("/");
-}
 ---
 
 <AuthLayout title="Logowanie">
