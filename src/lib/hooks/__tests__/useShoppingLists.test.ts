@@ -19,8 +19,10 @@ vi.mock("../../../db/supabase.client", () => ({
   },
 }));
 
+// Tworzenie mocka dla globalnego fetch przed mockowanie obiektu
+const fetchMock = vi.fn();
 // Mock dla globalnego fetch
-global.fetch = vi.fn();
+global.fetch = fetchMock;
 
 describe("useShoppingLists", () => {
   // Tworzymy sztuczny obiekt sesji do użycia w testach
@@ -41,7 +43,7 @@ describe("useShoppingLists", () => {
     vi.clearAllMocks();
 
     // Resetujemy mock fetcha
-    (global.fetch as ReturnType<typeof vi.fn>).mockReset();
+    fetchMock.mockReset();
 
     // Konfigurujemy mock getSession, aby zwracał naszą sztuczną sesję
     (supabaseClient.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -50,7 +52,7 @@ describe("useShoppingLists", () => {
     });
 
     // Domyślny, bardziej elastyczny mock dla fetch
-    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url, options) => {
+    fetchMock.mockImplementation(async (url, options) => {
       const urlString = url.toString();
       // Domyślna odpowiedź dla GET /api/shopping-lists
       if (urlString.includes("/api/shopping-lists") && options?.method !== "POST" && options?.method !== "DELETE") {

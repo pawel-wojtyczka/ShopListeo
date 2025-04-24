@@ -24,6 +24,15 @@ ShopListeo is a web application designed to simplify the creation, management, a
 - **Github Actions**: Used to create CI/CD pipelines.
 - **DigitalOcean**: Hosts the application using Docker containers.
 
+### Testing
+- **Vitest**: A blazing fast unit testing framework that replaces Jest, providing a better developer experience with features like watch mode and UI.
+- **React Testing Library**: Utilities for testing React components in a way that simulates user behavior.
+- **Playwright**: End-to-end testing framework for testing web applications across all modern browsers.
+- **MSW (Mock Service Worker)**: API mocking library that intercepts requests for testing isolated components.
+- **Storybook**: Tool for developing and testing UI components in isolation.
+- **Lighthouse CI**: Tool for measuring web performance metrics.
+- **Axe**: Automated tool for testing accessibility compliance.
+
 ## 4. Getting Started Locally
 ### Prerequisites
 - Node.js v22.14.0 (as specified in the `.nvmrc` file)
@@ -54,6 +63,11 @@ ShopListeo is a web application designed to simplify the creation, management, a
 - `npm run preview` – Previews the production build.
 - `npm run lint` – Runs ESLint to check code quality.
 - `npm run lint:fix` – Automatically fixes linting issues.
+- `npm run test` – Runs unit tests with Vitest.
+- `npm run test:ui` – Runs Vitest with UI for interactive testing.
+- `npm run test:coverage` – Runs tests with coverage report.
+- `npm run test:e2e` – Runs end-to-end tests with Playwright.
+- `npm run storybook` – Starts Storybook for component development and testing.
 
 ## 6. Project Scope
 The initial MVP of ShopListeo focuses on the core functionality:

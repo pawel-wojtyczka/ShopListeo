@@ -1,12 +1,25 @@
 // Plik konfiguracyjny dla testów
-import { vi, afterEach } from "vitest";
+import { vi } from "vitest";
 import "@testing-library/jest-dom";
 import { cleanup } from "@testing-library/react";
+import { server } from "./mocks/node";
 
-// Automatyczne czyszczenie po każdym teście
+// Uruchomienie serwera MSW przed wszystkimi testami
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+
+// Resetowanie handlerów i cleanup po każdym teście
 afterEach(() => {
+  server.resetHandlers();
   cleanup();
 });
+
+// Zamknięcie serwera po wszystkich testach
+afterAll(() => server.close());
+
+// Automatyczne czyszczenie po każdym teście
+// afterEach(() => {
+//   cleanup();
+// });
 
 // Mock dla matchMedia, wymagany przez wiele komponentów
 Object.defineProperty(window, "matchMedia", {
@@ -48,9 +61,8 @@ if (typeof document !== "undefined") {
 
   // Inne potrzebne implementacje
   document.elementFromPoint = vi.fn();
-  document.createTextNode = vi.fn();
 }
 
-// Uciszenie ostrzeżeń konsoli podczas testów
+// Uciszenie ostrzeżeń konsoli podczas testów - przywrócone
 console.error = vi.fn();
 console.warn = vi.fn();

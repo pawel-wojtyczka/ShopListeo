@@ -1,11 +1,12 @@
 import { OpenRouterService } from "../openrouter.service";
 import "@testing-library/jest-dom";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 // Mock dla fetch API
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Mock dla setTimeout
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 describe("OpenRouterService", () => {
   let service: OpenRouterService;
@@ -14,23 +15,23 @@ describe("OpenRouterService", () => {
 
   beforeEach(() => {
     // Reset mocks przed każdym testem
-    jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockReset();
-    jest.clearAllTimers();
+    vi.clearAllMocks();
+    (global.fetch as ReturnType<typeof vi.fn>).mockReset();
+    vi.clearAllTimers();
 
     // Inicjalizacja serwisu z mockami
     service = new OpenRouterService(mockApiKey, mockBaseUrl);
 
     // Mock dla console methods
-    jest.spyOn(console, "log").mockImplementation(() => undefined);
-    jest.spyOn(console, "warn").mockImplementation(() => undefined);
-    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
   afterEach(() => {
     // Przywróć oryginalne metody console
-    jest.restoreAllMocks();
-    jest.useRealTimers();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   describe("constructor", () => {
@@ -62,7 +63,7 @@ describe("OpenRouterService", () => {
       // Wywołaj zapytanie, aby sprawdzić, czy nowa wiadomość systemowa jest używana
       await service.sendChatRequest({ message: "test" });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.messages[0]).toEqual({
         role: "system",
         content: newSystemMessage,
@@ -76,7 +77,7 @@ describe("OpenRouterService", () => {
       // Wywołaj zapytanie, aby sprawdzić, czy nowa wiadomość użytkownika jest używana
       await service.sendChatRequest({ message: "test" });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.messages[1]).toEqual({
         role: "user",
         content: "test", // Powinno użyć wiadomości z sendChatRequest, nie updateUserMessage
@@ -88,7 +89,7 @@ describe("OpenRouterService", () => {
     it("should format request with correct structure", async () => {
       await service.sendChatRequest({ message: "test message" });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody).toMatchObject({
         messages: [
           {
@@ -126,7 +127,7 @@ describe("OpenRouterService", () => {
       const context = "some context";
       await service.sendChatRequest({ message, context });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.messages[1].content).toContain(context);
       expect(requestBody.messages[1].content).toContain(message);
     });
@@ -141,10 +142,12 @@ describe("OpenRouterService", () => {
     });
 
     it("should log warnings on retry", async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("First failure")).mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ choices: [{ message: { content: "Success" } }] }),
-      });
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockRejectedValueOnce(new Error("First failure"))
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ choices: [{ message: { content: "Success" } }] }),
+        });
 
       await service.sendChatRequest({ message: "test" });
       expect(console.warn).toHaveBeenCalledWith(
@@ -153,7 +156,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should log errors on API failure", async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: false,
         status: 500,
         text: () => Promise.resolve("Internal Server Error"),
@@ -179,7 +182,7 @@ describe("OpenRouterService", () => {
     };
 
     beforeEach(() => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
@@ -230,7 +233,7 @@ describe("OpenRouterService", () => {
   describe("error handling", () => {
     it("should handle API errors", async () => {
       const errorMessage = "API Error";
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: false,
         status: 400,
         text: () => Promise.resolve(errorMessage),
@@ -243,7 +246,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should handle network errors", async () => {
-      (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
 
       const response = await service.sendChatRequest({ message: "test" });
 
@@ -252,13 +255,15 @@ describe("OpenRouterService", () => {
     });
 
     it("should retry on failure", async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("First failure")).mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            choices: [{ message: { content: "Success after retry" } }],
-          }),
-      });
+      (global.fetch as ReturnType<typeof vi.fn>)
+        .mockRejectedValueOnce(new Error("First failure"))
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              choices: [{ message: { content: "Success after retry" } }],
+            }),
+        });
 
       const response = await service.sendChatRequest({ message: "test" });
 
@@ -281,7 +286,7 @@ describe("OpenRouterService", () => {
       // Sprawdź, czy parametry są używane w żądaniu
       service.sendChatRequest({ message: "test" });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody).toMatchObject({
         model: "new-model",
         max_tokens: 2000,
@@ -295,21 +300,21 @@ describe("OpenRouterService", () => {
       const messageWithSpecialChars = "Test 🚀 with emoji and \n newlines \t tabs";
       await service.sendChatRequest({ message: messageWithSpecialChars });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.messages[1].content).toBe(messageWithSpecialChars);
     });
 
     it("should handle empty context", async () => {
       await service.sendChatRequest({ message: "test", context: "" });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.messages[1].content).toBe("test");
     });
 
     it("should handle undefined context", async () => {
       await service.sendChatRequest({ message: "test", context: undefined });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.messages[1].content).toBe("test");
     });
 
@@ -319,14 +324,14 @@ describe("OpenRouterService", () => {
 
       await service.sendChatRequest({ message: "test" });
 
-      const requestBody = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const requestBody = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
       expect(requestBody.messages[0].content).toBe(longSystemMessage);
     });
   });
 
   describe("API response formats", () => {
     it("should handle empty choices array", async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ choices: [] }),
       });
@@ -339,7 +344,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should handle missing message content", async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -355,7 +360,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should handle malformed JSON response", async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: () => Promise.reject(new Error("Invalid JSON")),
       });
@@ -368,7 +373,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should handle unexpected response structure", async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -387,7 +392,7 @@ describe("OpenRouterService", () => {
   describe("timeout handling", () => {
     it("should timeout after default period", async () => {
       // Symuluj długie zapytanie
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
         () =>
           new Promise((resolve) => {
             setTimeout(resolve, 31000); // Dłużej niż domyślny timeout
@@ -397,7 +402,7 @@ describe("OpenRouterService", () => {
       const sendPromise = service.sendChatRequest({ message: "test" });
 
       // Przewiń czas o 31 sekund
-      jest.advanceTimersByTime(31000);
+      vi.advanceTimersByTime(31000);
 
       const response = await sendPromise;
       expect(response.error).toContain("Request timeout");
@@ -405,7 +410,7 @@ describe("OpenRouterService", () => {
     });
 
     it("should handle multiple retries with increasing delays", async () => {
-      (global.fetch as jest.Mock)
+      (global.fetch as ReturnType<typeof vi.fn>)
         .mockRejectedValueOnce(new Error("Timeout"))
         .mockRejectedValueOnce(new Error("Timeout"))
         .mockResolvedValueOnce({
@@ -419,9 +424,9 @@ describe("OpenRouterService", () => {
       const sendPromise = service.sendChatRequest({ message: "test" });
 
       // Pierwszy retry (2^1 * 1000 = 2000ms)
-      jest.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(2000);
       // Drugi retry (2^2 * 1000 = 4000ms)
-      jest.advanceTimersByTime(4000);
+      vi.advanceTimersByTime(4000);
 
       const response = await sendPromise;
       expect(response.content).toBe("Success");

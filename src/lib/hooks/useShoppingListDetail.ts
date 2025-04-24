@@ -8,8 +8,8 @@ import type {
   AddItemToShoppingListRequest,
   ShoppingListDetailResponse,
 } from "@/types";
-// Importuj usługi toast
-import { showSuccessToast, showErrorToast } from "@/lib/services/toast-service";
+// Importuj usługi toast używając poprawnej ścieżki relatywnej
+import { showSuccessToast, showErrorToast } from "../services/toast-service";
 
 // Model widoku dla pojedynczego elementu listy zakupów (zgodnie z planem)
 export interface ProductItemViewModel extends ShoppingListItemDTO {

@@ -1,49 +1,68 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+// import userEvent from "@testing-library/user-event";
+import { ShoppingListItem } from "../ShoppingListItem"; // Adjust path if needed
+import type { ShoppingListSummaryDTO } from "../../../types";
 
-// Ponieważ mamy problemy z testami React 19, zamiast testować cały komponent,
-// testujemy tylko formatowanie daty i logikę komponentu
+// Extend the DTO for ViewModel used in the component
+interface ShoppingListItemViewModel extends ShoppingListSummaryDTO {
+  isDeleting: boolean;
+}
 
-describe("ShoppingListItem - testy jednostkowe", () => {
-  // Testujemy formatowanie daty
-  it("powinien poprawnie formatować datę utworzenia", () => {
-    const date = new Date("2023-01-15T12:30:45Z");
-    const formattedDate = date.toLocaleDateString("pl-PL", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    expect(formattedDate).toContain("2023");
-    expect(formattedDate).not.toBe("");
+// Define the expected shape of props for clarity
+interface ShoppingListItemProps {
+  list: ShoppingListItemViewModel;
+  onDeleteList: (listId: string) => Promise<void>;
+}
+
+// Mock props factory - Add type for overrides
+const createMockProps = (overrides: Partial<ShoppingListItemProps> = {}) => {
+  const defaultList: ShoppingListItemViewModel = {
+    id: "list-test-1",
+    title: "Test Shopping List",
+    itemCount: 5,
+    createdAt: "2024-07-26T12:00:00Z",
+    updatedAt: "2024-07-26T13:00:00Z",
+    isDeleting: false,
+  };
+  return {
+    // Now overrides.list is type-safe
+    list: { ...defaultList, ...(overrides.list || {}) },
+    onDeleteList: overrides.onDeleteList || vi.fn(),
+    // Spread other potential overrides if the interface grows
+  };
+};
+
+describe("ShoppingListItem Component", () => {
+  let props: ReturnType<typeof createMockProps>;
+
+  beforeEach(() => {
+    props = createMockProps();
   });
 
-  // Testujemy logikę komponentu
-  it("funkcja onDeleteList powinna być wywołana z poprawnym ID", async () => {
-    const mockOnDeleteList = vi.fn().mockResolvedValue(undefined);
-    const listId = "test-id-123";
+  it("should render list title, item count, and formatted date correctly", () => {
+    render(<ShoppingListItem {...props} />);
 
-    // Symulujemy handler usuwania z komponentu
-    const handleDelete = async () => {
-      await mockOnDeleteList(listId);
-    };
+    // Check title (which is also a link)
+    const titleLink = screen.getByRole("link", { name: props.list.title });
+    expect(titleLink).toBeInTheDocument();
+    expect(titleLink).toHaveAttribute("href", `/shopping-lists/${props.list.id}`);
 
-    await handleDelete();
-    expect(mockOnDeleteList).toHaveBeenCalledWith(listId);
-    expect(mockOnDeleteList).toHaveBeenCalledTimes(1);
+    // Check item count
+    expect(screen.getByText(`Liczba elementów: ${props.list.itemCount}`)).toBeInTheDocument();
+
+    // Check formatted date (assuming locale is consistent or mocked)
+    // Be slightly flexible with exact date format string due to potential environment differences
+    expect(screen.getByText(/Utworzono: .*26 lipca 2024/i)).toBeInTheDocument(); // Check for day, month, year
   });
 
-  // Testujemy klasy CSS dla stanu isDeleting
-  it("powinien generować odpowiednie klasy CSS dla stanu usuwania", () => {
-    // Symulujemy logikę z komponentu ustalającą klasy
-    const getClassName = (isDeleting: boolean) => {
-      return `transition-opacity ${isDeleting ? "opacity-50" : ""} hover:shadow-md dark:hover:bg-muted/5`;
-    };
-
-    const normalClass = getClassName(false);
-    const deletingClass = getClassName(true);
-
-    expect(normalClass).not.toContain("opacity-50");
-    expect(deletingClass).toContain("opacity-50");
+  it("should render the delete button", () => {
+    render(<ShoppingListItem {...props} />);
+    // Find the delete button (might appear multiple times due to responsive design)
+    const deleteButtons = screen.getAllByRole("button", { name: /usuń/i });
+    expect(deleteButtons.length).toBeGreaterThan(0);
+    expect(deleteButtons[0]).toBeInTheDocument(); // Check at least one exists
   });
 
-  // Możemy dodać więcej testów jednostkowych sprawdzających logikę komponentu
+  // Add tests for delete confirmation dialog and isDeleting state later
 });
