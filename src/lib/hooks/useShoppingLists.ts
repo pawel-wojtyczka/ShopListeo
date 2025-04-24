@@ -159,11 +159,29 @@ export function useShoppingLists({
       // Assuming the new endpoint returns the same CreateShoppingListResponse shape
       const data: CreateShoppingListResponse = await response.json();
       console.log("[useShoppingLists] List created successfully:", data);
-      setViewModel((prev) => ({ ...prev, isCreating: false }));
+
+      // Przygotuj nowy element listy w formacie ViewModel
+      const newListViewModel: ShoppingListItemViewModel = {
+        id: data.id,
+        title: defaultTitle, // Użyj domyślnego tytułu użytego w żądaniu
+        createdAt: new Date().toISOString(), // Przybliżona data utworzenia
+        updatedAt: new Date().toISOString(), // Przybliżona data aktualizacji
+        itemCount: 0, // Nowa lista nie ma jeszcze elementów
+        isDeleting: false,
+      };
+
+      setViewModel((prev) => ({
+        ...prev,
+        isCreating: false,
+        // Dodaj nową listę na początek istniejącej listy
+        lists: [newListViewModel, ...prev.lists],
+        // Opcjonalnie: Zaktualizuj paginację, jeśli jest używana
+        pagination: prev.pagination ? { ...prev.pagination, totalItems: prev.pagination.totalItems + 1 } : null, // Możesz potrzebować bardziej złożonej logiki, jeśli listy są sortowane inaczej niż wg daty utworzenia
+      }));
+
       showSuccessToast("Lista zakupów została utworzona", {
         description: `Lista "${defaultTitle}" została pomyślnie utworzona.`,
       });
-      fetchShoppingLists();
       return data.id;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas tworzenia listy";
