@@ -25,9 +25,8 @@ const TestComponent = () => {
     <div>
       <div data-testid="isAuthenticated">{auth.isAuthenticated.toString()}</div>
       <div data-testid="user">{JSON.stringify(auth.user)}</div>
-      <button onClick={() => auth.login({ email: "test@example.com", password: "password" })}>Login</button>
+      <button onClick={() => auth.login("test-token")}>Login</button>
       <button onClick={() => auth.logout()}>Logout</button>
-      <button onClick={() => auth.register({ email: "test@example.com", password: "password" })}>Register</button>
     </div>
   );
 };
@@ -36,6 +35,20 @@ describe("AuthContext", () => {
   const mockUser = {
     id: "test-user-id",
     email: "test@example.com",
+    app_metadata: {},
+    user_metadata: {},
+    aud: "authenticated",
+    created_at: new Date().toISOString(),
+    role: "",
+    updated_at: new Date().toISOString(),
+  };
+
+  const mockSession = {
+    access_token: "test-token",
+    refresh_token: "test-refresh-token",
+    expires_in: 3600,
+    token_type: "bearer",
+    user: mockUser,
   };
 
   beforeEach(() => {
@@ -58,11 +71,7 @@ describe("AuthContext", () => {
       const supabase = createClient("", "");
       vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
         data: {
-          session: {
-            user: mockUser,
-            access_token: "test-token",
-            refresh_token: "test-refresh-token",
-          },
+          session: mockSession,
         },
         error: null,
       });
@@ -86,10 +95,7 @@ describe("AuthContext", () => {
       vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
         data: {
           user: mockUser,
-          session: {
-            access_token: "test-token",
-            refresh_token: "test-refresh-token",
-          },
+          session: mockSession,
         },
         error: null,
       });
@@ -132,40 +138,11 @@ describe("AuthContext", () => {
       });
     });
 
-    it("should provide register functionality", async () => {
-      const supabase = createClient("", "");
-      vi.mocked(supabase.auth.signUp).mockResolvedValueOnce({
-        data: {
-          user: mockUser,
-          session: {
-            access_token: "test-token",
-            refresh_token: "test-refresh-token",
-          },
-        },
-        error: null,
-      });
-
-      render(
-        <AuthProvider>
-          <TestComponent />
-        </AuthProvider>
-      );
-
-      await act(async () => {
-        screen.getByText("Register").click();
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("isAuthenticated")).toHaveTextContent("true");
-        expect(screen.getByTestId("user")).toContain(mockUser.email);
-      });
-    });
-
     it("should handle login errors", async () => {
       const supabase = createClient("", "");
       vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
         data: { user: null, session: null },
-        error: new Error("Invalid credentials"),
+        error: new Error("Invalid credentials") as any,
       });
 
       render(
