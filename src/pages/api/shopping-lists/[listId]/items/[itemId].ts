@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { supabaseAdminClient } from "@/db/supabase.server";
+import { createSupabaseAdminClient } from "@/db/supabase.server";
 import type {
   UpdateShoppingListItemRequest,
   UpdateShoppingListItemResponse,
@@ -7,6 +7,7 @@ import type {
   // ShoppingListItem,
 } from "@/types";
 import { z } from "zod";
+import type { AstroLocals } from "@/types/locals";
 
 // Schemat walidacji dla PUT (aktualizacja elementu)
 const updateItemSchema = z
@@ -21,7 +22,8 @@ const updateItemSchema = z
 
 // Funkcja pomocnicza do weryfikacji, czy lista należy do użytkownika
 async function verifyListOwnership(listId: string, userId: string): Promise<boolean> {
-  const { error, count } = await supabaseAdminClient
+  const supabaseAdmin = createSupabaseAdminClient();
+  const { error, count } = await supabaseAdmin
     .from("shopping_lists")
     .select("id", { count: "exact" })
     .eq("id", listId)
@@ -35,26 +37,21 @@ async function verifyListOwnership(listId: string, userId: string): Promise<bool
 }
 
 // --- PUT Handler (Aktualizacja elementu listy) ---
-export const PUT: APIRoute = async ({ params, request }) => {
+export const PUT: APIRoute = async ({ params, request, locals }) => {
   const { listId, itemId } = params;
 
   if (!listId || !itemId) {
     return new Response(JSON.stringify({ error: "List ID and Item ID are required" }), { status: 400 });
   }
 
-  // 1. Weryfikacja autentykacji
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized: Missing or invalid token" }), { status: 401 });
+  // 1. Weryfikacja autentykacji na podstawie Astro.locals
+  const { user } = locals as AstroLocals;
+  if (!user) {
+    console.warn("[API PUT Item] Unauthorized attempt to modify item - no user in locals.");
+    return new Response(JSON.stringify({ error: "Unauthorized: Missing user session" }), { status: 401 });
   }
-  const token = authHeader.split(" ")[1];
-  const { data: userData, error: userError } = await supabaseAdminClient.auth.getUser(token);
-  if (userError || !userData.user) {
-    return new Response(JSON.stringify({ error: `Unauthorized: ${userError?.message || "Could not get user"}` }), {
-      status: userError?.message.includes("invalid") ? 401 : 500,
-    });
-  }
-  const userId = userData.user.id;
+  const userId = user.id;
+  console.log(`[API PUT Item] User ${userId} authenticated via locals.`);
 
   try {
     // 2. Weryfikacja, czy lista należy do użytkownika
@@ -96,7 +93,8 @@ export const PUT: APIRoute = async ({ params, request }) => {
     }
 
     // 4. Aktualizacja elementu w bazie danych
-    const { data: updatedItemData, error: updateError } = await supabaseAdminClient
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { data: updatedItemData, error: updateError } = await supabaseAdmin
       .from("shopping_list_items")
       .update(dbUpdatePayload) // Użyj obiektu z poprawnymi nazwami kolumn
       .eq("id", itemId)
@@ -139,26 +137,21 @@ export const PUT: APIRoute = async ({ params, request }) => {
 };
 
 // --- DELETE Handler (Usuwanie elementu listy) ---
-export const DELETE: APIRoute = async ({ params, request }) => {
+export const DELETE: APIRoute = async ({ params, locals }) => {
   const { listId, itemId } = params;
 
   if (!listId || !itemId) {
     return new Response(JSON.stringify({ error: "List ID and Item ID are required" }), { status: 400 });
   }
 
-  // 1. Weryfikacja autentykacji
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized: Missing or invalid token" }), { status: 401 });
+  // 1. Weryfikacja autentykacji na podstawie Astro.locals
+  const { user } = locals as AstroLocals;
+  if (!user) {
+    console.warn("[API DELETE Item] Unauthorized attempt to delete item - no user in locals.");
+    return new Response(JSON.stringify({ error: "Unauthorized: Missing user session" }), { status: 401 });
   }
-  const token = authHeader.split(" ")[1];
-  const { data: userData, error: userError } = await supabaseAdminClient.auth.getUser(token);
-  if (userError || !userData.user) {
-    return new Response(JSON.stringify({ error: `Unauthorized: ${userError?.message || "Could not get user"}` }), {
-      status: userError?.message.includes("invalid") ? 401 : 500,
-    });
-  }
-  const userId = userData.user.id;
+  const userId = user.id;
+  console.log(`[API DELETE Item] User ${userId} authenticated via locals.`);
 
   try {
     // 2. Weryfikacja, czy lista należy do użytkownika (ważne dla bezpieczeństwa DELETE)
@@ -171,7 +164,8 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     }
 
     // 3. Usuwanie elementu z bazy danych
-    const { error: deleteError, count } = await supabaseAdminClient
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { error: deleteError, count } = await supabaseAdmin
       .from("shopping_list_items")
       .delete()
       .eq("id", itemId)

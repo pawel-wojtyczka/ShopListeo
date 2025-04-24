@@ -56,7 +56,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         // Opcja auto-potwierdzenia emaila w środowisku deweloperskim
         emailRedirectTo: `${new URL(request.url).origin}/login`,
         data: {
-          email_confirmed: !import.meta.env.PROD, // Auto-potwierdzenie tylko w dev
+          // Auto-potwierdzenie tylko w dev
+          email_confirmed: process.env.NODE_ENV !== "production",
           registration_date: new Date().toISOString(),
         },
       },
@@ -84,29 +85,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     console.log(`API /auth/register: Registration successful for user: ${data.user.email}`);
 
-    // Po pomyślnej rejestracji automatycznie logujemy użytkownika
-    let sessionToken = "";
-    if (!import.meta.env.PROD && data.user.email) {
-      console.log("API /auth/register: Auto-login after registration (dev mode)");
-      const { data: loginData, error: signInError } = await supabase.auth.signInWithPassword({
+    // Po pomyślnej rejestracji automatycznie logujemy użytkownika, aby ustawić ciasteczka sesji
+    if (process.env.NODE_ENV !== "production" && data.user.email) {
+      console.log("API /auth/register: Auto-login after registration (dev mode) to set session cookies");
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
         console.error("API /auth/register: Auto-login failed", signInError);
+        // Kontynuujemy mimo błędu auto-logowania, rejestracja się powiodła
       } else {
-        console.log("API /auth/register: Auto-login successful");
-        sessionToken = loginData.session?.access_token || "";
+        console.log("API /auth/register: Auto-login successful, session cookies should be set.");
+        // Nie potrzebujemy już tokenu z loginData.session?.access_token
       }
     }
 
-    // Przygotowanie odpowiedzi
-    const responseBody: RegisterUserResponse = {
+    // Przygotowanie odpowiedzi - usunięto zwracanie tokenu
+    const responseBody: Omit<RegisterUserResponse, "token"> = {
       id: data.user.id,
       email: data.user.email || "",
       registrationDate: data.user.created_at || new Date().toISOString(),
-      token: sessionToken || data.session?.access_token || "",
+      // token: sessionToken || data.session?.access_token || "", // Token nie jest już zwracany
     };
 
     return new Response(JSON.stringify(responseBody), {

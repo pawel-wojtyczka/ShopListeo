@@ -72,11 +72,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Logowanie pomyślne - budujemy odpowiedź
     console.log(`API /auth/login: Login successful for user: ${data.user.email}`);
 
-    // Przygotowanie odpowiedzi
-    const responseBody: LoginUserResponse = {
+    // Przygotowanie odpowiedzi - usunięto zwracanie tokenu
+    const responseBody: Omit<LoginUserResponse, "token"> = {
       id: data.user.id,
       email: data.user.email || "",
-      token: data.session.access_token,
+      // token: data.session.access_token, // Token nie jest już zwracany
     };
 
     return new Response(JSON.stringify(responseBody), {

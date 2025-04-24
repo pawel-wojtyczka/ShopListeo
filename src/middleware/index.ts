@@ -74,20 +74,12 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
 
     // Jeśli mamy aktywną sesję, ustawiamy token sesji jako cookie
     if (session?.access_token) {
-      console.log("Middleware: Setting authToken cookie with session token");
-      cookies.set("authToken", session.access_token, {
-        path: "/",
-        httpOnly: false, // Musi być false, aby JavaScript mógł dostać się do tego cookie
-        secure: import.meta.env.PROD, // true w produkcji, false w środowisku deweloperskim
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7, // 7 dni
-      });
-
+      console.log("Middleware: Setting supabase specific cookies");
       // Dodajemy specjalne cookie dla Supabase
       cookies.set("sb-access-token", session.access_token, {
         path: "/",
         httpOnly: true,
-        secure: import.meta.env.PROD,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 60 * 60 * 24 * 7, // 7 dni
       });
@@ -96,7 +88,7 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
         cookies.set("sb-refresh-token", session.refresh_token, {
           path: "/",
           httpOnly: true,
-          secure: import.meta.env.PROD,
+          secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
           maxAge: 60 * 60 * 24 * 7, // 7 dni
         });

@@ -1,23 +1,24 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import * as React from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 import type { UserDTO } from "../../types";
-import { supabaseClient } from "../../db/supabase.client";
+// Usunięto import supabaseClient, ponieważ wylogowanie klienta nie jest już potrzebne
+// import { supabaseClient } from "../../db/supabase.client";
 
-// Interfejs kontekstu autoryzacji
+// Interfejs kontekstu autoryzacji - usunięto 'token', zmodyfikowano 'login'
 interface AuthContextType {
   user: UserDTO | null;
-  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  authCheckCompleted: number;
-  login: (token: string, rememberMe?: boolean) => void;
+  authCheckCompleted: number; // Licznik udanych sprawdzeń sesji
+  login: () => void; // Funkcja login nie przyjmuje już tokenu
   logout: () => Promise<void>;
+  fetchUserData: () => Promise<void>; // Udostępnienie funkcji do ręcznego odświeżenia
 }
 
-// Domyślne wartości kontekstu
+// Domyślne wartości kontekstu - usunięto 'token'
 const defaultAuthContext: AuthContextType = {
   user: null,
-  token: null,
   isLoading: true,
   isAuthenticated: false,
   authCheckCompleted: 0,
@@ -25,6 +26,8 @@ const defaultAuthContext: AuthContextType = {
   login: () => {},
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   logout: async () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  fetchUserData: async () => {},
 };
 
 // Utworzenie kontekstu
@@ -42,239 +45,117 @@ export function AuthProvider({ children }: AuthProviderProps) {
   console.log("%c[AuthContext] AuthProvider rendering/re-rendering...", "color: orange; font-weight: bold;");
 
   const [user, setUser] = useState<UserDTO | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [lastCheck, setLastCheck] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Zaczynamy jako loading
+  const [isAuthenticatedState, setIsAuthenticatedState] = useState<boolean>(false);
   const [authCheckCounter, setAuthCheckCounter] = useState<number>(0);
 
-  // Function to fetch user data based on the current token state
+  // Funkcja do pobierania danych użytkownika przez API /api/users/me
+  // Opiera się na ciasteczkach sesji sb-* wysyłanych automatycznie przez przeglądarkę
   const fetchUserData = useCallback(async () => {
-    // Guard against running if token is null (e.g., during logout)
-    if (!token) {
-      console.log("[AuthContext] fetchUserData: Called without token, skipping fetch.");
-      // Ensure user is cleared if token is missing
-      if (user !== null) setUser(null);
-      // Ensure loading is false if there's no token to fetch with
-      if (isLoading) setIsLoading(false);
-      return;
-    }
-
-    console.log("[AuthContext] fetchUserData: Starting with token...");
-    setIsLoading(true); // Set loading true when fetching
+    console.log("[AuthContext] fetchUserData: Starting fetch for /api/users/me...");
+    setIsLoading(true); // Rozpoczynamy ładowanie
 
     try {
-      // Check Supabase session for potentially fresher token? (Optional optimization)
-      // For now, rely on the token passed to login or found initially
-      const { data: sessionData } = await supabaseClient.auth.getSession();
-      let currentToken = token;
-      // Add logging to see the tokens being compared
-      console.log("[AuthContext] fetchUserData: Comparing tokens.", {
-        stateToken: token,
-        supabaseSessionToken: sessionData?.session?.access_token?.substring(0, 10) + "...", // Log only prefix for security
-      });
-
-      if (sessionData?.session?.access_token && sessionData.session.access_token !== token) {
-        console.warn(
-          "[AuthContext] fetchUserData: Token mismatch detected! Supabase session token is different from state token. Updating state token."
-        );
-        console.log(
-          "[AuthContext] fetchUserData: Details - State Token:",
-          token?.substring(0, 10) + "...",
-          "Supabase Token:",
-          sessionData.session.access_token.substring(0, 10) + "..."
-        );
-        currentToken = sessionData.session.access_token;
-        // Update storage/cookie if needed - careful about loops
-        setToken(currentToken); // Update state, this might trigger another effect run, be cautious
-      }
-
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${currentToken}`,
-      };
-      const response = await fetch("/api/users/me", { headers });
+      // Wywołujemy endpoint /api/users/me bez nagłówka Authorization
+      // Serwer zweryfikuje sesję na podstawie ciasteczek sb-*
+      const response = await fetch("/api/users/me");
       console.log(`[AuthContext] fetchUserData: Fetch /api/users/me completed. Status: ${response.status}`);
 
       if (response.ok) {
         const userData: UserDTO = await response.json();
         console.log("[AuthContext] fetchUserData: User data received.", userData);
         setUser(userData);
-        setAuthCheckCounter((prev) => prev + 1);
+        setIsAuthenticatedState(true); // Użytkownik jest uwierzytelniony
+        setAuthCheckCounter((prev) => prev + 1); // Zwiększamy licznik udanych sprawdzeń
       } else {
-        console.warn(`[AuthContext] fetchUserData: Fetch not OK (${response.status}), clearing user state and token.`);
+        // Jeśli odpowiedź nie jest OK (np. 401 Unauthorized), oznacza to brak ważnej sesji
+        console.warn(
+          `[AuthContext] fetchUserData: Fetch not OK (${response.status}), user is not authenticated or session expired.`
+        );
         setUser(null);
-        setToken(null); // Clear token state if it's invalid
-        localStorage.removeItem("authToken");
-        sessionStorage.removeItem("authToken");
-        document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax"; // Clear cookie
-        // Optionally clear Supabase session too?
-        // await supabaseClient.auth.signOut();
+        setIsAuthenticatedState(false); // Użytkownik nie jest uwierzytelniony
+        // Nie musimy czyścić żadnych tokenów po stronie klienta
       }
     } catch (error) {
       console.error("[AuthContext] fetchUserData: Error fetching user data:", error);
-      setUser(null);
-      setToken(null); // Clear token state on error
-      localStorage.removeItem("authToken");
-      sessionStorage.removeItem("authToken");
-      document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
+      setUser(null); // Wyczyść użytkownika w razie błędu sieciowego itp.
+      setIsAuthenticatedState(false);
     } finally {
       console.log("[AuthContext] fetchUserData: Finished.");
-      setIsLoading(false); // Set loading false when done
-      setLastCheck(Date.now());
+      setIsLoading(false); // Kończymy ładowanie niezależnie od wyniku
     }
-  }, [token]); // ONLY depend on the token. State setters (setUser, setIsLoading)
-  // do not need to be dependencies for the function's identity.
+  }, []); // Brak zależności, funkcja nie używa zmiennych z zewnątrz poza setterami stanu
 
-  // Effect for initial auth check (reading stored token)
+  // Efekt do początkowego sprawdzenia autentykacji przy montowaniu komponentu
   useEffect(() => {
     console.log(
-      "%c[AuthContext] useEffect [MOUNT]: Running check for stored token...",
+      "%c[AuthContext] useEffect [MOUNT]: Running initial authentication check...",
       "color: blue; font-weight: bold;"
     );
-    let storedToken: string | null = null;
-    try {
-      // Prioritize cookie, then localStorage, then sessionStorage
-      storedToken =
-        document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("authToken="))
-          ?.split("=")[1] || null;
+    // Od razu wywołujemy fetchUserData, aby sprawdzić sesję serwerową
+    fetchUserData();
 
-      if (!storedToken) {
-        storedToken = localStorage.getItem("authToken");
-      }
-      if (!storedToken) {
-        storedToken = sessionStorage.getItem("authToken");
-      }
-    } catch (e) {
-      console.error("[AuthContext] Error reading token from storage/cookie", e);
-    }
+    // Ten efekt powinien uruchomić się tylko raz przy montowaniu
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Pusta tablica zależności zapewnia uruchomienie tylko raz
 
-    if (storedToken) {
-      console.log("[AuthContext] useEffect [initial mount]: Found stored token, setting state.");
-      setToken(storedToken); // This will trigger the fetchUserData effect below
-    } else {
-      console.log("[AuthContext] useEffect [initial mount]: No stored token found.");
-      setIsLoading(false); // Not loading if no token found initially
-    }
-    // This effect should run only once on mount
-  }, []);
+  // Funkcja logowania: po prostu odświeża dane użytkownika
+  // Zakładamy, że API logowania (/api/auth/login) poprawnie ustawiło ciasteczka sb-*
+  const loginCallback = useCallback(() => {
+    console.log("[AuthContext] loginCallback: Triggering user data fetch after login attempt.");
+    fetchUserData(); // Odśwież dane użytkownika, aby zsynchronizować stan z sesją serwerową
+  }, [fetchUserData]); // Zależność od fetchUserData
 
-  // Effect to react to token changes (either from initial load or login)
-  useEffect(() => {
-    if (token) {
-      console.log("[AuthContext] useEffect [token change]: Token present, fetching user data.");
-      fetchUserData();
-    } else {
-      // Token is null (either initially before check, or after logout/error)
-      console.log("[AuthContext] useEffect [token change]: Token is null.");
-      if (user !== null) {
-        setUser(null); // Ensure user is cleared if token becomes null
-      }
-      // If token becomes null after initial load, stop loading indicator
-      // Check ensures we don't override initial isLoading=true before initial check runs
-      if (lastCheck > 0 && isLoading) {
-        setIsLoading(false);
-      }
-    }
-    // Run whenever the token state changes *or* fetchUserData function identity changes (though unlikely with useCallback)
-  }, [token, fetchUserData]);
-
-  // Login function: store token, set state (triggers effect)
-  const loginCallback = useCallback((newToken: string, rememberMe = false) => {
-    console.log("[AuthContext] login: Storing token and updating state.");
-    try {
-      if (rememberMe) {
-        localStorage.setItem("authToken", newToken);
-        sessionStorage.removeItem("authToken");
-      } else {
-        sessionStorage.setItem("authToken", newToken);
-        localStorage.removeItem("authToken");
-      }
-      // Set cookie as well
-      const maxAge = rememberMe ? 60 * 60 * 24 * 7 : ""; // Session cookie if not rememberMe
-      const secureFlag = import.meta.env.PROD ? "Secure;" : "";
-      document.cookie = `authToken=${newToken}; path=/; max-age=${maxAge}; ${secureFlag} SameSite=Lax`;
-
-      setToken(newToken); // Update state, which triggers the useEffect -> fetchUserData
-    } catch (e) {
-      console.error("[AuthContext] Error storing token", e);
-    }
-  }, []);
-
-  // Logout function
+  // Funkcja wylogowania
   const logoutCallback = useCallback(async () => {
-    console.log("[AuthContext] logout: Clearing state and calling API.");
+    console.log("[AuthContext] logoutCallback: Initiating logout process.");
 
-    // Store current user/token before clearing for potential logging
-    // const loggedOutUser = user?.email; // Removed unused variable
-    // const loggedOutToken = token; // Removed unused variable
-
-    // Clear local state first for faster UI feedback
+    // Najpierw czyścimy stan lokalny dla szybszej reakcji interfejsu
     setUser(null);
-    setToken(null); // Clear token state, triggers useEffect to clear user if needed
-    try {
-      localStorage.removeItem("authToken");
-      sessionStorage.removeItem("authToken");
-      document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
-      console.log("[AuthContext] logout: Local state and storage cleared.");
-    } catch (e) {
-      console.error("[AuthContext] logout: Error clearing local storage/cookie:", e);
-    }
+    setIsAuthenticatedState(false);
 
-    // Call server-side logout and Supabase signout
-    console.log("[AuthContext] logout: Signing out from Supabase...");
-    try {
-      const { error: signOutError } = await supabaseClient.auth.signOut();
-      if (signOutError) {
-        console.error("[AuthContext] logout: Supabase signOut error:", signOutError);
-      } else {
-        console.log("[AuthContext] logout: Supabase signOut successful.");
-      }
-    } catch (error) {
-      console.error("[AuthContext] logout: Error during Supabase signOut:", error);
-    }
-
-    console.log("[AuthContext] logout: Attempting to fetch /api/auth/logout...");
+    console.log("[AuthContext] logoutCallback: Calling server-side logout endpoint /api/auth/logout...");
     try {
       const response = await fetch("/api/auth/logout", { method: "POST" });
-      console.log(`[AuthContext] logout: Fetch /api/auth/logout completed. Status: ${response.status}`);
+      console.log(`[AuthContext] logoutCallback: Fetch /api/auth/logout completed. Status: ${response.status}`);
       if (!response.ok && response.status !== 204) {
-        console.error(`[AuthContext] logout: Logout API endpoint failed with status: ${response.status}`);
+        // Logujemy błąd, ale kontynuujemy, ponieważ stan lokalny już wyczyszczony
+        console.error(`[AuthContext] logoutCallback: Logout API endpoint failed with status: ${response.status}`);
+      } else {
+        console.log("[AuthContext] logoutCallback: Server-side logout successful.");
       }
     } catch (error) {
-      console.error("[AuthContext] logout: Error during fetch /api/auth/logout:", error);
+      console.error("[AuthContext] logoutCallback: Error during fetch /api/auth/logout:", error);
     }
 
-    // Redirect after cleanup
-    console.log("[AuthContext] logout: Redirecting to /login...");
-    try {
-      // Use replace to prevent back button going to authenticated page
-      window.location.replace("/login");
-    } catch (e) {
-      console.error("[AuthContext] logout: Error during redirect:", e);
-    }
-  }, [user, token]); // Include user/token dependencies if used for logging before clearing
+    // Nie ma potrzeby wywoływać supabaseClient.auth.signOut() po stronie klienta
+    // Nie ma potrzeby czyścić localStorage/sessionStorage/cookie authToken
 
-  // Wartość kontekstu
+    // Po zakończeniu operacji serwerowych, przekierowujemy użytkownika
+    console.log("[AuthContext] logoutCallback: Redirecting to /login page.");
+    window.location.href = "/login"; // Proste przekierowanie strony
+  }, []); // Brak zależności
+
+  // Przygotowanie wartości kontekstu
   const value: AuthContextType = {
     user,
-    token,
     isLoading,
-    isAuthenticated: !!user && !!token,
+    isAuthenticated: isAuthenticatedState,
     authCheckCompleted: authCheckCounter,
     login: loginCallback,
     logout: logoutCallback,
+    fetchUserData, // Udostępniamy funkcję na zewnątrz
   };
 
-  console.log("[AuthContext] Rendering with values:", {
-    hasUser: !!user,
-    hasToken: !!token,
+  console.log("[AuthContext] Providing context value:", {
     isLoading: value.isLoading,
     isAuthenticated: value.isAuthenticated,
-    lastCheck: lastCheck > 0 ? new Date(lastCheck).toISOString() : "N/A",
+    userId: value.user?.id,
     authCheckCompleted: value.authCheckCompleted,
   });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+// Dodatkowe eksporty dla ułatwienia użycia
+export { AuthContext }; // Eksport kontekstu, jeśli potrzebny bezpośrednio
