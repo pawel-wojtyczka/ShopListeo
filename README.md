@@ -125,3 +125,21 @@ Proszę o przestrzeganie wytycznych AI i praktyk kodowania zdefiniowanych w plik
 ### Licencja
 
 MIT
+
+## Konfiguracja Supabase Webhooks
+
+Aby poprawnie synchronizować użytkowników między Supabase Auth a tabelą `public.users`, 
+należy skonfigurować webhook w panelu Supabase:
+
+1. Przejdź do Supabase Dashboard → Project Settings → API → Auth Hooks
+2. W sekcji "Webhooks" skonfiguruj:
+   - URL: `https://twoja-domena.com/api/auth-webhook`
+   - Events: wybierz "User Created"
+   - Secret: wygeneruj losowy ciąg znaków i zapisz go jako zmienną środowiskową `WEBHOOK_SECRET`
+
+3. Dodaj następujące zmienne środowiskowe do projektu:
+```
+PUBLIC_SUPABASE_URL=https://twój-projekt.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=twój-klucz-service-role
+WEBHOOK_SECRET=twój-losowy-secret
+```
