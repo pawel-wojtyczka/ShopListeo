@@ -1,5 +1,5 @@
 # Dokument Wymagań Produktu (PRD) - ShopListeo
-_Ostatnia aktualizacja: [Data dzisiejsza]_
+_Ostatnia aktualizacja: 28.04.2025_
 
 ## 1. Przegląd produktu
 
