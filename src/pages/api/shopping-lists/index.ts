@@ -8,35 +8,35 @@ import { logger } from "@/lib/logger";
 export const prerender = false;
 
 /**
- * Endpoint for creating a new shopping list initiated from the client-side hook.
- * Relies on server-side authentication via Astro.locals.
+ * Endpoint for creating a new shopping list.
+ * Handles POST requests to /api/shopping-lists/
  */
 export async function POST({ request, locals }: APIContext) {
   const requestId = crypto.randomUUID();
-  logger.info("[API Client Create] Received POST request", { requestId });
+  logger.info("[API Create List] Received POST request", { requestId });
 
   const { supabase, user } = locals as AstroLocals;
 
   // 1. Check authentication (using user from locals)
   if (!user || !supabase) {
-    logger.warn("[API Client Create] Authentication failed (no user or supabase in locals)", { requestId });
+    logger.warn("[API Create List] Authentication failed (no user or supabase in locals)", { requestId });
     return new Response(JSON.stringify({ error: "Wymagane uwierzytelnienie" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  logger.info("[API Client Create] User authenticated", { requestId, userId: user.id });
+  logger.info("[API Create List] User authenticated", { requestId, userId: user.id });
 
   try {
     // 2. Parse and validate request body
     const requestData = await request.json();
-    logger.debug("[API Client Create] Received request data", { requestId, body: requestData });
+    logger.debug("[API Create List] Received request data", { requestId, body: requestData });
 
     const validationResult = createShoppingListSchema.safeParse(requestData);
     if (!validationResult.success) {
       const validationErrors = validationResult.error.format();
-      logger.warn("[API Client Create] Validation failed", { requestId, errors: validationErrors });
+      logger.warn("[API Create List] Validation failed", { requestId, errors: validationErrors });
       return new Response(JSON.stringify({ error: "Nieprawidłowe dane", details: validationErrors }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -50,7 +50,7 @@ export async function POST({ request, locals }: APIContext) {
 
     // Pass the server-side supabase client and validated user ID
     const newList = await createShoppingList(supabase, user.id, shoppingListData);
-    logger.info("[API Client Create] List created successfully", { requestId, userId: user.id, listId: newList.id });
+    logger.info("[API Create List] List created successfully", { requestId, userId: user.id, listId: newList.id });
 
     // 4. Return success response
     return new Response(JSON.stringify(newList), {
@@ -59,7 +59,7 @@ export async function POST({ request, locals }: APIContext) {
     });
   } catch (error) {
     // Handle potential errors from the service function
-    logger.error("[API Client Create] Error during list creation", { requestId, userId: user.id }, error);
+    logger.error("[API Create List] Error during list creation", { requestId, userId: user.id }, error);
 
     if (error instanceof ShoppingListError) {
       // Handle specific shopping list errors (duplicate title, etc.)

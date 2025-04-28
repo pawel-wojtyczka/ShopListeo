@@ -5,7 +5,6 @@ import { supabaseClient } from "@/db/supabase.client";
 import type { AstroLocals } from "@/types/locals";
 
 // Pobieramy klucz API ze zmiennych środowiskowych
-// @ts-expect-error - Astro uses import.meta.env for server-side env vars, linter might not recognize it
 const OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
@@ -251,66 +250,91 @@ Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, u
             .eq("shopping_list_id", listId);
 
           if (deleteError) {
-            console.error(`[${requestId}] [ai-parse] Błąd usuwania istniejących elementów: ${deleteError.message}`);
+            console.error(`[${requestId}] [ai-parse] Błąd usuwania istniejących produktów: ${deleteError.message}`);
             return new Response(
-              JSON.stringify({ error: "Failed to clear existing items", details: deleteError.message }),
+              JSON.stringify({ error: "Failed to clear existing products", details: deleteError.message }),
               { status: 500 }
             );
           }
 
-          // Wstawiamy nowe elementy do listy zakupów
+          // Dodajemy nowe/zaktualizowane elementy do listy zakupów
+          console.log(
+            `[${requestId}] [ai-parse] Dodawanie ${contentJson.products.length} przetworzonych produktów do listy ${listId}`
+          );
           if (contentJson.products.length > 0) {
-            console.log(
-              `[${requestId}] [ai-parse] Wstawianie ${contentJson.products.length} nowych elementów do listy ${listId}`
-            );
-            const itemsToInsert = contentJson.products.map((product: { name: string; purchased: boolean }) => ({
+            const newItems = contentJson.products.map((item: { name: string; purchased: boolean }) => ({
               shopping_list_id: listId,
-              item_name: product.name,
-              purchased: product.purchased || false,
+              item_name: item.name.trim(),
+              purchased: item.purchased,
             }));
 
-            const { error: insertError } = await supabase.from("shopping_list_items").insert(itemsToInsert);
+            const { data: insertedItems, error: insertError } = await supabase
+              .from("shopping_list_items")
+              .insert(newItems)
+              .select("id, item_name, purchased, created_at, updated_at");
 
             if (insertError) {
-              console.error(`[${requestId}] [ai-parse] Błąd wstawiania nowych elementów: ${insertError.message}`);
+              console.error(`[${requestId}] [ai-parse] Błąd dodawania nowych produktów: ${insertError.message}`);
               return new Response(
-                JSON.stringify({ error: "Failed to insert new items", details: insertError.message }),
-                { status: 500 }
+                JSON.stringify({ error: "Failed to add parsed products", details: insertError.message }),
+                {
+                  status: 500,
+                }
               );
             }
-          } else {
-            console.log(`[${requestId}] [ai-parse] Brak nowych elementów do wstawienia po przetworzeniu przez AI.`);
-          }
 
-          console.log(`[${requestId}] [ai-parse] Pomyślnie zaktualizowano listę ${listId}`);
-          return new Response(JSON.stringify({ products: contentJson.products }), { status: 200 });
-        } catch (jsonParseError) {
+            console.log(`[${requestId}] [ai-parse] Pomyślnie dodano produkty.`);
+            // Mapujemy na format DTO dla spójności
+            const insertedItemsDTO = insertedItems.map((item) => ({
+              id: item.id,
+              itemName: item.item_name,
+              purchased: item.purchased,
+              createdAt: item.created_at,
+              updatedAt: item.updated_at,
+            }));
+
+            // Return the updated list of items
+            return new Response(JSON.stringify({ products: insertedItemsDTO }), {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+          } else {
+            console.log(`[${requestId}] [ai-parse] Brak produktów do dodania po przetworzeniu.`);
+            // Jeśli AI zwróciło pustą listę (bo np. wszystkie zostały usunięte), zwróć pustą tablicę
+            return new Response(JSON.stringify({ products: [] }), {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+          }
+        } catch (jsonError) {
           console.error(
-            `[${requestId}] [ai-parse] Błąd parsowania JSON z odpowiedzi AI: ${getErrorMessage(
-              jsonParseError
-            )}, Content: ${contentStr}`
+            `[${requestId}] [ai-parse] Błąd parsowania JSON z odpowiedzi AI: ${getErrorMessage(jsonError)}`,
+            contentStr
           );
-          return new Response(JSON.stringify({ error: "Failed to parse AI response", details: contentStr }), {
+          return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
             status: 500,
           });
         }
-      } catch (jsonError) {
-        console.error(`[${requestId}] [ai-parse] Błąd parsowania odpowiedzi OpenRouter: ${getErrorMessage(jsonError)}`);
-        return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
+      } catch (internalError) {
+        console.error(`[${requestId}] [ai-parse] Błąd wewnętrzny przy obsłudze odpowiedzi AI: ${internalError}`);
+        return new Response(JSON.stringify({ error: "Internal error processing AI response" }), {
           status: 500,
         });
       }
-    } catch (serviceError) {
-      console.error(
-        `[${requestId}] [ai-parse] Błąd inicjalizacji serwisu OpenRouter: ${getErrorMessage(serviceError)}`
-      );
-      return new Response(JSON.stringify({ error: "Failed to initialize AI service" }), {
+    } catch (error) {
+      console.error(`[${requestId}] [ai-parse] Nieoczekiwany błąd inicjalizacji serwisu OpenRouter: ${error}`);
+      return new Response(JSON.stringify({ error: "AI service initialization failed" }), {
         status: 500,
       });
     }
   } catch (error) {
-    console.error(`[${requestId}] [ai-parse] Nieobsłużony błąd: ${getErrorMessage(error)}`);
-    return new Response(JSON.stringify({ error: getErrorMessage(error) }), {
+    const errorMessage = getErrorMessage(error);
+    console.error(`[${requestId}] [ai-parse] Nadrzędny błąd: ${errorMessage}`);
+    return new Response(JSON.stringify({ error: "Internal Server Error", details: errorMessage }), {
       status: 500,
     });
   }

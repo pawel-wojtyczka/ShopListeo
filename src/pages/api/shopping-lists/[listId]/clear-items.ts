@@ -7,7 +7,7 @@ import { getErrorMessage } from "@/lib/utils/error";
  * Endpoint do usuwania wszystkich elementów z listy zakupów
  *
  * @method DELETE
- * @path /api/client/shopping-lists/[listId]/clear-items  <-- Zaktualizowana ścieżka w komentarzu
+ * @path /api/shopping-lists/[listId]/clear-items
  */
 export const DELETE: APIRoute = async ({ params, locals }) => {
   // Dodaję identyfikator żądania dla łatwiejszego śledzenia
