@@ -12,7 +12,8 @@ export class RegistrationPage {
   readonly confirmPasswordInput: Locator;
   readonly submitButton: Locator;
   // Lokatory dla błędów
-  readonly apiErrorAlert: Locator; // Alert dla błędów API
+  readonly apiErrorAlert: Locator; // Alert dla błędów API (cały kontener)
+  readonly apiErrorDescription: Locator; // Dokładny element z opisem błędu API
   readonly validationErrorMessages: Locator; // Ogólny selektor dla błędów walidacji pól
 
   /**
@@ -29,6 +30,8 @@ export class RegistrationPage {
 
     // Selektory dla komunikatów błędów
     this.apiErrorAlert = page.locator('[role="alert"][class*="variant-destructive"]'); // Celuje w alert destrukywny
+    // Bardziej bezpośredni selektor dla opisu błędu API
+    this.apiErrorDescription = page.locator('[data-slot="alert-description"]');
     this.validationErrorMessages = page.locator("p.text-destructive"); // Celuje w paragrafy z błędami walidacji
   }
 
@@ -80,13 +83,21 @@ export class RegistrationPage {
    */
   async expectErrorMessageToContain(expectedText: string) {
     // Sprawdź najpierw błąd API
-    const apiErrorVisible = await this.apiErrorAlert.isVisible();
-    if (apiErrorVisible) {
-      await expect(this.apiErrorAlert).toContainText(expectedText);
+    // Czekaj na pojawienie się *jakiegokolwiek* błędu (API lub walidacji)
+    const apiErrorLocator = this.apiErrorDescription; // Użyj precyzyjnego lokatora opisu
+    const validationErrorLocator = this.validationErrorMessages.filter({ hasText: expectedText });
+
+    // Czekaj, aż jeden z typów błędów będzie widoczny
+    await expect(apiErrorLocator.or(validationErrorLocator)).toBeVisible({ timeout: 10000 }); // Dłuższy timeout dla pewności
+
+    // Sprawdź, który typ błędu się pojawił
+    if (await apiErrorLocator.isVisible()) {
+      // Jeśli to błąd API, sprawdź jego treść
+      await expect(apiErrorLocator).toHaveText(expectedText);
     } else {
-      // Jeśli nie ma błędu API, sprawdź błędy walidacji
-      // Sprawdź, czy *którykolwiek* z błędów walidacji zawiera tekst
-      await expect(this.validationErrorMessages.filter({ hasText: expectedText })).toBeVisible();
+      // Jeśli to błąd walidacji, jego widoczność została już sprawdzona przez expect(or(...)).toBeVisible()
+      // Można dodać dodatkową asercję, jeśli potrzeba, ale filter({ hasText: ... }) już to robi
+      await expect(validationErrorLocator).toBeVisible(); // Potwierdzenie widoczności
     }
   }
 }
