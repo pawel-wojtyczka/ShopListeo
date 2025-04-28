@@ -135,8 +135,9 @@ export function useShoppingLists({
       }
       */
 
-      // Use the NEW client-specific endpoint - Updated to new path
-      const response = await fetch("/api/shopping-lists/create", {
+      // Use the NEW client-specific endpoint - Corrected path to match backend
+      const response = await fetch("/api/shopping-lists/", {
+        // Remove /create
         method: "POST",
         headers: headers,
         body: JSON.stringify(requestData),
