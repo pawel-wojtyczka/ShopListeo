@@ -242,74 +242,122 @@ Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, u
             }
           }
 
-          // Usuwamy wszystkie istniejące elementy z listy zakupów
-          console.log(`[${requestId}] [ai-parse] Usuwanie istniejących elementów z listy ${listId}`);
-          const { error: deleteError } = await supabase
-            .from("shopping_list_items")
-            .delete()
-            .eq("shopping_list_id", listId);
+          // 1. Pobierz ponownie istniejące elementy dla pewności (lub użyj `existingItems` pobranych wcześniej)
+          //    Dla uproszczenia na razie użyjemy `existingItems` pobranych na początku.
+          //    W bardziej złożonym scenariuszu warto byłoby pobrać je ponownie tuż przed transakcją.
+          console.log(`[${requestId}] [ai-parse] Przygotowywanie zmian na podstawie odpowiedzi AI.`);
+          const currentItems = existingItems; // Używamy danych pobranych wcześniej
+          const aiItems = contentJson.products as { name: string; purchased: boolean }[];
 
-          if (deleteError) {
-            console.error(`[${requestId}] [ai-parse] Błąd usuwania istniejących produktów: ${deleteError.message}`);
+          // Pomocnicza funkcja do normalizacji i porównywania nazw
+          const normalizeName = (name: string) => name.trim().toLowerCase();
+
+          // Mapy do szybkiego wyszukiwania
+          const currentItemsMap = new Map(currentItems.map((item) => [normalizeName(item.item_name), item]));
+          const aiItemsMap = new Map(aiItems.map((item) => [normalizeName(item.name), item]));
+
+          // 2. Oblicz różnice (Diff)
+          const itemsToAdd: { item_name: string; purchased: boolean; shopping_list_id: string }[] = [];
+          const itemsToDelete: { id: string }[] = [];
+          // Potencjalnie: const itemsToUpdate: { id: string; purchased?: boolean; item_name?: string }[] = [];
+
+          // Znajdź elementy do dodania (są w AI, nie ma ich w obecnych)
+          for (const [normalizedName, aiItem] of aiItemsMap.entries()) {
+            if (!currentItemsMap.has(normalizedName)) {
+              itemsToAdd.push({
+                shopping_list_id: listId,
+                item_name: aiItem.name.trim(), // Użyj oryginalnej nazwy z AI, ale przyciętej
+                purchased: aiItem.purchased,
+              });
+            }
+            // Opcjonalnie: obsługa aktualizacji, jeśli nazwa pasuje, ale np. status 'purchased' się zmienił
+            // else {
+            //   const currentItem = currentItemsMap.get(normalizedName)!;
+            //   if (currentItem.purchased !== aiItem.purchased || currentItem.item_name !== aiItem.name.trim()) {
+            //     // Dodaj do listy do aktualizacji
+            //   }
+            // }
+          }
+
+          // Znajdź elementy do usunięcia (są w obecnych, nie ma ich w AI)
+          for (const [normalizedName, currentItem] of currentItemsMap.entries()) {
+            if (!aiItemsMap.has(normalizedName)) {
+              itemsToDelete.push({ id: currentItem.id });
+            }
+          }
+
+          console.log(`[${requestId}] [ai-parse] Zidentyfikowano zmiany:`, {
+            toAdd: itemsToAdd.length,
+            toDelete: itemsToDelete.length,
+            // toUpdate: itemsToUpdate.length (jeśli zaimplementowano)
+          });
+
+          // 3. Wywołaj funkcję RPC w Supabase, aby zastosować zmiany w transakcji
+          if (itemsToAdd.length > 0 || itemsToDelete.length > 0 /*|| itemsToUpdate.length > 0*/) {
+            console.log(`[${requestId}] [ai-parse] Wywoływanie funkcji RPC 'apply_shopping_list_changes'`);
+            const { error: rpcError } = await supabase.rpc("apply_shopping_list_changes", {
+              p_list_id: listId,
+              p_user_id: userId, // Przekazujemy userId do weryfikacji uprawnień w funkcji SQL
+              items_to_add: itemsToAdd,
+              items_to_delete: itemsToDelete.map((item) => item.id), // Przekazujemy tylko tablicę ID
+              // items_to_update: itemsToUpdate, // Przekaż, jeśli zaimplementowano
+            });
+
+            if (rpcError) {
+              console.error(
+                `[${requestId}] [ai-parse] Błąd podczas wywoływania RPC 'apply_shopping_list_changes': ${rpcError.message}`
+              );
+              return new Response(
+                JSON.stringify({ error: "Failed to apply changes atomically", details: rpcError.message }),
+                { status: 500 }
+              );
+            }
+            console.log(`[${requestId}] [ai-parse] Pomyślnie zastosowano zmiany przez RPC.`);
+          } else {
+            console.log(`[${requestId}] [ai-parse] Brak zmian do zastosowania w bazie danych.`);
+          }
+
+          // 4. Zwróć nową listę elementów (można pobrać zaktualizowaną listę lub zwrócić tę z AI)
+          //    Dla spójności i pewności, pobierzmy zaktualizowaną listę z bazy.
+          console.log(`[${requestId}] [ai-parse] Pobieranie zaktualizowanej listy produktów po zmianach`);
+          const { data: updatedItems, error: fetchUpdatedError } = await supabase
+            .from("shopping_list_items")
+            .select("id, item_name, purchased, created_at, updated_at")
+            .eq("shopping_list_id", listId)
+            .order("created_at", { ascending: true });
+
+          if (fetchUpdatedError) {
+            console.error(
+              `[${requestId}] [ai-parse] Błąd pobierania zaktualizowanych produktów: ${fetchUpdatedError.message}`
+            );
+            // Zwróć błąd, ale operacje mogły się powieść
             return new Response(
-              JSON.stringify({ error: "Failed to clear existing products", details: deleteError.message }),
+              JSON.stringify({
+                error: "Failed to fetch updated products after applying changes",
+                details: fetchUpdatedError.message,
+              }),
               { status: 500 }
             );
           }
 
-          // Dodajemy nowe/zaktualizowane elementy do listy zakupów
+          // Mapujemy na format DTO
+          const updatedItemsDTO = updatedItems.map((item) => ({
+            id: item.id,
+            itemName: item.item_name,
+            purchased: item.purchased,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at,
+          }));
+
           console.log(
-            `[${requestId}] [ai-parse] Dodawanie ${contentJson.products.length} przetworzonych produktów do listy ${listId}`
+            `[${requestId}] [ai-parse] Zwracanie zaktualizowanej listy (${updatedItemsDTO.length} produktów).`
           );
-          if (contentJson.products.length > 0) {
-            const newItems = contentJson.products.map((item: { name: string; purchased: boolean }) => ({
-              shopping_list_id: listId,
-              item_name: item.name.trim(),
-              purchased: item.purchased,
-            }));
-
-            const { data: insertedItems, error: insertError } = await supabase
-              .from("shopping_list_items")
-              .insert(newItems)
-              .select("id, item_name, purchased, created_at, updated_at");
-
-            if (insertError) {
-              console.error(`[${requestId}] [ai-parse] Błąd dodawania nowych produktów: ${insertError.message}`);
-              return new Response(
-                JSON.stringify({ error: "Failed to add parsed products", details: insertError.message }),
-                {
-                  status: 500,
-                }
-              );
-            }
-
-            console.log(`[${requestId}] [ai-parse] Pomyślnie dodano produkty.`);
-            // Mapujemy na format DTO dla spójności
-            const insertedItemsDTO = insertedItems.map((item) => ({
-              id: item.id,
-              itemName: item.item_name,
-              purchased: item.purchased,
-              createdAt: item.created_at,
-              updatedAt: item.updated_at,
-            }));
-
-            // Return the updated list of items
-            return new Response(JSON.stringify({ products: insertedItemsDTO }), {
-              status: 200,
-              headers: {
-                "Content-Type": "application/json",
-              },
-            });
-          } else {
-            console.log(`[${requestId}] [ai-parse] Brak produktów do dodania po przetworzeniu.`);
-            // Jeśli AI zwróciło pustą listę (bo np. wszystkie zostały usunięte), zwróć pustą tablicę
-            return new Response(JSON.stringify({ products: [] }), {
-              status: 200,
-              headers: {
-                "Content-Type": "application/json",
-              },
-            });
-          }
+          return new Response(JSON.stringify({ products: updatedItemsDTO }), {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
         } catch (jsonError) {
           console.error(
             `[${requestId}] [ai-parse] Błąd parsowania JSON z odpowiedzi AI: ${getErrorMessage(jsonError)}`,
