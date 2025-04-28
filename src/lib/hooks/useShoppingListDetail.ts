@@ -53,7 +53,7 @@ export function useShoppingListDetail(listId: string) {
       try {
         // Używamy nowego endpointu klienta zamiast standardowego API
         // Nie potrzebujemy już pobierać tokena, ponieważ autentykacja odbywa się przez cookie
-        const response = await fetch(`/api/client/shopping-lists/${listId}`, {
+        const response = await fetch(`/api/shopping-lists/${listId}`, {
           method: "GET",
           credentials: "include", // Dołączamy cookies do zapytania
         });
@@ -159,7 +159,7 @@ export function useShoppingListDetail(listId: string) {
       try {
         const requestBody: UpdateShoppingListRequest = { title: trimmedTitle };
 
-        const response = await fetch(`/api/client/shopping-lists/${listId}`, {
+        const response = await fetch(`/api/shopping-lists/${listId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -237,7 +237,7 @@ export function useShoppingListDetail(listId: string) {
       try {
         const requestBody: UpdateShoppingListItemRequest = { purchased: newPurchasedStatus };
 
-        const response = await fetch(`/api/client/shopping-lists/${listId}/items/${itemId}`, {
+        const response = await fetch(`/api/shopping-lists/${listId}/items/${itemId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -322,7 +322,7 @@ export function useShoppingListDetail(listId: string) {
       });
 
       try {
-        const response = await fetch(`/api/client/shopping-lists/${listId}/items/${itemId}`, {
+        const response = await fetch(`/api/shopping-lists/${listId}/items/${itemId}`, {
           method: "DELETE",
           credentials: "include", // Dołączamy cookies do zapytania
         });
@@ -404,7 +404,7 @@ export function useShoppingListDetail(listId: string) {
       try {
         const requestBody: UpdateShoppingListItemRequest = { itemName: trimmedName };
 
-        const response = await fetch(`/api/client/shopping-lists/${listId}/items/${itemId}`, {
+        const response = await fetch(`/api/shopping-lists/${listId}/items/${itemId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

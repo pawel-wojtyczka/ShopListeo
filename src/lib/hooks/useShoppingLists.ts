@@ -68,8 +68,8 @@ export function useShoppingLists({
       console.log(`[useShoppingLists] Refetching shopping lists (Page: ${page})...`);
 
       try {
-        // Zmieniamy URL na endpoint klienta
-        const apiUrl = new URL("/api/client/shopping-lists", window.location.origin);
+        // Zmieniamy URL na endpoint klienta - Updated to new path
+        const apiUrl = new URL("/api/shopping-lists", window.location.origin);
         apiUrl.searchParams.set("page", page.toString());
         apiUrl.searchParams.set("pageSize", pageSize.toString());
 
@@ -135,8 +135,8 @@ export function useShoppingLists({
       }
       */
 
-      // Use the NEW client-specific endpoint
-      const response = await fetch("/api/client/shopping-lists/create", {
+      // Use the NEW client-specific endpoint - Updated to new path
+      const response = await fetch("/api/shopping-lists/create", {
         method: "POST",
         headers: headers,
         body: JSON.stringify(requestData),
@@ -212,8 +212,8 @@ export function useShoppingLists({
       }
       */
 
-      // Use the NEW client-specific endpoint
-      const response = await fetch(`/api/client/shopping-lists/${listId}`, {
+      // Use the NEW client-specific endpoint - Updated to new path
+      const response = await fetch(`/api/shopping-lists/${listId}`, {
         method: "DELETE",
         headers: headers,
         credentials: "include", // Keep this

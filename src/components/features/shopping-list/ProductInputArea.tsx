@@ -28,18 +28,24 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
     setIsAdding(true);
 
     try {
-      console.log("[ProductInputArea] Wysyłanie tekstu do przetworzenia przez AI, ListId:", listId);
+      console.log("[ProductInputArea] Starting AI parse for list:", listId);
+      const text = trimmedValue;
+      if (!text) {
+        showErrorToast("Input is empty", { description: "Please enter some text to parse." });
+        return;
+      }
 
-      // Call the AI endpoint
-      const response = await fetch(`/api/client/shopping-lists/${listId}/ai-parse`, {
+      // Use the new, simplified API endpoint
+      const response = await fetch(`/api/shopping-lists/${listId}/ai-parse`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: trimmedValue }),
+        credentials: "include", // Send cookies for authentication
+        body: JSON.stringify({ text }),
       });
 
-      console.log("[ProductInputArea] Odpowiedź z API, status:", response.status);
+      console.log("[ProductInputArea] AI parse response status:", response.status);
 
       const responseData = await response.json();
 
