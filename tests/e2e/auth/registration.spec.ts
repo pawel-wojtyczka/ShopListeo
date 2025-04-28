@@ -17,18 +17,11 @@ test.describe("User Registration", () => {
   });
 
   // Test case for successful registration (Happy Path)
-  test.only("should allow a user to register successfully with valid credentials", async ({ page }: { page: Page }) => {
-    // Get the email template from environment variables
-    const emailTemplate = process.env.E2E_EMAIL_TO_TEST;
-
-    // Ensure the environment variable is loaded
-    if (!emailTemplate) {
-      throw new Error("E2E_EMAIL_TO_TEST environment variable is not set. Make sure to load .env.test");
-    }
-
-    // Generate a timestamp and replace the placeholder in the email template
+  test("should allow a user to register successfully with valid credentials", async ({ page }: { page: Page }) => {
+    // Generate a unique email with timestamp and random digits
     const timestamp = Date.now();
-    const uniqueEmail = emailTemplate.replace("<timestamp>", timestamp.toString());
+    const randomDigits = Math.floor(100 + Math.random() * 900); // Generate 3 random digits (100-999)
+    const uniqueEmail = `test_${timestamp}_${randomDigits}@example.com`;
 
     // Log the email being used
     console.log(`Attempting registration with email: ${uniqueEmail}`);
@@ -54,7 +47,7 @@ test.describe("User Registration", () => {
   });
 
   // Test case for attempting registration with an existing email
-  test.only("should show an error message when registering with an existing email", async () => {
+  test("should show an error message when registering with an existing email", async () => {
     const existingEmail = process.env.E2E_USERNAME; // Get existing email from .env.test
     const password = "SomePassword123";
 
@@ -81,7 +74,7 @@ test.describe("User Registration", () => {
   });
 
   // Test case for attempting registration with an invalid email format
-  test.only("should show an error message for invalid email format", async () => {
+  test("should show an error message for invalid email format", async () => {
     // Fill the form with an invalid email
     await registrationPage.fillEmail("invalid-email-format");
     await registrationPage.fillPassword("SomePassword123"); // Fill other fields to allow submission attempt
@@ -104,11 +97,16 @@ test.describe("User Registration", () => {
   });
 
   // Test case for attempting registration with a short password
-  test.only("should show an error message for a password that is too short", async () => {
+  test("should show an error message for a password that is too short", async () => {
     const shortPassword = "short";
 
+    // Generate a unique email with timestamp and random digits
+    const timestamp = Date.now();
+    const randomDigits = Math.floor(100 + Math.random() * 900);
+    const uniqueEmail = `test_${timestamp}_${randomDigits}@example.com`;
+
     // Fill the form
-    await registrationPage.fillEmail(`test_${Date.now()}@example.com`);
+    await registrationPage.fillEmail(uniqueEmail);
     await registrationPage.fillPassword(shortPassword);
     await registrationPage.fillConfirmPassword(shortPassword);
 
@@ -121,9 +119,14 @@ test.describe("User Registration", () => {
   });
 
   // Test case for attempting registration with mismatching passwords
-  test.only("should show an error message when passwords do not match", async () => {
+  test("should show an error message when passwords do not match", async () => {
+    // Generate a unique email with timestamp and random digits
+    const timestamp = Date.now();
+    const randomDigits = Math.floor(100 + Math.random() * 900);
+    const uniqueEmail = `test_${timestamp}_${randomDigits}@example.com`;
+
     // Fill the form with mismatching passwords
-    await registrationPage.fillEmail(`test_${Date.now()}@example.com`);
+    await registrationPage.fillEmail(uniqueEmail);
     await registrationPage.fillPassword("ValidPassword123");
     await registrationPage.fillConfirmPassword("DifferentPassword123");
 
@@ -136,7 +139,7 @@ test.describe("User Registration", () => {
   });
 
   // Test case for attempting registration with an empty form
-  test.only("should show validation errors when submitting an empty form", async () => {
+  test("should show validation errors when submitting an empty form", async () => {
     // Do not fill any fields
 
     // Submit the form
