@@ -1,7 +1,7 @@
-import type { APIContext, AstroLocals } from "astro";
-import { getShoppingListById } from "../../../lib/services/shopping-list.service";
-import { ShoppingListError } from "../../../lib/errors/ShoppingListError";
-import { logger } from "../../../lib/logger"; // Assuming logger is configured
+import type { APIContext } from "astro";
+import type { AstroLocals } from "@/types/locals";
+import { getShoppingListById } from "@/lib/services/shopping-list.service";
+import { logger } from "@/lib/logger"; // Assuming logger is configured
 
 /**
  * Endpoint for getting shopping list details by ID.
@@ -49,37 +49,6 @@ export async function GET({ params, locals }: APIContext) {
     });
   } catch (error) {
     logger.error("[API Client Get List] Error fetching list details", { requestId, userId: user.id, listId, error });
-
-    if (error instanceof ShoppingListError) {
-      // Handle specific errors from the service layer
-      let statusCode = 500; // Default to internal server error
-      switch (error.code) {
-        case "LIST_NOT_FOUND":
-        case "NOT_FOUND": // Keep both for potential variations
-          statusCode = 404;
-          break;
-        case "FORBIDDEN":
-          statusCode = 403; // User doesn't own this list
-          break;
-        case "INVALID_UUID":
-          statusCode = 400; // Bad request due to invalid ID format
-          break;
-        case "DATABASE_ERROR":
-          // Keep 500 for database errors
-          break;
-        // Add other specific error codes if needed
-      }
-      logger.warn(`[API Client Get List] Returning ${statusCode} due to ShoppingListError`, {
-        requestId,
-        listId,
-        errorCode: error.code,
-        errorMessage: error.message,
-      });
-      return new Response(JSON.stringify({ error: error.message, code: error.code }), {
-        status: statusCode,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
 
     // Generic internal server error for unexpected issues
     logger.error("[API Client Get List] Returning 500 due to unexpected error", { requestId, listId, error });
