@@ -9,7 +9,7 @@ const OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
   // Dodaję identyfikator żądania dla łatwiejszego śledzenia
-  const requestId = crypto.randomUUID();
+  // const requestId = crypto.randomUUID(); // Usunięto
 
   try {
     // Sprawdź, czy klucz API OpenRouter jest dostępny
@@ -87,7 +87,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     let body;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch (_error) {
       return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
       });
@@ -319,7 +319,7 @@ Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, u
           status: 500,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       return new Response(JSON.stringify({ error: "AI service initialization failed" }), {
         status: 500,
       });

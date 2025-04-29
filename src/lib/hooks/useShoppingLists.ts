@@ -222,10 +222,7 @@ export function useShoppingLists({
         let errorJson = { message: response.statusText };
         try {
           errorJson = await response.json();
-        } catch (
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          _
-        ) {
+        } catch (_) {
           /* Ignore parsing error - fix linter */
         }
 
@@ -263,6 +260,39 @@ export function useShoppingLists({
       });
     }
   };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleDeleteList = useCallback(
+    async (listId: string) => {
+      // Optymistyczna aktualizacja - usuń listę z UI
+      setViewModel((prev) => ({
+        ...prev,
+        lists: prev.lists.filter((list) => list.id !== listId),
+      }));
+
+      try {
+        // Wywołaj usuwanie z API
+        await deleteList(listId);
+      } catch (err) {
+        // W przypadku błędu, przywróć listę do UI
+        setViewModel((prev) => ({
+          ...prev,
+          lists: [
+            ...prev.lists,
+            {
+              id: listId,
+              title: "Lista zakupów",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              itemCount: 0,
+              isDeleting: false,
+            },
+          ],
+        }));
+      }
+    },
+    [deleteList]
+  );
 
   // Return state and actions
   return {

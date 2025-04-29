@@ -143,8 +143,8 @@ export class OpenRouterService {
   /**
    * Loguje zdarzenia i błędy
    */
-  private log(level: LogLevel, message: string): void {
-    const timestamp = new Date().toISOString();
+  private log(level: LogLevel, _message: string): void {
+    // const timestamp = new Date().toISOString(); // Usunięto timestamp
     // const logMessage = `[${timestamp}] [${level.toUpperCase()}] OpenRouterService: ${message}`; // Usunięto
 
     switch (level) {

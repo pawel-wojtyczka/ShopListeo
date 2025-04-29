@@ -1,9 +1,13 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export interface Database {
+export type Database = {
   graphql_public: {
-    Tables: Record<never, never>;
-    Views: Record<never, never>;
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
     Functions: {
       graphql: {
         Args: {
@@ -15,8 +19,12 @@ export interface Database {
         Returns: Json;
       };
     };
-    Enums: Record<never, never>;
-    CompositeTypes: Record<never, never>;
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
   public: {
     Tables: {
@@ -127,38 +135,57 @@ export interface Database {
       };
       users: {
         Row: {
+          admin: boolean;
           email: string;
           id: string;
           last_login_date: string | null;
-          password_hash: string;
           registration_date: string;
           updated_date: string;
         };
         Insert: {
+          admin?: boolean;
           email: string;
-          id?: string;
+          id: string;
           last_login_date?: string | null;
-          password_hash: string;
           registration_date?: string;
           updated_date?: string;
         };
         Update: {
+          admin?: boolean;
           email?: string;
           id?: string;
           last_login_date?: string | null;
-          password_hash?: string;
           registration_date?: string;
           updated_date?: string;
         };
         Relationships: [];
       };
     };
-    Views: Record<never, never>;
-    Functions: Record<never, never>;
-    Enums: Record<never, never>;
-    CompositeTypes: Record<never, never>;
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      apply_shopping_list_changes: {
+        Args: {
+          p_list_id: string;
+          p_user_id: string;
+          items_to_add: Database["public"]["CompositeTypes"]["new_shopping_list_item"][];
+          items_to_delete: string[];
+        };
+        Returns: undefined;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      new_shopping_list_item: {
+        item_name: string | null;
+        purchased: boolean | null;
+      };
+    };
   };
-}
+};
 
 type DefaultSchema = Database[Extract<keyof Database, "public">];
 

@@ -69,10 +69,6 @@ const SetNewPasswordView: React.FC = () => {
     }
   };
 
-  const handleFocus = (_e: React.FocusEvent<HTMLInputElement>) => {
-    // Można tutaj dodać logikę, np. czyszczenie błędów dla danego pola
-  };
-
   // Render based on token status and API status
   if (tokenError) {
     return (

@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let requestData;
   try {
     requestData = await request.json();
-  } catch (error) {
+  } catch (_error) {
     return new Response(JSON.stringify({ message: "Invalid JSON" }), { status: 400 });
   }
 
@@ -75,7 +75,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (_error) {
     return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
   }
 };

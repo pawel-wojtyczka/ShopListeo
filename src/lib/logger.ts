@@ -76,7 +76,6 @@ export const logger = {
   log(level: LogLevel, message: string, context?: Record<string, unknown>, error?: Error | unknown): void {
     const timestamp = new Date().toISOString();
     const entry: LogEntry = { level, message, timestamp, context, error };
-    const formattedLog = formatLogEntry(entry);
 
     // W zależności od poziomu logowania używamy odpowiedniej metody konsoli
     switch (level) {
