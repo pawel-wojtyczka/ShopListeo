@@ -7,8 +7,8 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Construct the absolute path to .env.test
-const envPath = path.resolve(__dirname, ".env.test");
+// Construct the absolute path to the root .env file
+const envPath = path.resolve(__dirname, "../.env"); // Zakładając, że playwright.config.ts jest w głównym katalogu
 
 // Load environment variables from the absolute path
 dotenv.config({ path: envPath });
@@ -47,9 +47,23 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    // Projekt setup (może być pusty lub zawierać global.setup.ts jeśli potrzebny)
+    // Jest wymagany do zdefiniowania zależności i teardown
+    {
+      name: "setup",
+      testMatch: /global\.setup\.ts/, // Wskaż plik setup, jeśli istnieje. Używamy podwójnego backslasha dla regexa w JS.
+      teardown: "cleanup db", // Nazwa projektu teardown
+    },
+    // Projekt teardown
+    {
+      name: "cleanup db",
+      testMatch: /global\.teardown\.ts/, // Wskaż plik teardown. Używamy podwójnego backslasha dla regexa w JS.
+    },
+    // Główny projekt testowy
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"], // Zależność od projektu setup
     },
 
     // Możesz odkomentować poniższe, aby testować na innych przeglądarkach

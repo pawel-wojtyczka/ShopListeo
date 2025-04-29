@@ -21,17 +21,17 @@ test.describe("User Registration", () => {
     // Generate a unique email with timestamp and random digits
     const timestamp = Date.now();
     const randomDigits = Math.floor(100 + Math.random() * 900); // Generate 3 random digits (100-999)
-    const uniqueEmail = `test_${timestamp}_${randomDigits}@example.com`;
+    const randomId = Math.random().toString(36).substring(7);
+    const testEmail = `test-user-${randomId}@e2etest.shoplisteo.local`;
+    const testPassword = "password123";
 
     // Log the email being used
-    console.log(`Attempting registration with email: ${uniqueEmail}`);
-
-    const password = "ValidPassword123"; // Use a valid password
+    console.log(`Attempting registration with email: ${testEmail}`);
 
     // Fill the registration form
-    await registrationPage.fillEmail(uniqueEmail);
-    await registrationPage.fillPassword(password);
-    await registrationPage.fillConfirmPassword(password);
+    await registrationPage.fillEmail(testEmail);
+    await registrationPage.fillPassword(testPassword);
+    await registrationPage.fillConfirmPassword(testPassword);
 
     // Submit the form
     await registrationPage.submitForm();
@@ -103,10 +103,11 @@ test.describe("User Registration", () => {
     // Generate a unique email with timestamp and random digits
     const timestamp = Date.now();
     const randomDigits = Math.floor(100 + Math.random() * 900);
-    const uniqueEmail = `test_${timestamp}_${randomDigits}@example.com`;
+    const randomId = Math.random().toString(36).substring(7);
+    const testEmail = `test-user-${randomId}@e2etest.shoplisteo.local`;
 
     // Fill the form
-    await registrationPage.fillEmail(uniqueEmail);
+    await registrationPage.fillEmail(testEmail);
     await registrationPage.fillPassword(shortPassword);
     await registrationPage.fillConfirmPassword(shortPassword);
 
@@ -123,10 +124,11 @@ test.describe("User Registration", () => {
     // Generate a unique email with timestamp and random digits
     const timestamp = Date.now();
     const randomDigits = Math.floor(100 + Math.random() * 900);
-    const uniqueEmail = `test_${timestamp}_${randomDigits}@example.com`;
+    const randomId = Math.random().toString(36).substring(7);
+    const testEmail = `test-user-${randomId}@e2etest.shoplisteo.local`;
 
     // Fill the form with mismatching passwords
-    await registrationPage.fillEmail(uniqueEmail);
+    await registrationPage.fillEmail(testEmail);
     await registrationPage.fillPassword("ValidPassword123");
     await registrationPage.fillConfirmPassword("DifferentPassword123");
 
