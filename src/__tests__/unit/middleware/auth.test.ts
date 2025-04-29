@@ -157,7 +157,7 @@ describe("Auth Middleware", () => {
       mockContext.url = new URL("http://localhost:3000/shopping-lists");
 
       // Symulujemy przekierowanie
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         context.locals.isAuthenticated = false;
         context.redirect("/login");
         return new Response();
@@ -173,10 +173,10 @@ describe("Auth Middleware", () => {
       mockContext.url = new URL("http://localhost:3000/shopping-lists");
 
       // Symulujemy brak przekierowania
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         context.locals.user = mockUser;
         context.locals.isAuthenticated = true;
-        return next();
+        return _next();
       });
 
       await authMiddleware(mockContext as AstroGlobal, mockNext);

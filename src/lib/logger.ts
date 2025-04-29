@@ -15,32 +15,6 @@ interface LogEntry {
 }
 
 /**
- * Funkcja formatująca wpis logu
- */
-function formatLogEntry(_entry: LogEntry): string {
-  // Usunięto implementację, bo funkcja nie jest używana
-  return "";
-  // const { level, message, timestamp, context, error } = entry;
-  //
-  // let formattedMessage = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-  //
-  // if (context && Object.keys(context).length > 0) {
-  //   formattedMessage += `\nContext: ${JSON.stringify(context, null, 2)}`;
-  // }
-  //
-  // if (error instanceof Error) {
-  //   formattedMessage += `\nError: ${error.message}`;
-  //   if (error.stack) {
-  //     formattedMessage += `\nStack: ${error.stack}`;
-  //   }
-  // } else if (error) {
-  //   formattedMessage += `\nError: ${JSON.stringify(error)}`;
-  // }
-  //
-  // return formattedMessage;
-}
-
-/**
  * Logger aplikacji
  */
 export const logger = {
