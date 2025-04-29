@@ -281,9 +281,9 @@ Przetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, u
             .order("created_at", { ascending: true });
 
           if (fetchUpdatedError) {
-            console.error(
-              `[${requestId}] [ai-parse] Błąd pobierania zaktualizowanych produktów: ${fetchUpdatedError.message}`
-            );
+            // console.log( // Usunięte
+            //   `[${requestId}] [ai-parse] Błąd pobierania zaktualizowanych produktów: ${fetchUpdatedError.message}`
+            // );
             // Zwróć błąd, ale operacje mogły się powieść
             return new Response(
               JSON.stringify({

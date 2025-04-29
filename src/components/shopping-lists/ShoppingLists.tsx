@@ -29,10 +29,11 @@ export function ShoppingLists({ lists, isLoading, onDeleteList }: ShoppingListsP
   // Gdy brak list po załadowaniu
   if (!isLoading && lists.length === 0) {
     return (
-      <div className="text-center p-8 border rounded-lg bg-muted/10">
-        <p className="text-lg font-medium mb-2">Brak list zakupów</p>
+      <div className="text-center py-8">
         <p className="text-muted-foreground">
-          Kliknij przycisk "Nowa lista", aby utworzyć swoją pierwszą listę zakupów.
+          Nie masz jeszcze żadnych list zakupów.
+          <br />
+          Stwórz nową listę klikając przycisk &quot;+ Nowa lista&quot; powyżej.
         </p>
       </div>
     );

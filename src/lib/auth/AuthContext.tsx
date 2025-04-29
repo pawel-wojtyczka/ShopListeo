@@ -86,10 +86,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Efekt do początkowego sprawdzenia autentykacji przy montowaniu komponentu
   useEffect(() => {
-    console.log(
-      "%c[AuthContext] useEffect [MOUNT]: Running initial authentication check...",
-      "color: blue; font-weight: bold;"
-    );
     // Od razu wywołujemy fetchUserData, aby sprawdzić sesję serwerową
     fetchUserData();
 
@@ -138,13 +134,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout: logoutCallback,
     fetchUserData, // Udostępniamy funkcję na zewnątrz
   };
-
-  console.log("[AuthContext] Providing context value:", {
-    // isLoading: value.isLoading,
-    // isAuthenticated: value.isAuthenticated,
-    // userId: value.user?.id,
-    // authCheckCompleted: value.authCheckCompleted,
-  });
 
   // Renderuj dzieci tylko po zakończeniu pierwszego ładowania
   return <AuthContext.Provider value={value}>{initialLoadComplete ? children : null}</AuthContext.Provider>;
