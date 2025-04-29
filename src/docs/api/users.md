@@ -15,12 +15,14 @@
 ### Przykłady wywołania
 
 #### cURL
+
 ```bash
 curl -X GET "https://shoplisteo.example.com/api/users?page=1&pageSize=10&sort=email&order=asc" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 #### Postman
+
 ```
 GET /api/users?page=1&pageSize=10&sort=email&order=asc HTTP/1.1
 Host: shoplisteo.example.com
@@ -66,12 +68,14 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 ### Przykłady wywołania
 
 #### cURL
+
 ```bash
 curl -X GET "https://shoplisteo.example.com/api/users/077f7996-bca0-4e19-9a3f-b9c8bcb55347" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 #### Postman
+
 ```
 GET /api/users/077f7996-bca0-4e19-9a3f-b9c8bcb55347 HTTP/1.1
 Host: shoplisteo.example.com
@@ -117,6 +121,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 ### Przykłady wywołania
 
 #### cURL
+
 ```bash
 curl -X PUT "https://shoplisteo.example.com/api/users/077f7996-bca0-4e19-9a3f-b9c8bcb55347" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -128,6 +133,7 @@ curl -X PUT "https://shoplisteo.example.com/api/users/077f7996-bca0-4e19-9a3f-b9
 ```
 
 #### Postman
+
 ```
 PUT /api/users/077f7996-bca0-4e19-9a3f-b9c8bcb55347 HTTP/1.1
 Host: shoplisteo.example.com
@@ -171,12 +177,14 @@ Content-Type: application/json
 ### Przykłady wywołania
 
 #### cURL
+
 ```bash
 curl -X DELETE "https://shoplisteo.example.com/api/users/077f7996-bca0-4e19-9a3f-b9c8bcb55347" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 #### Postman
+
 ```
 DELETE /api/users/077f7996-bca0-4e19-9a3f-b9c8bcb55347 HTTP/1.1
 Host: shoplisteo.example.com
@@ -195,10 +203,10 @@ Pusta odpowiedź.
 - **404 Not Found** - Nie znaleziono użytkownika
 - **500 Internal Server Error** - Błąd serwera
 
-| Pole | Typ | Opis |
-| ---- | --- | ---- |
-| id | string (UUID) | Unikalny identyfikator użytkownika |
-| email | string | Adres email użytkownika |
-| registrationDate | string (ISO 8601) | Data rejestracji użytkownika |
-| lastLoginDate | string (ISO 8601) | Data ostatniego logowania lub null |
-| isAdmin | boolean | Informacja czy użytkownik ma uprawnienia administratora | 
+| Pole             | Typ               | Opis                                                    |
+| ---------------- | ----------------- | ------------------------------------------------------- |
+| id               | string (UUID)     | Unikalny identyfikator użytkownika                      |
+| email            | string            | Adres email użytkownika                                 |
+| registrationDate | string (ISO 8601) | Data rejestracji użytkownika                            |
+| lastLoginDate    | string (ISO 8601) | Data ostatniego logowania lub null                      |
+| isAdmin          | boolean           | Informacja czy użytkownik ma uprawnienia administratora |

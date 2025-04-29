@@ -15,9 +15,9 @@ Endpoint pozwala na utworzenie nowej listy zakupów dla zalogowanego użytkownik
 
 ### Parametry żądania
 
-| Nazwa | Typ | Wymagane | Opis | Walidacja |
-|-------|-----|----------|------|-----------|
-| title | string | Tak | Tytuł listy zakupów | Min. 1 znak, maks. 255 znaków |
+| Nazwa | Typ    | Wymagane | Opis                | Walidacja                     |
+| ----- | ------ | -------- | ------------------- | ----------------------------- |
+| title | string | Tak      | Tytuł listy zakupów | Min. 1 znak, maks. 255 znaków |
 
 ### Przykładowe żądanie
 
@@ -93,14 +93,14 @@ curl -X POST "https://example.com/api/shopping-lists" \
 
 ### Kody błędów biznesowych
 
-| Kod | Opis |
-|-----|------|
-| DUPLICATE_TITLE | Lista zakupów o podanym tytule już istnieje |
-| USER_NOT_FOUND | Nie znaleziono użytkownika |
-| TABLE_NOT_FOUND | Błąd konfiguracji bazy danych: tabela nie istnieje |
-| DATABASE_ERROR | Ogólny błąd bazy danych |
-| NO_DATA_RETURNED | Brak danych zwrotnych z bazy danych |
-| UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy |
+| Kod              | Opis                                               |
+| ---------------- | -------------------------------------------------- |
+| DUPLICATE_TITLE  | Lista zakupów o podanym tytule już istnieje        |
+| USER_NOT_FOUND   | Nie znaleziono użytkownika                         |
+| TABLE_NOT_FOUND  | Błąd konfiguracji bazy danych: tabela nie istnieje |
+| DATABASE_ERROR   | Ogólny błąd bazy danych                            |
+| NO_DATA_RETURNED | Brak danych zwrotnych z bazy danych                |
+| UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy                       |
 
 ### Uwagi dla deweloperów
 
@@ -125,12 +125,12 @@ Endpoint umożliwia pobieranie wszystkich list zakupów należących do zalogowa
 
 ### Parametry zapytania (query)
 
-| Nazwa | Typ | Wymagane | Opis | Domyślna wartość | Walidacja |
-|-------|-----|----------|------|-----------------|-----------|
-| page | number | Nie | Numer strony | 1 | Liczba całkowita > 0 |
-| pageSize | number | Nie | Liczba elementów na stronę | 20 | Liczba całkowita > 0, maks. 100 |
-| sort | string | Nie | Pole do sortowania | "createdAt" | Dopuszczalne wartości: "title", "createdAt", "updatedAt" |
-| order | string | Nie | Kierunek sortowania | "desc" | Dopuszczalne wartości: "asc", "desc" |
+| Nazwa    | Typ    | Wymagane | Opis                       | Domyślna wartość | Walidacja                                                |
+| -------- | ------ | -------- | -------------------------- | ---------------- | -------------------------------------------------------- |
+| page     | number | Nie      | Numer strony               | 1                | Liczba całkowita > 0                                     |
+| pageSize | number | Nie      | Liczba elementów na stronę | 20               | Liczba całkowita > 0, maks. 100                          |
+| sort     | string | Nie      | Pole do sortowania         | "createdAt"      | Dopuszczalne wartości: "title", "createdAt", "updatedAt" |
+| order    | string | Nie      | Kierunek sortowania        | "desc"           | Dopuszczalne wartości: "asc", "desc"                     |
 
 ### Przykładowe żądanie
 
@@ -208,10 +208,10 @@ curl -X GET "https://example.com/api/shopping-lists?page=1&pageSize=10&sort=upda
 
 ### Kody błędów biznesowych
 
-| Kod | Opis |
-|-----|------|
-| USER_NOT_FOUND | Nie znaleziono użytkownika |
-| DATABASE_ERROR | Ogólny błąd bazy danych |
+| Kod              | Opis                         |
+| ---------------- | ---------------------------- |
+| USER_NOT_FOUND   | Nie znaleziono użytkownika   |
+| DATABASE_ERROR   | Ogólny błąd bazy danych      |
 | UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy |
 
 ### Uwagi dla deweloperów
@@ -237,9 +237,9 @@ Endpoint umożliwia pobieranie szczegółowych informacji o konkretnej liście z
 
 ### Parametry ścieżki (path)
 
-| Nazwa | Typ | Wymagane | Opis | Walidacja |
-|-------|-----|----------|------|-----------|
-| id | string (UUID) | Tak | Identyfikator listy zakupów | Prawidłowy format UUID |
+| Nazwa | Typ           | Wymagane | Opis                        | Walidacja              |
+| ----- | ------------- | -------- | --------------------------- | ---------------------- |
+| id    | string (UUID) | Tak      | Identyfikator listy zakupów | Prawidłowy format UUID |
 
 ### Przykładowe żądanie
 
@@ -322,13 +322,13 @@ curl -X GET "https://example.com/api/shopping-lists/1a2b3c4d-5e6f-7g8h-9i0j-1k2l
 
 ### Kody błędów biznesowych
 
-| Kod | Opis |
-|-----|------|
-| INVALID_UUID | Nieprawidłowy format identyfikatora listy zakupów |
-| LIST_NOT_FOUND | Nie znaleziono listy zakupów o podanym ID |
-| USER_NOT_FOUND | Nie znaleziono użytkownika |
-| DATABASE_ERROR | Ogólny błąd bazy danych |
-| UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy |
+| Kod              | Opis                                              |
+| ---------------- | ------------------------------------------------- |
+| INVALID_UUID     | Nieprawidłowy format identyfikatora listy zakupów |
+| LIST_NOT_FOUND   | Nie znaleziono listy zakupów o podanym ID         |
+| USER_NOT_FOUND   | Nie znaleziono użytkownika                        |
+| DATABASE_ERROR   | Ogólny błąd bazy danych                           |
+| UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy                      |
 
 ### Uwagi dla deweloperów
 
@@ -352,15 +352,15 @@ Endpoint umożliwia aktualizację tytułu istniejącej listy zakupów.
 
 ### Parametry ścieżki (path)
 
-| Nazwa | Typ | Wymagane | Opis | Walidacja |
-|-------|-----|----------|------|-----------|
-| id | string (UUID) | Tak | Identyfikator listy zakupów | Prawidłowy format UUID |
+| Nazwa | Typ           | Wymagane | Opis                        | Walidacja              |
+| ----- | ------------- | -------- | --------------------------- | ---------------------- |
+| id    | string (UUID) | Tak      | Identyfikator listy zakupów | Prawidłowy format UUID |
 
 ### Parametry żądania
 
-| Nazwa | Typ | Wymagane | Opis | Walidacja |
-|-------|-----|----------|------|-----------|
-| title | string | Tak | Nowy tytuł listy zakupów | Min. 1 znak, maks. 255 znaków |
+| Nazwa | Typ    | Wymagane | Opis                     | Walidacja                     |
+| ----- | ------ | -------- | ------------------------ | ----------------------------- |
+| title | string | Tak      | Nowy tytuł listy zakupów | Min. 1 znak, maks. 255 znaków |
 
 ### Przykładowe żądanie
 
@@ -455,15 +455,15 @@ curl -X PUT "https://example.com/api/shopping-lists/1a2b3c4d-5e6f-7g8h-9i0j-1k2l
 
 ### Kody błędów biznesowych
 
-| Kod | Opis |
-|-----|------|
-| INVALID_UUID | Nieprawidłowy format identyfikatora listy zakupów |
-| LIST_NOT_FOUND | Nie znaleziono listy zakupów o podanym ID |
-| DUPLICATE_TITLE | Lista zakupów o podanym tytule już istnieje |
-| USER_NOT_FOUND | Nie znaleziono użytkownika |
-| DATABASE_ERROR | Ogólny błąd bazy danych |
-| NO_DATA_RETURNED | Brak danych zwrotnych z bazy danych |
-| UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy |
+| Kod              | Opis                                              |
+| ---------------- | ------------------------------------------------- |
+| INVALID_UUID     | Nieprawidłowy format identyfikatora listy zakupów |
+| LIST_NOT_FOUND   | Nie znaleziono listy zakupów o podanym ID         |
+| DUPLICATE_TITLE  | Lista zakupów o podanym tytule już istnieje       |
+| USER_NOT_FOUND   | Nie znaleziono użytkownika                        |
+| DATABASE_ERROR   | Ogólny błąd bazy danych                           |
+| NO_DATA_RETURNED | Brak danych zwrotnych z bazy danych               |
+| UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy                      |
 
 ### Uwagi dla deweloperów
 
@@ -486,9 +486,9 @@ Endpoint umożliwia usunięcie listy zakupów wraz ze wszystkimi jej elementami.
 
 ### Parametry ścieżki (path)
 
-| Nazwa | Typ | Wymagane | Opis | Walidacja |
-|-------|-----|----------|------|-----------|
-| id | string (UUID) | Tak | Identyfikator listy zakupów | Prawidłowy format UUID |
+| Nazwa | Typ           | Wymagane | Opis                        | Walidacja              |
+| ----- | ------------- | -------- | --------------------------- | ---------------------- |
+| id    | string (UUID) | Tak      | Identyfikator listy zakupów | Prawidłowy format UUID |
 
 ### Przykładowe żądanie
 
@@ -508,7 +508,7 @@ curl -X DELETE "https://example.com/api/shopping-lists/1a2b3c4d-5e6f-7g8h-9i0j-1
 
 #### Powodzenie (204 No Content)
 
-*Brak treści odpowiedzi*
+_Brak treści odpowiedzi_
 
 #### Błąd: Nieprawidłowy format identyfikatora (400 Bad Request)
 
@@ -548,13 +548,13 @@ curl -X DELETE "https://example.com/api/shopping-lists/1a2b3c4d-5e6f-7g8h-9i0j-1
 
 ### Kody błędów biznesowych
 
-| Kod | Opis |
-|-----|------|
-| INVALID_UUID | Nieprawidłowy format identyfikatora listy zakupów |
-| LIST_NOT_FOUND | Nie znaleziono listy zakupów o podanym ID |
-| USER_NOT_FOUND | Nie znaleziono użytkownika |
-| DATABASE_ERROR | Ogólny błąd bazy danych |
-| UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy |
+| Kod              | Opis                                              |
+| ---------------- | ------------------------------------------------- |
+| INVALID_UUID     | Nieprawidłowy format identyfikatora listy zakupów |
+| LIST_NOT_FOUND   | Nie znaleziono listy zakupów o podanym ID         |
+| USER_NOT_FOUND   | Nie znaleziono użytkownika                        |
+| DATABASE_ERROR   | Ogólny błąd bazy danych                           |
+| UNEXPECTED_ERROR | Nieoczekiwany błąd systemowy                      |
 
 ### Uwagi dla deweloperów
 
@@ -562,4 +562,4 @@ curl -X DELETE "https://example.com/api/shopping-lists/1a2b3c4d-5e6f-7g8h-9i0j-1
 - Użytkownik może usuwać tylko własne listy zakupów.
 - Wraz z listą zakupów usuwane są wszystkie elementy należące do tej listy (kaskadowe usuwanie).
 - Operacja usuwania jest nieodwracalna - po usunięciu danych nie można ich odzyskać.
-- Endpoint zwraca status 204 No Content bez treści odpowiedzi w przypadku powodzenia, zgodnie z konwencją REST. 
+- Endpoint zwraca status 204 No Content bez treści odpowiedzi w przypadku powodzenia, zgodnie z konwencją REST.

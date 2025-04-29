@@ -3,33 +3,37 @@
 ## 1. Przegląd punktów końcowych
 
 ### Endpoint rejestracji (`/api/auth/register`)
+
 Endpoint służący do rejestracji nowych użytkowników w systemie. Przyjmuje dane rejestracyjne, waliduje je, tworzy nowe konto użytkownika i zwraca token dostępowy.
 
 ### Endpoint logowania (`/api/auth/login`)
+
 Endpoint służący do uwierzytelniania istniejących użytkowników. Przyjmuje dane logowania, weryfikuje je i zwraca token dostępowy.
 
 ## 2. Szczegóły żądania
 
 ### Rejestracja użytkownika
+
 - **Metoda HTTP**: POST
 - **Struktura URL**: `/api/auth/register`
 - **Parametry**: Brak
 - **Request Body**:
   ```typescript
   {
-    email: string;    // Adres email użytkownika
+    email: string; // Adres email użytkownika
     password: string; // Hasło użytkownika
   }
   ```
 
 ### Logowanie użytkownika
+
 - **Metoda HTTP**: POST
 - **Struktura URL**: `/api/auth/login`
 - **Parametry**: Brak
 - **Request Body**:
   ```typescript
   {
-    email: string;    // Adres email użytkownika
+    email: string; // Adres email użytkownika
     password: string; // Hasło użytkownika
   }
   ```
@@ -73,33 +77,35 @@ const registerUserSchema = z.object({
     .regex(/.*[A-Z].*/, { message: "Hasło musi zawierać co najmniej jedną wielką literę" })
     .regex(/.*[a-z].*/, { message: "Hasło musi zawierać co najmniej jedną małą literę" })
     .regex(/.*\d.*/, { message: "Hasło musi zawierać co najmniej jedną cyfrę" })
-    .regex(/.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-].*/, { 
-      message: "Hasło musi zawierać co najmniej jeden znak specjalny" 
-    })
+    .regex(/.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-].*/, {
+      message: "Hasło musi zawierać co najmniej jeden znak specjalny",
+    }),
 });
 
 // Schemat walidacji Zod dla logowania
 const loginUserSchema = z.object({
   email: z.string().email({ message: "Podaj poprawny adres email" }),
-  password: z.string().min(1, { message: "Podaj hasło" })
+  password: z.string().min(1, { message: "Podaj hasło" }),
 });
 ```
 
 ## 4. Szczegóły odpowiedzi
 
 ### Rejestracja użytkownika (sukces)
+
 - **Kod statusu**: 201 Created
 - **Odpowiedź**:
   ```typescript
   {
-    id: string;              // UUID nowego użytkownika
-    email: string;           // Potwierdzenie adresu email
+    id: string; // UUID nowego użytkownika
+    email: string; // Potwierdzenie adresu email
     registrationDate: string; // Data rejestracji w formacie ISO 8601
-    token: string;           // JWT token uwierzytelniający
+    token: string; // JWT token uwierzytelniający
   }
   ```
 
 ### Rejestracja użytkownika (błąd)
+
 - **Kod statusu**: 400 Bad Request (nieprawidłowe dane) lub 409 Conflict (email już istnieje)
 - **Odpowiedź**:
   ```typescript
@@ -110,17 +116,19 @@ const loginUserSchema = z.object({
   ```
 
 ### Logowanie użytkownika (sukces)
+
 - **Kod statusu**: 200 OK
 - **Odpowiedź**:
   ```typescript
   {
-    id: string;              // UUID użytkownika
-    email: string;           // Adres email użytkownika
-    token: string;           // JWT token uwierzytelniający
+    id: string; // UUID użytkownika
+    email: string; // Adres email użytkownika
+    token: string; // JWT token uwierzytelniający
   }
   ```
 
 ### Logowanie użytkownika (błąd)
+
 - **Kod statusu**: 400 Bad Request (nieprawidłowe dane) lub 401 Unauthorized (nieprawidłowe dane logowania)
 - **Odpowiedź**:
   ```typescript
@@ -133,6 +141,7 @@ const loginUserSchema = z.object({
 ## 5. Przepływ danych
 
 ### Rejestracja użytkownika
+
 1. Endpoint `/api/auth/register` otrzymuje żądanie POST z danymi rejestracyjnymi
 2. Walidacja danych przy użyciu schematu Zod
 3. Sprawdzenie, czy użytkownik o podanym adresie email już istnieje w bazie danych
@@ -142,6 +151,7 @@ const loginUserSchema = z.object({
 7. Zwrócenie danych nowego użytkownika wraz z tokenem
 
 ### Logowanie użytkownika
+
 1. Endpoint `/api/auth/login` otrzymuje żądanie POST z danymi logowania
 2. Walidacja danych przy użyciu schematu Zod
 3. Uwierzytelnienie użytkownika przy użyciu Supabase Auth
@@ -152,19 +162,23 @@ const loginUserSchema = z.object({
 ## 6. Względy bezpieczeństwa
 
 1. **Bezpieczne przechowywanie haseł**
+
    - Wykorzystanie Supabase Auth do bezpiecznego hashowania haseł
    - Nigdy nie przechowuj haseł w plaintext
 
 2. **Bezpieczeństwo tokenów JWT**
+
    - Ustaw odpowiedni czas wygaśnięcia tokenu (np. 1 dzień)
    - Zawieraj tylko niezbędne informacje w tokenie
    - Używaj HTTPS dla wszystkich endpointów API
 
 3. **Ograniczanie liczby zapytań**
+
    - Zastosuj limit prób logowania (np. 5 prób w ciągu 15 minut)
    - Rozważ blokadę czasową po zbyt wielu nieudanych próbach logowania
 
 4. **Walidacja danych wejściowych**
+
    - Używaj Zod do dokładnej walidacji schematów
    - Sanityzuj wszystkie dane wejściowe, aby zapobiec atakom wstrzykiwania
 
@@ -175,6 +189,7 @@ const loginUserSchema = z.object({
 ## 7. Obsługa błędów
 
 ### Rejestracja użytkownika
+
 - **400 Bad Request**
   - Brakujące wymagane pola
   - Nieprawidłowy format adresu email
@@ -186,6 +201,7 @@ const loginUserSchema = z.object({
   - Błąd podczas generowania tokenu JWT
 
 ### Logowanie użytkownika
+
 - **400 Bad Request**
   - Brakujące wymagane pola
   - Nieprawidłowy format adresu email
@@ -198,12 +214,15 @@ const loginUserSchema = z.object({
 ## 8. Rozważania dotyczące wydajności
 
 1. **Indeksowanie bazy danych**
+
    - Upewnij się, że pole `email` w tabeli `users` jest zindeksowane dla szybkiego wyszukiwania
 
 2. **Buforowanie**
+
    - Rozważ buforowanie tokenów JWT dla aktywnych sesji
 
 3. **Walidacja po stronie klienta**
+
    - Zaimplementuj podstawową walidację po stronie klienta, aby zmniejszyć liczbę niepotrzebnych zapytań do serwera
 
 4. **Asynchroniczne przetwarzanie logów**
@@ -212,6 +231,7 @@ const loginUserSchema = z.object({
 ## 9. Etapy wdrożenia
 
 ### Implementacja endpointu rejestracji
+
 1. Utwórz plik `src/pages/api/auth/register.ts`
 2. Zaimplementuj schemat walidacji Zod
 3. Obsłuż walidację danych wejściowych
@@ -222,6 +242,7 @@ const loginUserSchema = z.object({
 8. Zaimplementuj obsługę błędów
 
 ### Implementacja endpointu logowania
+
 1. Utwórz plik `src/pages/api/auth/login.ts`
 2. Zaimplementuj schemat walidacji Zod
 3. Obsłuż walidację danych wejściowych
@@ -231,19 +252,22 @@ const loginUserSchema = z.object({
 7. Zaimplementuj obsługę błędów
 
 ### Testowanie
+
 1. Utwórz testy jednostkowe dla walidacji danych
 2. Utwórz testy integracyjne dla endpointów
 3. Przetestuj scenariusze błędów i przypadki brzegowe
 4. Przeprowadź testy bezpieczeństwa (np. próby ataków brute force)
 
 ### Dokumentacja
+
 1. Zaktualizuj dokumentację API dla obu endpointów
 2. Dodaj przykłady użycia do dokumentacji
 3. Opisz kody statusów i komunikaty błędów
 
 ### Wdrożenie
+
 1. Przegląd kodu przed wdrożeniem
 2. Wdrożenie na środowisku testowym
 3. Testy akceptacyjne
 4. Wdrożenie na środowisku produkcyjnym
-5. Monitoring po wdrożeniu 
+5. Monitoring po wdrożeniu

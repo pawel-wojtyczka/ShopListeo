@@ -6,7 +6,7 @@ name: Continuous Integration for ShopListeo
 on:
   # Uruchamia się na pushach do gałęzi master
   push:
-    branches: [ master ]
+    branches: [master]
 
   # Pozwala na ręczne uruchomienie tego przepływu pracy ze strony Actions na GitHubie
   workflow_dispatch:
@@ -28,8 +28,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4 # Używa akcji actions/setup-node w wersji 4
         with:
-          node-version-file: '.nvmrc' # Odczytuje wersję Node.js z pliku .nvmrc
-          cache: 'npm' # Włącza cache'owanie dla npm
+          node-version-file: ".nvmrc" # Odczytuje wersję Node.js z pliku .nvmrc
+          cache: "npm" # Włącza cache'owanie dla npm
 
       # Krok 3: Instaluje zależności projektu
       # Ten krok użyje cache'a, jeśli zależności nie uległy zmianie
@@ -46,4 +46,4 @@ jobs:
 
       # Krok 6: Buduje aplikację w wersji produkcyjnej
       - name: Build production application
-        run: npm run build 
+        run: npm run build

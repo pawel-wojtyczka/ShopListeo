@@ -1,11 +1,13 @@
 # Plan wdrożenia punktów końcowych API: Zarządzanie użytkownikami
 
 ## 1. Przegląd punktu końcowego
+
 Punkty końcowe API związane z użytkownikami umożliwiają wykonywanie operacji CRUD na użytkownikach systemu. Obejmują one pobieranie listy wszystkich użytkowników (tylko dla administratorów), pobieranie szczegółów konkretnego użytkownika, aktualizację informacji o użytkowniku (w tym hasła) oraz usuwanie konta użytkownika.
 
 ## 2. Szczegóły żądania
 
 ### 2.1. Pobieranie wszystkich użytkowników
+
 - **Metoda HTTP:** GET
 - **Adres URL punktu końcowego:** `/api/users`
 - **Parametry:**
@@ -18,6 +20,7 @@ Punkty końcowe API związane z użytkownikami umożliwiają wykonywanie operacj
 - **Treść żądania:** Brak
 
 ### 2.2. Pobieranie użytkownika według ID
+
 - **Metoda HTTP:** GET
 - **Adres URL punktu końcowego:** `/api/users/{id}`
 - **Parametry:**
@@ -27,6 +30,7 @@ Punkty końcowe API związane z użytkownikami umożliwiają wykonywanie operacj
 - **Treść żądania:** Brak
 
 ### 2.3. Aktualizacja użytkownika
+
 - **Metoda HTTP:** PUT
 - **Adres URL punktu końcowego:** `/api/users/{id}`
 - **Parametry:**
@@ -37,11 +41,12 @@ Punkty końcowe API związane z użytkownikami umożliwiają wykonywanie operacj
   ```json
   {
     "email": "string",
-    "password": "string"  // Opcjonalne - przekazane tylko jeśli aktualizujemy hasło
+    "password": "string" // Opcjonalne - przekazane tylko jeśli aktualizujemy hasło
   }
   ```
 
 ### 2.4. Usuwanie użytkownika
+
 - **Metoda HTTP:** DELETE
 - **Adres URL punktu końcowego:** `/api/users/{id}`
 - **Parametry:**
@@ -51,6 +56,7 @@ Punkty końcowe API związane z użytkownikami umożliwiają wykonywanie operacj
 - **Treść żądania:** Brak
 
 ## 3. Wykorzystywane typy
+
 - **DTO i modele komend:**
   - `UserDTO` – reprezentuje podstawowe informacje o użytkowniku
   - `GetAllUsersResponse` – reprezentuje odpowiedź z listą użytkowników i informacjami o paginacji
@@ -64,6 +70,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 ## 4. Szczegóły odpowiedzi
 
 ### 4.1. Pobieranie wszystkich użytkowników
+
 - **Treść odpowiedzi:**
   ```json
   {
@@ -86,6 +93,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 - **Kod statusu w przypadku sukcesu:** 200 OK
 
 ### 4.2. Pobieranie użytkownika według ID
+
 - **Treść odpowiedzi:**
   ```json
   {
@@ -99,24 +107,27 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 - **Kod statusu w przypadku sukcesu:** 200 OK
 
 ### 4.3. Aktualizacja użytkownika
+
 - **Treść odpowiedzi:**
   ```json
   {
     "id": "uuid",
     "email": "string",
     "updatedDate": "string",
-    "passwordUpdated": "boolean"  // Informacja, czy hasło zostało zaktualizowane
+    "passwordUpdated": "boolean" // Informacja, czy hasło zostało zaktualizowane
   }
   ```
 - **Kod statusu w przypadku sukcesu:** 200 OK
 
 ### 4.4. Usuwanie użytkownika
+
 - **Treść odpowiedzi:** Brak (pusta odpowiedź)
 - **Kod statusu w przypadku sukcesu:** 204 No Content
 
 ## 5. Przepływ danych
 
 ### 5.1. Pobieranie wszystkich użytkowników
+
 1. Uwierzytelniony użytkownik z uprawnieniami administratora wysyła żądanie GET z opcjonalnymi parametrami zapytania (page, pageSize, sort, order, emailFilter).
 2. Punkt końcowy waliduje parametry zapytania przy użyciu schematu Zod (sprawdzając poprawność typów i zakresów wartości).
 3. Punkt końcowy weryfikuje, czy użytkownik ma uprawnienia administratora, sprawdzając wartość kolumny `admin` dla bieżącego użytkownika.
@@ -127,6 +138,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 6. W przypadku błędów uwierzytelniania lub autoryzacji, punkt końcowy zwraca odpowiedni kod błędu HTTP.
 
 ### 5.2. Pobieranie użytkownika według ID
+
 1. Uwierzytelniony użytkownik wysyła żądanie GET z identyfikatorem użytkownika jako parametrem ścieżki.
 2. Punkt końcowy waliduje format identyfikatora (UUID).
 3. Punkt końcowy sprawdza, czy żądający użytkownik ma uprawnienia do pobierania danych wskazanego użytkownika:
@@ -140,6 +152,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 6. W przypadku gdy użytkownik nie zostanie znaleziony lub żądający nie ma odpowiednich uprawnień, zwracany jest odpowiedni kod błędu.
 
 ### 5.3. Aktualizacja użytkownika
+
 1. Uwierzytelniony użytkownik wysyła żądanie PUT z identyfikatorem użytkownika jako parametrem ścieżki i nowymi danymi w treści żądania.
 2. Punkt końcowy waliduje format identyfikatora (UUID) oraz treść żądania (sprawdzając poprawność pól email i password, jeśli są obecne).
 3. Punkt końcowy sprawdza, czy żądający użytkownik ma uprawnienia do aktualizacji danych wskazanego użytkownika:
@@ -154,6 +167,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 7. W przypadku błędów walidacji, autoryzacji lub konfliktu adresu email, zwracany jest odpowiedni kod błędu.
 
 ### 5.4. Usuwanie użytkownika
+
 1. Uwierzytelniony użytkownik wysyła żądanie DELETE z identyfikatorem użytkownika jako parametrem ścieżki.
 2. Punkt końcowy waliduje format identyfikatora (UUID).
 3. Punkt końcowy sprawdza, czy żądający użytkownik ma uprawnienia do usunięcia wskazanego użytkownika:
@@ -166,6 +180,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 6. W przypadku błędów autoryzacji lub gdy użytkownik nie zostanie znaleziony, zwracany jest odpowiedni kod błędu.
 
 ## 6. Względy bezpieczeństwa
+
 - **Uwierzytelnienie i autoryzacja:**
   - Dostęp do punktów końcowych mają wyłącznie uwierzytelnieni użytkownicy. Token uwierzytelniający jest weryfikowany za pomocą Supabase przy użyciu `context.locals`.
   - Punkt końcowy pobierania wszystkich użytkowników jest dostępny tylko dla administratorów (użytkowników, których ID znajduje się na zdefiniowanej liście administratorów).
@@ -182,6 +197,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
   - Hasła nigdy nie są zwracane w odpowiedziach API, nawet w zahaszowanej formie.
 
 ## 7. Obsługa błędów
+
 - **400 Bad Request:** Zwracany, gdy walidacja parametrów zapytania lub treści żądania nie powiedzie się (np. nieprawidłowy format parametru, brakujące wymagane pola).
 - **401 Unauthorized:** Zwracany, gdy token uwierzytelniający jest nieobecny lub niepoprawny.
 - **403 Forbidden:** Zwracany, gdy użytkownik nie ma wystarczających uprawnień do wykonania operacji (np. próba pobrania wszystkich użytkowników przez nie-administratora lub manipulacja danymi innego użytkownika).
@@ -191,6 +207,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 - Wszystkie błędy powinny być logowane z wystarczającą ilością szczegółów, aby ułatwić diagnozowanie problemu, przy jednoczesnym zachowaniu poufności wrażliwych informacji.
 
 ## 8. Rozważania dotyczące wydajności
+
 - Paginacja jest kluczowa dla optymalizacji wydajności punktu końcowego pobierania wszystkich użytkowników, szczególnie gdy system ma wielu użytkowników.
 - Zapytania do bazy danych powinny wykorzystywać indeksy na kolumnach `id` i `email` dla szybkiego wyszukiwania i sortowania.
 - Filtrowanie przez wzorzec email powinno korzystać z indeksu tekstowego, jeśli jest dostępny w Supabase.
@@ -200,6 +217,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 ## 9. Etapy wdrożenia
 
 ### 9.1. Pobieranie wszystkich użytkowników
+
 1. **Konfiguracja uwierzytelnienia:** Upewnić się, że middleware weryfikuje tokeny uwierzytelniające i ogranicza dostęp do punktu końcowego tylko dla uwierzytelnionych użytkowników.
 2. **Walidacja parametrów zapytania:** Zaimplementować schemat Zod do walidacji parametrów zapytania (page, pageSize, sort, order, emailFilter).
 3. **Implementacja warstwy serwisowej:** Utworzyć funkcję serwisową `getUserService.getAllUsers()`, która obsłuży logikę biznesową pobierania użytkowników z paginacją, sortowaniem i filtrowaniem.
@@ -212,6 +230,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 10. **Dokumentacja:** Zaktualizować dokumentację API oraz przewodniki dla deweloperów o nowy punkt końcowy.
 
 ### 9.2. Pobieranie użytkownika według ID
+
 1. **Konfiguracja uwierzytelnienia:** Upewnić się, że middleware weryfikuje tokeny uwierzytelniające i ogranicza dostęp do punktu końcowego tylko dla uwierzytelnionych użytkowników.
 2. **Walidacja parametru identyfikatora:** Zaimplementować walidację formatu UUID dla parametru ścieżki.
 3. **Implementacja warstwy serwisowej:** Utworzyć funkcję serwisową `userService.getUserById()`, która obsłuży logikę biznesową pobierania użytkownika o określonym ID.
@@ -223,6 +242,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 9. **Dokumentacja:** Zaktualizować dokumentację API oraz przewodniki dla deweloperów o nowy punkt końcowy, jasno dokumentując pole isAdmin w odpowiedzi API.
 
 ### 9.3. Aktualizacja użytkownika
+
 1. **Konfiguracja uwierzytelnienia:** Upewnić się, że middleware weryfikuje tokeny uwierzytelniające i ogranicza dostęp do punktu końcowego tylko dla uwierzytelnionych użytkowników.
 2. **Walidacja parametru identyfikatora:** Zaimplementować walidację formatu UUID dla parametru ścieżki.
 3. **Walidacja danych wejściowych:** Zaimplementować schemat Zod do walidacji pól email i password w treści żądania.
@@ -237,6 +257,7 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 12. **Dokumentacja:** Zaktualizować dokumentację API oraz przewodniki dla deweloperów o nowy punkt końcowy.
 
 ### 9.4. Usuwanie użytkownika
+
 1. **Konfiguracja uwierzytelnienia:** Upewnić się, że middleware weryfikuje tokeny uwierzytelniające i ogranicza dostęp do punktu końcowego tylko dla uwierzytelnionych użytkowników.
 2. **Walidacja parametru identyfikatora:** Zaimplementować walidację formatu UUID dla parametru ścieżki.
 3. **Implementacja warstwy serwisowej:** Utworzyć funkcję serwisową `userService.deleteUser()`, która obsłuży logikę biznesową usuwania użytkownika.
@@ -255,12 +276,14 @@ Te typy są zdefiniowane w pliku `src/types.ts`.
 Zgodnie z istniejącą implementacją w `src/middleware/index.ts`, wszystkie opisane w dokumencie endpointy powinny automatycznie działać w środowisku deweloperskim **bez konieczności ręcznej autoryzacji**. Obecne rozwiązanie działa w następujący sposób:
 
 1. **Wykrywanie środowiska deweloperskiego:**
+
    ```typescript
    // Sprawdzenie czy środowisko jest developmentem
    const isDevelopment = process.env.NODE_ENV === "development";
    ```
 
 2. **Automatyczne przypisanie testowego użytkownika w trybie deweloperskim:**
+
    ```typescript
    // W środowisku deweloperskim automatycznie przypisujemy testowego użytkownika
    if (isDevelopment) {
@@ -298,46 +321,42 @@ Zgodnie z istniejącą implementacją w `src/middleware/index.ts`, wszystkie opi
 Każdy z opisanych endpointów powinien wykorzystywać ten mechanizm poprzez:
 
 1. **Pobieranie informacji o użytkowniku z kontekstu:**
+
    ```typescript
    const { user } = context.locals;
    const userId = user?.id;
-   
+
    // Sprawdzenie czy użytkownik jest dostępny
    if (!userId) {
-     return new Response(JSON.stringify({ error: 'Brak autoryzacji' }), {
+     return new Response(JSON.stringify({ error: "Brak autoryzacji" }), {
        status: 401,
-       headers: { 'Content-Type': 'application/json' }
+       headers: { "Content-Type": "application/json" },
      });
    }
    ```
 
 2. **Sprawdzanie uprawnień administratora:**
+
    ```typescript
    // Sprawdzenie czy użytkownik ma uprawnienia administratora
-   const { data: userData, error: userError } = await supabase
-     .from('users')
-     .select('admin')
-     .eq('id', userId)
-     .single();
+   const { data: userData, error: userError } = await supabase.from("users").select("admin").eq("id", userId).single();
 
    // Weryfikacja uprawnień administratora
    if (userError || !userData || !userData.admin) {
-     return new Response(JSON.stringify({ error: 'Brak uprawnień' }), {
+     return new Response(JSON.stringify({ error: "Brak uprawnień" }), {
        status: 403,
-       headers: { 'Content-Type': 'application/json' }
+       headers: { "Content-Type": "application/json" },
      });
    }
    ```
 
 3. **Wykorzystanie klienta Supabase z kontekstu:**
+
    ```typescript
    const { supabase } = context.locals;
-   
+
    // Przykład operacji na bazie danych
-   const { data, error } = await supabase
-     .from('users')
-     .select('*')
-     .eq('id', userId);
+   const { data, error } = await supabase.from("users").select("*").eq("id", userId);
    ```
 
 ## Uwagi implementacyjne
@@ -347,6 +366,7 @@ Każdy z opisanych endpointów powinien wykorzystywać ten mechanizm poprzez:
 
 2. **Weryfikacja uprawnień administratora:**
    W środowisku deweloperskim należy upewnić się, że testowy użytkownik ma wartość `true` w kolumnie `admin` w bazie danych. Można to ustawić podczas inicjalizacji środowiska deweloperskiego lub poprzez dodatkową logikę w endpointach, która w trybie deweloperskim automatycznie przyznaje uprawnienia administratora:
+
    ```typescript
    // Automatyczne przyznanie uprawnień administratora w trybie deweloperskim
    let isAdmin = false;
@@ -355,17 +375,18 @@ Każdy z opisanych endpointów powinien wykorzystywać ten mechanizm poprzez:
    } else {
      // Sprawdzenie uprawnień w bazie danych
      const { data: userData, error: userError } = await supabase
-       .from('users')
-       .select('admin')
-       .eq('id', userId)
+       .from("users")
+       .select("admin")
+       .eq("id", userId)
        .single();
-     
+
      isAdmin = userData?.admin || false;
    }
    ```
 
 3. **Logowanie:**
    Zachować komunikat logujący informujący o pracy w trybie deweloperskim, co ułatwi diagnostykę podczas testowania:
+
    ```typescript
    if (isDevelopment) {
      console.log(`🔧 Endpoint ${endpointName} działa w trybie deweloperskim (uprawnienia administratora: ${isAdmin})`);
@@ -373,4 +394,4 @@ Każdy z opisanych endpointów powinien wykorzystywać ten mechanizm poprzez:
    ```
 
 4. **Testowanie:**
-   Testy integracyjne powinny uwzględniać zarówno scenariusze z włączonym trybem deweloperskim, jak i z symulowaną autoryzacją produkcyjną, aby zapewnić pełne pokrycie testami. Dodatkowo, testy powinny obejmować scenariusze z użytkownikami posiadającymi różne wartości kolumny `admin`, aby sprawdzić poprawność mechanizmu autoryzacji. Testy powinny też sprawdzać proces aktualizacji hasła, weryfikując czy system poprawnie zapisuje zahaszowane hasło w bazie danych. 
+   Testy integracyjne powinny uwzględniać zarówno scenariusze z włączonym trybem deweloperskim, jak i z symulowaną autoryzacją produkcyjną, aby zapewnić pełne pokrycie testami. Dodatkowo, testy powinny obejmować scenariusze z użytkownikami posiadającymi różne wartości kolumny `admin`, aby sprawdzić poprawność mechanizmu autoryzacji. Testy powinny też sprawdzać proces aktualizacji hasła, weryfikując czy system poprawnie zapisuje zahaszowane hasło w bazie danych.

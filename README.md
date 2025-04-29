@@ -2,10 +2,10 @@
 
 Aplikacja webowa zaprojektowana w celu uproszczenia procesu tworzenia i zarządzania listami zakupów. Główną cechą aplikacji jest wykorzystanie asystenta AI do inteligentnego parsowania tekstu wprowadzonego przez użytkownika i przekształcania go w uporządkowaną listę produktów. Umożliwia tworzenie, edycję list, oznaczanie zakupionych produktów oraz zarządzanie kontem. Zawiera również panel administracyjny.
 
-
 ## Tech Stack
 
 ### Główne Technologie
+
 - **[Astro](https://astro.build/) v5.5.5**: Nowoczesny web framework do budowy szybkich stron (SSR/SSG).
 - **[React](https://react.dev/) v19.0.0**: Biblioteka UI do budowy interaktywnych komponentów.
 - **[TypeScript](https://www.typescriptlang.org/) v5**: Statyczne typowanie dla JavaScript.
@@ -13,12 +13,15 @@ Aplikacja webowa zaprojektowana w celu uproszczenia procesu tworzenia i zarządz
 - **[Shadcn/ui](https://ui.shadcn.com/)**: Biblioteka komponentów UI oparta na Radix UI i Tailwind CSS.
 
 ### Backend & Baza Danych
+
 - **[Supabase](https://supabase.com/)**: Platforma Backend-as-a-Service (BaaS) z bazą danych PostgreSQL, uwierzytelnianiem i API.
 
 ### Sztuczna Inteligencja
+
 - **[OpenRouter.ai](https://openrouter.ai/)**: Agregator API modeli językowych (LLM) do przetwarzania list zakupów.
 
 ### Narzędzia Deweloperskie
+
 - **[ESLint](https://eslint.org/) v9**: Lintowanie kodu.
 - **[Prettier](https://prettier.io/)**: Formatowanie kodu.
 - **[Zod](https://zod.dev/)**: Walidacja schematów danych.
@@ -26,6 +29,7 @@ Aplikacja webowa zaprojektowana w celu uproszczenia procesu tworzenia i zarządz
 - **[Husky](https://typicode.github.io/husky/) & [lint-staged](https://github.com/okonet/lint-staged)**: Git hooks do automatyzacji sprawdzania jakości kodu.
 
 ### Narzędzia Testowe
+
 - **[Vitest](https://vitest.dev/)**: Framework do testów jednostkowych i integracyjnych.
 - **[React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)**: Biblioteka do testowania komponentów React.
 - **[Playwright](https://playwright.dev/)**: Framework do testów End-to-End (E2E).
@@ -62,26 +66,26 @@ Aplikacja webowa zaprojektowana w celu uproszczenia procesu tworzenia i zarządz
 
 ## Dostępne Skrypty
 
--   `npm run dev`: Uruchamia serwer deweloperski Astro.
--   `npm run build`: Buduje aplikację do wdrożenia produkcyjnego.
--   `npm run preview`: Uruchamia podgląd zbudowanej aplikacji produkcyjnej.
--   `npm run astro`: Dostęp do komend CLI Astro.
--   `npm run lint`: Uruchamia ESLint do sprawdzenia jakości kodu.
--   `npm run lint:fix`: Uruchamia ESLint z automatycznym poprawianiem błędów.
--   `npm run format`: Uruchamia Prettier do formatowania kodu.
--   `npm run test`: Uruchamia testy jednostkowe i integracyjne (Vitest).
--   `npm run test:watch`: Uruchamia Vitest w trybie watch.
--   `npm run test:coverage`: Uruchamia testy z generowaniem raportu pokrycia.
--   `npm run test:ui`: Uruchamia interfejs graficzny Vitest UI.
-    *(Uwaga: Skrypty dla Playwright (`test:e2e*`) nie są zdefiniowane w `package.json`)*
+- `npm run dev`: Uruchamia serwer deweloperski Astro.
+- `npm run build`: Buduje aplikację do wdrożenia produkcyjnego.
+- `npm run preview`: Uruchamia podgląd zbudowanej aplikacji produkcyjnej.
+- `npm run astro`: Dostęp do komend CLI Astro.
+- `npm run lint`: Uruchamia ESLint do sprawdzenia jakości kodu.
+- `npm run lint:fix`: Uruchamia ESLint z automatycznym poprawianiem błędów.
+- `npm run format`: Uruchamia Prettier do formatowania kodu.
+- `npm run test`: Uruchamia testy jednostkowe i integracyjne (Vitest).
+- `npm run test:watch`: Uruchamia Vitest w trybie watch.
+- `npm run test:coverage`: Uruchamia testy z generowaniem raportu pokrycia.
+- `npm run test:ui`: Uruchamia interfejs graficzny Vitest UI.
+  _(Uwaga: Skrypty dla Playwright (`test:e2e_`) nie są zdefiniowane w `package.json`)\*
 
 ## Wsparcie Rozwoju z AI
 
 Projekt jest skonfigurowany do współpracy z narzędziami AI w celu usprawnienia procesu deweloperskiego:
 
--   **Cursor IDE:** Reguły AI w katalogu `.cursor/rules/` pomagają IDE zrozumieć strukturę projektu i dostarczać lepsze sugestie kodu.
--   **GitHub Copilot:** Instrukcje dla Copilota znajdują się w `.github/copilot-instructions.md`.
--   **Windsurf:** Plik `.windsurfrules` zawiera konfigurację AI dla Windsurf.
+- **Cursor IDE:** Reguły AI w katalogu `.cursor/rules/` pomagają IDE zrozumieć strukturę projektu i dostarczać lepsze sugestie kodu.
+- **GitHub Copilot:** Instrukcje dla Copilota znajdują się w `.github/copilot-instructions.md`.
+- **Windsurf:** Plik `.windsurfrules` zawiera konfigurację AI dla Windsurf.
 
 ## Testowanie
 
@@ -92,6 +96,7 @@ Projekt ShopListeo wykorzystuje kompleksowe podejście do testowania:
 Oparte na [Vitest](https://vitest.dev/) i [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/). Testują poszczególne komponenty React, hooki, funkcje pomocnicze i logikę serwisów w izolacji lub w małych grupach. Do mockowania API używany jest [MSW](https://mswjs.io/).
 
 Aby uruchomić testy jednostkowe/integracyjne:
+
 ```bash
 # Jednorazowe uruchomienie
 npm run test
@@ -128,7 +133,7 @@ MIT
 
 ## Konfiguracja Supabase Webhooks
 
-Aby poprawnie synchronizować użytkowników między Supabase Auth a tabelą `public.users`, 
+Aby poprawnie synchronizować użytkowników między Supabase Auth a tabelą `public.users`,
 należy skonfigurować webhook w panelu Supabase:
 
 1. Przejdź do Supabase Dashboard → Project Settings → API → Auth Hooks
@@ -139,7 +144,11 @@ należy skonfigurować webhook w panelu Supabase:
 
 3. Dodaj następujące zmienne środowiskowe do projektu:
 ```
+
 PUBLIC_SUPABASE_URL=https://twój-projekt.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=twój-klucz-service-role
 WEBHOOK_SECRET=twój-losowy-secret
+
+```
+
 ```

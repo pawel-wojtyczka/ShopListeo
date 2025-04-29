@@ -14,15 +14,17 @@
   ```
 
 ### Wymagania dotyczące hasła:
+
 - Minimum 8 znaków
 - Przynajmniej jedna wielka litera
 - Przynajmniej jedna mała litera
 - Przynajmniej jedna cyfra
-- Przynajmniej jeden znak specjalny (!@#$%^&*()_+{}[]:;<>,.?~\\/-)
+- Przynajmniej jeden znak specjalny (!@#$%^&\*()\_+{}[]:;<>,.?~\\/-)
 
 ### Przykłady wywołania
 
 #### cURL
+
 ```bash
 curl -X POST "https://shoplisteo.example.com/api/auth/register" \
   -H "Content-Type: application/json" \
@@ -33,34 +35,38 @@ curl -X POST "https://shoplisteo.example.com/api/auth/register" \
 ```
 
 #### Postman
+
 1. Ustaw metodę na **POST**
 2. Wprowadź URL: `https://shoplisteo.example.com/api/auth/register`
 3. Przejdź do zakładki **Body**
 4. Wybierz format **raw** i typ **JSON**
 5. Wprowadź dane:
+
 ```json
 {
   "email": "nowy@example.com",
   "password": "Haslo123!"
 }
 ```
+
 6. Kliknij przycisk **Send**
 
 #### Fetch API (JavaScript)
+
 ```javascript
-fetch('https://shoplisteo.example.com/api/auth/register', {
-  method: 'POST',
+fetch("https://shoplisteo.example.com/api/auth/register", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    email: 'nowy@example.com',
-    password: 'Haslo123!'
-  })
+    email: "nowy@example.com",
+    password: "Haslo123!",
+  }),
 })
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Błąd:', error));
+  .then((response) => response.json())
+  .then((data) => console.log(data))
+  .catch((error) => console.error("Błąd:", error));
 ```
 
 ### Przykładowa odpowiedź (sukces - 201 Created)
@@ -79,10 +85,7 @@ fetch('https://shoplisteo.example.com/api/auth/register', {
 ```json
 {
   "error": "Nieprawidłowe dane rejestracji",
-  "details": [
-    "Hasło musi zawierać co najmniej 8 znaków",
-    "Hasło musi zawierać co najmniej jedną wielką literę"
-  ]
+  "details": ["Hasło musi zawierać co najmniej 8 znaków", "Hasło musi zawierać co najmniej jedną wielką literę"]
 }
 ```
 
@@ -117,6 +120,7 @@ fetch('https://shoplisteo.example.com/api/auth/register', {
 ### Przykłady wywołania
 
 #### cURL
+
 ```bash
 curl -X POST "https://shoplisteo.example.com/api/auth/login" \
   -H "Content-Type: application/json" \
@@ -127,34 +131,38 @@ curl -X POST "https://shoplisteo.example.com/api/auth/login" \
 ```
 
 #### Postman
+
 1. Ustaw metodę na **POST**
 2. Wprowadź URL: `https://shoplisteo.example.com/api/auth/login`
 3. Przejdź do zakładki **Body**
 4. Wybierz format **raw** i typ **JSON**
 5. Wprowadź dane:
+
 ```json
 {
   "email": "user@example.com",
   "password": "Haslo123!"
 }
 ```
+
 6. Kliknij przycisk **Send**
 
 #### Fetch API (JavaScript)
+
 ```javascript
-fetch('https://shoplisteo.example.com/api/auth/login', {
-  method: 'POST',
+fetch("https://shoplisteo.example.com/api/auth/login", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'Haslo123!'
-  })
+    email: "user@example.com",
+    password: "Haslo123!",
+  }),
 })
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Błąd:', error));
+  .then((response) => response.json())
+  .then((data) => console.log(data))
+  .catch((error) => console.error("Błąd:", error));
 ```
 
 ### Przykładowa odpowiedź (sukces - 200 OK)
@@ -172,10 +180,7 @@ fetch('https://shoplisteo.example.com/api/auth/login', {
 ```json
 {
   "error": "Nieprawidłowe dane logowania",
-  "details": [
-    "Podaj poprawny adres email",
-    "Podaj hasło"
-  ]
+  "details": ["Podaj poprawny adres email", "Podaj hasło"]
 }
 ```
 
@@ -205,12 +210,14 @@ Authorization: Bearer {token}
 ### Przykład wykorzystania tokenu
 
 #### cURL
+
 ```bash
 curl -X GET "https://shoplisteo.example.com/api/shopping-lists" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 #### Postman
+
 1. Ustaw metodę na **GET**
 2. Wprowadź URL: `https://shoplisteo.example.com/api/shopping-lists`
 3. Przejdź do zakładki **Headers**
@@ -220,16 +227,17 @@ curl -X GET "https://shoplisteo.example.com/api/shopping-lists" \
 5. Kliknij przycisk **Send**
 
 #### Fetch API (JavaScript)
+
 ```javascript
-fetch('https://shoplisteo.example.com/api/shopping-lists', {
-  method: 'GET',
+fetch("https://shoplisteo.example.com/api/shopping-lists", {
+  method: "GET",
   headers: {
-    'Authorization': `Bearer ${token}`
-  }
+    Authorization: `Bearer ${token}`,
+  },
 })
-.then(response => response.json())
-.then(data => console.log(data))
-.catch(error => console.error('Błąd:', error));
+  .then((response) => response.json())
+  .then((data) => console.log(data))
+  .catch((error) => console.error("Błąd:", error));
 ```
 
 ## Ważność tokenu
@@ -244,4 +252,4 @@ W przypadku nieprawidłowego lub wygasłego tokenu, serwer zwróci odpowiedź z 
 {
   "error": "Nieprawidłowy token uwierzytelniający"
 }
-``` 
+```

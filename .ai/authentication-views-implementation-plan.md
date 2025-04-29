@@ -1,9 +1,11 @@
 # Plan implementacji widoków Autentykacji
 
 ## 1. Przegląd
+
 Zestaw widoków autentykacji (`LoginView`, `RegisterView`, `RequestPasswordResetView`, `SetNewPasswordView`) odpowiada za proces logowania, rejestracji oraz odzyskiwania hasła przez użytkownika. Widoki te są zazwyczaj dostępne dla niezalogowanych użytkowników i stanowią punkt wejścia do aplikacji. Wykorzystują minimalistyczny design zgodny z resztą aplikacji i integrują się z endpointami API `/api/auth`.
 
 ## 2. Routing widoków
+
 - **Logowanie**: `/login`
 - **Rejestracja**: `/register`
 - **Żądanie resetowania hasła**: `/reset-password`
@@ -48,21 +50,25 @@ AuthLayout (prosty layout bez nawigacji bocznej)
 ## 4. Szczegóły komponentów
 
 ### `AuthLayout`
+
 - **Opis**: Prosty kontener dla widoków autentykacji, zazwyczaj centrujący zawartość na stronie, bez nawigacji bocznej.
 - **Główne elementy**: `div` lub `main`.
 - **Propsy**: `children`.
 
 ### `LoginView` / `RegisterView` / `RequestPasswordResetView` / `SetNewPasswordView`
+
 - **Opis**: Główne komponenty dla każdej ze stron autentykacji. Renderują odpowiedni nagłówek i formularz.
 - **Główne elementy**: `PageHeader`, odpowiedni komponent formularza (`LoginForm`, `RegisterForm`, etc.).
 - **Propsy**: Brak (mogą pobierać dane z kontekstu lub hooków).
 
 ### `PageHeader`
+
 - **Opis**: Wyświetla tytuł strony (np. "Zaloguj się").
 - **Główne elementy**: `<h1>`.
 - **Propsy**: `title: string`.
 
 ### `LoginForm`
+
 - **Opis**: Formularz logowania zarządzany przez `react-hook-form`.
 - **Główne elementy**: `form`, `EmailInput`, `PasswordInput`, `RememberMeCheckbox`, `SubmitButton`, `Links`.
 - **Obsługiwane interakcje**: `onSubmit`.
@@ -71,6 +77,7 @@ AuthLayout (prosty layout bez nawigacji bocznej)
 - **Propsy**: `onSubmit: (data: LoginUserRequest) => Promise<void>`, `isSubmitting: boolean`, `apiError: string | null`.
 
 ### `RegisterForm`
+
 - **Opis**: Formularz rejestracji zarządzany przez `react-hook-form`.
 - **Główne elementy**: `form`, `EmailInput`, `PasswordInput`, `ConfirmPasswordInput`, `SubmitButton`, `Link` (do logowania).
 - **Obsługiwane interakcje**: `onSubmit`.
@@ -79,6 +86,7 @@ AuthLayout (prosty layout bez nawigacji bocznej)
 - **Propsy**: `onSubmit: (data: RegisterUserRequest) => Promise<void>`, `isSubmitting: boolean`, `apiError: string | null`.
 
 ### `RequestPasswordResetForm`
+
 - **Opis**: Formularz do żądania linku resetującego hasło.
 - **Główne elementy**: `form`, `EmailInput`, `SubmitButton`, `Link` (do logowania).
 - **Obsługiwane interakcje**: `onSubmit`.
@@ -87,6 +95,7 @@ AuthLayout (prosty layout bez nawigacji bocznej)
 - **Propsy**: `onSubmit: (email: string) => Promise<void>`, `isSubmitting: boolean`, `apiError: string | null`, `successMessage: string | null`.
 
 ### `SetNewPasswordForm`
+
 - **Opis**: Formularz do ustawienia nowego hasła.
 - **Główne elementy**: `form`, `PasswordInput`, `ConfirmPasswordInput`, `SubmitButton`.
 - **Obsługiwane interakcje**: `onSubmit`.
@@ -95,20 +104,24 @@ AuthLayout (prosty layout bez nawigacji bocznej)
 - **Propsy**: `onSubmit: (password: string) => Promise<void>`, `isSubmitting: boolean`, `apiError: string | null`, `token: string` (pobrany z URL).
 
 ### Wspólne komponenty formularzy (`EmailInput`, `PasswordInput`, `ConfirmPasswordInput`, `RememberMeCheckbox`, `SubmitButton`, `Links`)
+
 - **Opis**: Standardowe komponenty formularza (Shadcn `Input`, `Checkbox`, `Button`, `Label`) zintegrowane z `react-hook-form`, wyświetlające etykiety i błędy walidacji. `Links` zawiera linki do innych stron autentykacji.
 - **Obsługiwana walidacja**: Na poziomie formularza nadrzędnego.
 - **Propsy**: Rejestracja `react-hook-form`, `label`, ewentualnie `type` dla inputów.
 
 ## 5. Typy
+
 - **Istniejące typy (z `src/types.ts`)**: `RegisterUserRequest`, `RegisterUserResponse`, `LoginUserRequest`, `LoginUserResponse`.
 - **Nowe typy ViewModel**: Zazwyczaj nie są potrzebne złożone ViewModele dla tych widoków; stan jest zarządzany głównie przez `react-hook-form` i proste stany hooków (`isLoading`, `error`, `successMessage`).
 
 ## 6. Zarządzanie stanem
+
 - **Stan formularzy**: Zarządzany przez `react-hook-form` w każdym komponencie formularza (`LoginForm`, `RegisterForm`, etc.). Hook ten obsługuje wartości pól, walidację i stan przesyłania (`isSubmitting`).
 - **Stan widoku**: Proste stany zarządzane przez `useState` w głównych komponentach widoku (`LoginView`, `RegisterView`, etc.) do obsługi ogólnych błędów API (`apiError`) lub komunikatów sukcesu (`successMessage`).
 - **Stan autentykacji (globalny)**: Po pomyślnym zalogowaniu lub rejestracji, stan autentykacji użytkownika (np. dane użytkownika, token) powinien być zapisany w globalnym stanie aplikacji (np. w kontekście React, Zustand store) i potencjalnie w `localStorage` (dla opcji "Zapamiętaj mnie"). Należy również obsłużyć przekierowanie do odpowiedniego widoku (`/` lub `/admin/users`).
 
 ## 7. Integracja API
+
 - **Logowanie (`LoginForm`)**: Wywołuje `POST /api/auth/login` z danymi typu `LoginUserRequest`. Oczekuje odpowiedzi `LoginUserResponse`.
 - **Rejestracja (`RegisterForm`)**: Wywołuje `POST /api/auth/register` z danymi typu `RegisterUserRequest`. Oczekuje odpowiedzi `RegisterUserResponse`.
 - **Resetowanie hasła (`RequestPasswordResetForm`)**: Wywołuje funkcję Supabase Auth (`supabase.auth.resetPasswordForEmail`) bezpośrednio (lub przez dedykowany endpoint API, jeśli logika ma być po stronie serwera) do wysłania emaila resetującego.
@@ -116,23 +129,27 @@ AuthLayout (prosty layout bez nawigacji bocznej)
 - **Obsługa tokenu**: Po zalogowaniu/rejestracji, otrzymany token JWT jest zapisywany (np. w `localStorage` dla "Zapamiętaj mnie", lub w stanie globalnym/pamięci dla sesji) i używany do autoryzacji kolejnych zapytań API.
 
 ## 8. Interakcje użytkownika
+
 - **Wprowadzanie danych**: Standardowe interakcje z polami formularzy.
 - **Wysyłanie formularza**: Wywołuje odpowiednią funkcję API/Supabase.
 - **Klikanie linków**: Nawigacja między widokami logowania, rejestracji, resetowania hasła.
 - **Zaznaczenie "Zapamiętaj mnie"**: Wpływa na sposób przechowywania tokenu JWT.
 
 ## 9. Warunki i walidacja
+
 - **Walidacja pól**: Implementowana w `react-hook-form` z użyciem schematów Zod (zdefiniowanych w planie implementacji endpointów) lub reguł walidacji `react-hook-form`. Błędy wyświetlane przy polach.
 - **Zgodność haseł**: Walidacja w `RegisterForm` i `SetNewPasswordForm`.
 - **Przyciski Submit**: Wyłączone (`disabled`) podczas wysyłania (`isSubmitting`).
 - **Wyświetlanie błędów API**: Ogólne błędy API (np. "Nieprawidłowe dane logowania", "Email już istnieje") wyświetlane w obrębie formularza.
 
 ## 10. Obsługa błędów
+
 - **Błędy walidacji klienta**: Obsługiwane przez `react-hook-form`, wyświetlane przy polach.
 - **Błędy API (4xx, 5xx)**: Wyświetlane jako ogólny komunikat błędu w formularzu (`apiError`).
 - **Sukces (Rejestracja/Reset)**: Po udanej rejestracji następuje automatyczne logowanie i przekierowanie. Po udanym żądaniu resetu hasła lub ustawieniu nowego hasła, wyświetlany jest komunikat sukcesu (`successMessage`) i/lub następuje przekierowanie do logowania.
 
 ## 11. Kroki implementacji
+
 1.  **Routing**: Skonfigurować routing w Astro dla ścieżek `/login`, `/register`, `/reset-password`, `/set-new-password` renderujących odpowiednie komponenty React.
 2.  **Layout (`AuthLayout`)**: Stworzyć prosty layout centrujący zawartość.
 3.  **Komponent `LoginView` i `LoginForm`**: Zaimplementować formularz logowania z `react-hook-form`, walidacją, integracją z `POST /api/auth/login`, obsługą "Zapamiętaj mnie", zapisem tokenu, globalnym stanem autentykacji i przekierowaniem.
@@ -143,4 +160,4 @@ AuthLayout (prosty layout bez nawigacji bocznej)
 8.  **Globalny Stan Autentykacji**: Zaimplementować mechanizm (np. Context API, Zustand) do zarządzania stanem zalogowania użytkownika i tokenem JWT.
 9.  **Obsługa Błędów API**: Zaimplementować spójny sposób wyświetlania błędów API w formularzach.
 10. **Styling**: Dopracować style Tailwind zgodnie z minimalistycznym designem i paletą niebieskich kolorów.
-11. **Testowanie**: Napisać testy jednostkowe dla walidacji formularzy oraz testy integracyjne dla całych przepływów autentykacji. 
+11. **Testowanie**: Napisać testy jednostkowe dla walidacji formularzy oraz testy integracyjne dla całych przepływów autentykacji.
