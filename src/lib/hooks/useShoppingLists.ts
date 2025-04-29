@@ -186,80 +186,83 @@ export function useShoppingLists({
   };
 
   // Funkcja do usuwania listy zakupów
-  const deleteList = async (listId: string): Promise<void> => {
-    // Auth check removed
-    const listToDelete = viewModel.lists.find((list) => list.id === listId);
-    const listTitle = listToDelete?.title || "Lista zakupów";
-    setViewModel((prev) => ({
-      ...prev,
-      lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: true } : list)),
-    }));
+  const deleteList = useCallback(
+    async (listId: string): Promise<void> => {
+      // Auth check removed
+      const listToDelete = viewModel.lists.find((list) => list.id === listId);
+      const listTitle = listToDelete?.title || "Lista zakupów";
+      setViewModel((prev) => ({
+        ...prev,
+        lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: true } : list)),
+      }));
 
-    try {
-      // Headers: Remove Authorization header logic
-      const headers: Record<string, string> = {};
-      /*
+      try {
+        // Headers: Remove Authorization header logic
+        const headers: Record<string, string> = {};
+        /*
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
       */
 
-      // Use the NEW client-specific endpoint - Updated to new path
-      const response = await fetch(`/api/shopping-lists/${listId}`, {
-        method: "DELETE",
-        headers: headers,
-        credentials: "include", // Keep this
-      });
+        // Use the NEW client-specific endpoint - Updated to new path
+        const response = await fetch(`/api/shopping-lists/${listId}`, {
+          method: "DELETE",
+          headers: headers,
+          credentials: "include", // Keep this
+        });
 
-      if (!response.ok) {
-        // Revert optimistic update
+        if (!response.ok) {
+          // Revert optimistic update
+          setViewModel((prev) => ({
+            ...prev,
+            lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: false } : list)),
+          }));
+
+          // Try to parse error, default to status text
+          let errorJson = { message: response.statusText };
+          try {
+            errorJson = await response.json();
+          } catch (_) {
+            /* Ignore parsing error - fix linter */
+          }
+
+          if (response.status === 401) {
+            throw new Error("Sesja wygasła lub użytkownik nie jest zalogowany.");
+          }
+          if (response.status === 404) {
+            throw new Error("Nie znaleziono listy do usunięcia.");
+          }
+          throw new Error(
+            `Błąd podczas usuwania listy (${response.status}): ${errorJson.message || "Nieznany błąd API"}`
+          );
+        }
+
+        // Status 204 No Content on successful delete
+        setViewModel((prev) => ({
+          ...prev,
+          lists: prev.lists.filter((list) => list.id !== listId),
+          pagination: prev.pagination ? { ...prev.pagination, totalItems: prev.pagination.totalItems - 1 } : null,
+        }));
+        showSuccessToast("Lista zakupów została usunięta", {
+          description: `Lista "${listTitle}" została pomyślnie usunięta.`,
+          duration: 3000, // Standardowa długość dla powiadomień o sukcesie
+        });
+      } catch (_err) {
+        // Revert optimistic update on error
         setViewModel((prev) => ({
           ...prev,
           lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: false } : list)),
+          error: _err instanceof Error ? _err.message : "Nieznany błąd podczas usuwania listy",
         }));
-
-        // Try to parse error, default to status text
-        let errorJson = { message: response.statusText };
-        try {
-          errorJson = await response.json();
-        } catch (_) {
-          /* Ignore parsing error - fix linter */
-        }
-
-        if (response.status === 401) {
-          throw new Error("Sesja wygasła lub użytkownik nie jest zalogowany.");
-        }
-        if (response.status === 404) {
-          throw new Error("Nie znaleziono listy do usunięcia.");
-        }
-        throw new Error(
-          `Błąd podczas usuwania listy (${response.status}): ${errorJson.message || "Nieznany błąd API"}`
-        );
+        showErrorToast("Nie udało się usunąć listy zakupów", {
+          description: _err instanceof Error ? _err.message : "Nieznany błąd podczas usuwania listy",
+          duration: 5000, // Dłuższy czas dla błędów
+        });
       }
-
-      // Status 204 No Content on successful delete
-      setViewModel((prev) => ({
-        ...prev,
-        lists: prev.lists.filter((list) => list.id !== listId),
-        pagination: prev.pagination ? { ...prev.pagination, totalItems: prev.pagination.totalItems - 1 } : null,
-      }));
-      showSuccessToast("Lista zakupów została usunięta", {
-        description: `Lista "${listTitle}" została pomyślnie usunięta.`,
-        duration: 3000, // Standardowa długość dla powiadomień o sukcesie
-      });
-    } catch (_err) {
-      // Revert optimistic update on error
-      setViewModel((prev) => ({
-        ...prev,
-        lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: false } : list)),
-        error: _err instanceof Error ? _err.message : "Nieznany błąd podczas usuwania listy",
-      }));
-      showErrorToast("Nie udało się usunąć listy zakupów", {
-        description: _err instanceof Error ? _err.message : "Nieznany błąd podczas usuwania listy",
-        duration: 5000, // Dłuższy czas dla błędów
-      });
-    }
-  };
+    },
+    [viewModel, setViewModel]
+  );
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteList = useCallback(
