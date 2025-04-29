@@ -19,8 +19,6 @@ test.describe("User Registration", () => {
   // Test case for successful registration (Happy Path)
   test("should allow a user to register successfully with valid credentials", async ({ page }: { page: Page }) => {
     // Generate a unique email with timestamp and random digits
-    const timestamp = Date.now();
-    const randomDigits = Math.floor(100 + Math.random() * 900); // Generate 3 random digits (100-999)
     const randomId = Math.random().toString(36).substring(7);
     const testEmail = `test-user-${randomId}@e2etest.shoplisteo.local`;
     const testPassword = "password123";
@@ -101,8 +99,6 @@ test.describe("User Registration", () => {
     const shortPassword = "short";
 
     // Generate a unique email with timestamp and random digits
-    const timestamp = Date.now();
-    const randomDigits = Math.floor(100 + Math.random() * 900);
     const randomId = Math.random().toString(36).substring(7);
     const testEmail = `test-user-${randomId}@e2etest.shoplisteo.local`;
 
@@ -122,8 +118,6 @@ test.describe("User Registration", () => {
   // Test case for attempting registration with mismatching passwords
   test("should show an error message when passwords do not match", async () => {
     // Generate a unique email with timestamp and random digits
-    const timestamp = Date.now();
-    const randomDigits = Math.floor(100 + Math.random() * 900);
     const randomId = Math.random().toString(36).substring(7);
     const testEmail = `test-user-${randomId}@e2etest.shoplisteo.local`;
 
