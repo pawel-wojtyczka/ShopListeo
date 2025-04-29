@@ -13,7 +13,6 @@ const RecoverPasswordView: React.FC = () => {
 
     try {
       // This is just a placeholder - actual password recovery logic will be implemented later
-      console.log("Password recovery attempt for:", email);
 
       // Simulate API request delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -29,7 +28,6 @@ const RecoverPasswordView: React.FC = () => {
           "Sprawdź swoją skrzynkę odbiorczą (oraz folder spam)."
       );
     } catch (error) {
-      console.error("Password recovery error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);

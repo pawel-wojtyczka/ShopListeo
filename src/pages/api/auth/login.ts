@@ -16,7 +16,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Sprawdzanie dostępności klienta Supabase
   const supabase = (locals as AstroLocals)?.supabase;
   if (!supabase) {
-    console.error("API /auth/login: Supabase client not found in locals");
     return new Response(JSON.stringify({ message: "Błąd serwera - brak połączenia z usługą autoryzacji." }), {
       status: 500,
     });
@@ -27,15 +26,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     requestData = await request.json();
   } catch (error) {
-    console.error("API /auth/login: Invalid JSON", error);
-    return new Response(JSON.stringify({ message: "Nieprawidłowy format danych." }), { status: 400 });
+    return new Response(JSON.stringify({ message: "Invalid JSON" }), { status: 400 });
   }
 
   // Walidacja danych wejściowych
   const validationResult = LoginSchema.safeParse(requestData);
   if (!validationResult.success) {
     const formattedErrors = validationResult.error.format();
-    console.error("API /auth/login: Validation error", formattedErrors);
     return new Response(
       JSON.stringify({
         message: "Błąd walidacji danych.",
@@ -46,7 +43,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const { email, password } = validationResult.data;
-  console.log(`API /auth/login: Login attempt for ${email}`);
 
   try {
     // Próba logowania przez Supabase Auth
@@ -57,20 +53,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Obsługa błędu logowania
     if (error) {
-      console.error("API /auth/login: Supabase auth error", error);
-
       // Zwracamy ogólny komunikat dla bezpieczeństwa
       return new Response(JSON.stringify({ message: "Nieprawidłowy email lub hasło." }), { status: 401 });
     }
 
     // Sprawdzenie czy mamy poprawne dane użytkownika i sesji
     if (!data.user || !data.session) {
-      console.error("API /auth/login: Missing user or session data");
       return new Response(JSON.stringify({ message: "Błąd autoryzacji - brak danych użytkownika." }), { status: 500 });
     }
 
     // Logowanie pomyślne - budujemy odpowiedź
-    console.log(`API /auth/login: Login successful for user: ${data.user.email}`);
 
     // Przygotowanie odpowiedzi - usunięto zwracanie tokenu
     const responseBody: Omit<LoginUserResponse, "token"> = {
@@ -84,7 +76,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("API /auth/login: Unexpected error during login", error);
-    return new Response(JSON.stringify({ message: "Wystąpił nieoczekiwany błąd podczas logowania." }), { status: 500 });
+    return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
   }
 };

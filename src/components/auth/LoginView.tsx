@@ -29,11 +29,9 @@ const LoginView: React.FC = () => {
       }
 
       // Przekierowanie po pomyślnym zalogowaniu na stronę list zakupowych
-      console.log("Login successful:", data);
       showSuccessToast("Zalogowano pomyślnie!");
       window.location.href = "/";
     } catch (error) {
-      console.error("Login error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd");
     } finally {
       setIsSubmitting(false);

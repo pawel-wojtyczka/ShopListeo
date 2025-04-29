@@ -15,7 +15,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Sprawdzanie dostępności klienta Supabase
   const supabase = (locals as AstroLocals)?.supabase;
   if (!supabase) {
-    console.error("API /auth/register: Supabase client not found in locals");
     return new Response(JSON.stringify({ message: "Błąd serwera - brak połączenia z usługą autoryzacji." }), {
       status: 500,
     });
@@ -25,16 +24,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let requestData;
   try {
     requestData = await request.json();
-  } catch (error) {
-    console.error("API /auth/register: Invalid JSON", error);
-    return new Response(JSON.stringify({ message: "Nieprawidłowy format danych." }), { status: 400 });
+  } catch (_error) {
+    return new Response(JSON.stringify({ message: "Invalid JSON" }), { status: 400 });
   }
 
   // Walidacja danych wejściowych
   const validationResult = RegisterSchema.safeParse(requestData);
   if (!validationResult.success) {
     const formattedErrors = validationResult.error.format();
-    console.error("API /auth/register: Validation error", formattedErrors);
     return new Response(
       JSON.stringify({
         message: "Błąd walidacji danych.",
@@ -45,7 +42,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const { email, password } = validationResult.data;
-  console.log(`API /auth/register: Registration attempt for ${email}`);
 
   try {
     // Rejestracja nowego użytkownika przez Supabase Auth
@@ -65,8 +61,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Obsługa błędu rejestracji
     if (error) {
-      console.error("API /auth/register: Supabase auth error", error);
-
       // Sprawdzanie typowych błędów
       if (error.message.includes("already registered")) {
         return new Response(JSON.stringify({ message: "Użytkownik z tym adresem email już istnieje." }), {
@@ -79,25 +73,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Sprawdzenie czy mamy poprawne dane użytkownika
     if (!data.user) {
-      console.error("API /auth/register: Missing user data");
       return new Response(JSON.stringify({ message: "Błąd rejestracji - brak danych użytkownika." }), { status: 500 });
     }
 
-    console.log(`API /auth/register: Registration successful for user: ${data.user.email}`);
-
     // Po pomyślnej rejestracji automatycznie logujemy użytkownika, aby ustawić ciasteczka sesji
     if (process.env.NODE_ENV !== "production" && data.user.email) {
-      console.log("API /auth/register: Auto-login after registration (dev mode) to set session cookies");
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
-        console.error("API /auth/register: Auto-login failed", signInError);
         // Kontynuujemy mimo błędu auto-logowania, rejestracja się powiodła
       } else {
-        console.log("API /auth/register: Auto-login successful, session cookies should be set.");
         // Nie potrzebujemy już tokenu z loginData.session?.access_token
       }
     }
@@ -114,10 +102,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (error) {
-    console.error("API /auth/register: Unexpected error during registration", error);
-    return new Response(JSON.stringify({ message: "Wystąpił nieoczekiwany błąd podczas rejestracji." }), {
-      status: 500,
-    });
+  } catch (_error) {
+    // Globalna obsługa błędów
+    return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
   }
 };

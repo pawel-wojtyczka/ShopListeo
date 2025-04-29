@@ -81,16 +81,12 @@ export const logger = {
     // W zależności od poziomu logowania używamy odpowiedniej metody konsoli
     switch (level) {
       case "debug":
-        console.debug(formattedLog);
         break;
       case "info":
-        console.info(formattedLog);
         break;
       case "warn":
-        console.warn(formattedLog);
         break;
       case "error":
-        console.error(formattedLog);
         break;
     }
 

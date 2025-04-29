@@ -24,7 +24,6 @@ test.describe("User Registration", () => {
     const testPassword = "password123";
 
     // Log the email being used
-    console.log(`Attempting registration with email: ${testEmail}`);
 
     // Fill the registration form
     await registrationPage.fillEmail(testEmail);

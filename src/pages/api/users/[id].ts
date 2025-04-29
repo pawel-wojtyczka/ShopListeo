@@ -16,11 +16,6 @@ import type { AstroLocals } from "../../../types/locals";
  */
 export const GET: APIRoute = async ({ params, locals }) => {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const endpointName = "GET /api/users/:id";
-
-  if (isDevelopment) {
-    console.log(`🔧 Endpoint ${endpointName} działa w trybie deweloperskim`);
-  }
 
   try {
     // Pobieranie użytkownika z kontekstu
@@ -87,8 +82,6 @@ export const GET: APIRoute = async ({ params, locals }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error(`Błąd podczas pobierania użytkownika:`, error);
-
     return new Response(
       JSON.stringify({
         error: "Wystąpił błąd podczas przetwarzania żądania",
@@ -108,11 +101,6 @@ export const GET: APIRoute = async ({ params, locals }) => {
  */
 export const PUT: APIRoute = async ({ params, request, locals }) => {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const endpointName = "PUT /api/users/{id}";
-
-  if (isDevelopment) {
-    console.log(`🔧 Endpoint ${endpointName} działa w trybie deweloperskim`);
-  }
 
   try {
     // Pobieranie użytkownika z kontekstu
@@ -151,12 +139,6 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     // 2. Administrator może aktualizować dane dowolnego użytkownika
     const isOwnData = currentUserId === targetUserId;
     const isAdmin = await isUserAdmin(supabase, currentUserId, isDevelopment);
-
-    if (isDevelopment) {
-      console.log(
-        `🔧 Endpoint ${endpointName} działa w trybie deweloperskim (uprawnienia administratora: ${isAdmin}, własne dane: ${isOwnData})`
-      );
-    }
 
     if (!isOwnData && !isAdmin) {
       return new Response(JSON.stringify({ error: "Brak uprawnień do aktualizacji danych tego użytkownika" }), {
@@ -221,8 +203,6 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       throw error;
     }
   } catch (error) {
-    console.error(`Błąd podczas aktualizacji użytkownika:`, error);
-
     return new Response(
       JSON.stringify({
         error: "Wystąpił błąd podczas przetwarzania żądania",
@@ -242,11 +222,6 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
  */
 export const DELETE: APIRoute = async ({ params, locals }) => {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const endpointName = "DELETE /api/users/{id}";
-
-  if (isDevelopment) {
-    console.log(`🔧 Endpoint ${endpointName} działa w trybie deweloperskim`);
-  }
 
   try {
     // Pobieranie użytkownika z kontekstu
@@ -286,12 +261,6 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
     const isOwnData = currentUserId === targetUserId;
     const isAdmin = await isUserAdmin(supabase, currentUserId, isDevelopment);
 
-    if (isDevelopment) {
-      console.log(
-        `🔧 Endpoint ${endpointName} działa w trybie deweloperskim (uprawnienia administratora: ${isAdmin}, własne dane: ${isOwnData})`
-      );
-    }
-
     if (!isOwnData && !isAdmin) {
       return new Response(JSON.stringify({ error: "Brak uprawnień do usunięcia tego użytkownika" }), {
         status: 403,
@@ -323,8 +292,6 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
       status: 204,
     });
   } catch (error) {
-    console.error(`Błąd podczas usuwania użytkownika:`, error);
-
     return new Response(
       JSON.stringify({
         error: "Wystąpił błąd podczas przetwarzania żądania",

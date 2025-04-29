@@ -7,9 +7,9 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    "Client-side Supabase URL or Anon Key is missing. Check environment variables (.env file and PUBLIC_ prefix)."
-  );
+  // console.error(
+  //   "Client-side Supabase URL or Anon Key is missing. Check environment variables (.env file and PUBLIC_ prefix)."
+  // );
   throw new Error("Supabase client configuration error: Client URL or Anon Key not found.");
 }
 

@@ -9,7 +9,7 @@ export const createClient = () => ({
     signOut: jest.fn(),
     onAuthStateChange: jest.fn(),
   },
-  from: (table: string) => ({
+  from: (_table: string) => ({
     select: jest.fn().mockReturnThis(),
     insert: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),

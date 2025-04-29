@@ -17,7 +17,6 @@ type SupabaseClient = ReturnType<typeof createClient<Database>>;
 export async function isUserAdmin(supabase: SupabaseClient, userId: string, isDevelopment = false): Promise<boolean> {
   // W trybie deweloperskim wszyscy użytkownicy mają uprawnienia administratora
   if (isDevelopment) {
-    console.log(`🔧 Tryb deweloperski: użytkownik ${userId} ma automatyczne uprawnienia administratora`);
     return true;
   }
 
@@ -29,15 +28,14 @@ export async function isUserAdmin(supabase: SupabaseClient, userId: string, isDe
     const { data, error } = await supabase.from("users").select("id").eq("id", userId).single();
 
     if (error || !data) {
-      console.error("Błąd podczas sprawdzania uprawnień administratora:", error);
       return false;
     }
 
     // Lista ID użytkowników z uprawnieniami administratora
     const adminUserIds = ["4e0a9b6a-b416-48e6-8d35-5700bd1d674a"]; // ID deweloperskie jako przykład
     return adminUserIds.includes(data.id);
-  } catch (error) {
-    console.error("Wyjątek podczas sprawdzania uprawnień administratora:", error);
+  } catch (_error) {
+    // W razie błędu zakładamy, że użytkownik nie jest adminem
     return false;
   }
 }

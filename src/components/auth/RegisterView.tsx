@@ -34,7 +34,6 @@ const RegisterView: React.FC = () => {
       });
       window.location.href = "/";
     } catch (error) {
-      console.error("Registration error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);

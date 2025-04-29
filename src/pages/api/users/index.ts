@@ -10,10 +10,10 @@ import type { AstroLocals } from "../../../types/locals";
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const endpointName = "GET /api/users";
+  // const endpointName = "GET /api/users"; // Usunięto nieużywaną zmienną
 
   if (isDevelopment) {
-    console.log(`🔧 Endpoint ${endpointName} działa w trybie deweloperskim`);
+    // W przyszłości można dodać logowanie dla trybu deweloperskiego
   }
 
   try {
@@ -33,7 +33,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const isAdmin = await isUserAdmin(supabase, currentUserId, isDevelopment);
 
     if (isDevelopment) {
-      console.log(`🔧 Endpoint ${endpointName} działa w trybie deweloperskim (uprawnienia administratora: ${isAdmin})`);
+      // W przyszłości można dodać logowanie dla trybu deweloperskiego
     }
 
     if (!isAdmin) {
@@ -94,8 +94,6 @@ export const GET: APIRoute = async ({ request, locals }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error(`Błąd podczas pobierania użytkowników:`, error);
-
     return new Response(
       JSON.stringify({
         error: "Wystąpił błąd podczas przetwarzania żądania",

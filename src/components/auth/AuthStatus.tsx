@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { LogOut } from "lucide-react";
@@ -14,15 +14,16 @@ const AuthStatus: React.FC = () => {
   // Usunięto propsy z definicji
   const { user: contextUser, logout, isLoading } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  // const [status, setStatus] = useState({}); // Usunięto nieużywany stan
 
   // Dodajemy dodatkowe logowanie, żeby zobaczyć co się dzieje
-  useEffect(() => {
-    console.log("[AuthStatus] Auth state changed:", {
-      contextUser,
-      isLoggedIn: !!contextUser,
-      isLoading,
-    });
-  }, [contextUser, isLoading]);
+  // useEffect(() => { // Usunięto nieużywany efekt
+  //   setStatus({
+  //     user: contextUser,
+  //     isLoggedIn: !!contextUser,
+  //     isLoading,
+  //   });
+  // }, [contextUser, isLoading]);
 
   const handleLoginClick = () => {
     window.location.href = "/login";
@@ -34,7 +35,6 @@ const AuthStatus: React.FC = () => {
 
   const forceLogout = () => {
     // Czyścimy wszystkie możliwe tokeny i dane sesji
-    console.log("[AuthStatus] Performing force logout - clearing all tokens and storage");
 
     // Czyść localStorage
     localStorage.clear();
@@ -52,23 +52,17 @@ const AuthStatus: React.FC = () => {
   };
 
   const handleLogoutClick = async () => {
-    console.log("[AuthStatus] handleLogoutClick triggered!");
     if (isLoggingOut) return;
 
     setIsLoggingOut(true);
 
     try {
-      console.log("[AuthStatus] Attempting to call logout() from context...");
-
       // Najpierw wywołaj standardową funkcję logout
       await logout();
-      console.log("[AuthStatus] Standard logout completed");
 
       // Następnie wykonaj force logout
       forceLogout();
-    } catch (error) {
-      console.error("[AuthStatus] Error during logout:", error);
-
+    } catch (_error) {
       // Nawet jeśli standardowe wylogowanie się nie powiedzie,
       // spróbuj wymusić wylogowanie
       alert("Wystąpił błąd podczas wylogowywania. Próbuję wymusić wylogowanie...");

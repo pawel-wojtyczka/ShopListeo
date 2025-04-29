@@ -3,15 +3,15 @@ import { Input } from "@/components/ui/input"; // Poprawiony import
 import { Button } from "@/components/ui/button"; // Importuj Button
 
 interface EditableShoppingListTitleProps {
+  listId: string;
   initialTitle: string;
-  listId: string; // Będzie potrzebne do wywołania API w przyszłości
-  onUpdateTitle: (newTitle: string) => Promise<void>; // Odkomentowano i dodano typ
+  onTitleUpdate: (newTitle: string) => Promise<void>; // Callback do aktualizacji
 }
 
 const EditableShoppingListTitle: React.FC<EditableShoppingListTitleProps> = ({
+  listId: _listId, // Dodano prefiks `_`
   initialTitle,
-  listId,
-  onUpdateTitle, // Odbierz prop
+  onTitleUpdate,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(initialTitle);
@@ -38,22 +38,19 @@ const EditableShoppingListTitle: React.FC<EditableShoppingListTitleProps> = ({
     }
     // TODO: Dodać lepszą obsługę błędów walidacji (np. komunikat)
     if (trimmedTitle.length > 255) {
-      console.error("Title too long");
       // Tutaj można by ustawić stan błędu i wyświetlić go
       return; // Nie zapisuj
     }
 
     setIsSaving(true);
     try {
-      await onUpdateTitle(trimmedTitle);
-      setIsEditing(false);
-      // Stan `currentTitle` zostanie zaktualizowany przez `useEffect`, gdy `initialTitle` się zmieni
-    } catch (error) {
-      console.error("Failed to update title:", error);
-      // Opcjonalnie: Pokaż błąd użytkownikowi
-      // Wracamy do stanu edycji z niezmienioną wartością?
-      // Albo przywracamy initialTitle?
-      setCurrentTitle(initialTitle); // Na razie przywracamy oryginał
+      await onTitleUpdate(trimmedTitle);
+      setIsEditing(false); // Wyłącz edycję po sukcesie
+    } catch (_error) {
+      // Dodano prefiks `_`
+      // Obsługa błędu (np. toast) powinna być w komponencie nadrzędnym/hooku
+      // Tutaj możemy cofnąć zmiany lokalne, jeśli chcemy
+      setCurrentTitle(initialTitle);
       setIsEditing(false); // Kończymy edycję mimo błędu
     } finally {
       setIsSaving(false);

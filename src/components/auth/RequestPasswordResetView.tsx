@@ -11,7 +11,6 @@ const RequestPasswordResetView: React.FC = () => {
     setIsSubmitting(true);
     setApiError(null);
     setSuccessMessage(null);
-    console.log("Attempting password reset request for:", email);
 
     try {
       const response = await fetch("/api/auth/request-reset", {
@@ -36,15 +35,12 @@ const RequestPasswordResetView: React.FC = () => {
             (responseData.error ? String(responseData.error) : undefined) ||
             errorMessage;
         }
-        console.error("Request reset API error details:", responseData);
         throw new Error(String(errorMessage));
       }
 
       // Set success message from API response
       setSuccessMessage(responseData.message || "Żądanie zostało przetworzone.");
-      console.log("Request reset successful:", responseData.message);
     } catch (error) {
-      console.error("Request reset fetch error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);

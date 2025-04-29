@@ -7,8 +7,8 @@
 - `id` UUID PRIMARY KEY DEFAULT gen_random_uuid()
 - `email` VARCHAR(128) NOT NULL UNIQUE
 - `admin` BOOLEAN NOT NULL DEFAULT FALSE _(Nowa kolumna identyfikująca administratorów)_
-- `updated_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP _(Trigger aktualizuje to pole)_
-- `registration_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP _(Pole dodane przez trigger `handle_new_user`, synchronizowane z `auth.users.created_at`)_
+- `updated_date` TIMESTAMP NOT NULL DEFAULT CURRENT*TIMESTAMP *(Trigger aktualizuje to pole)\_
+- `registration_date` TIMESTAMP NOT NULL DEFAULT CURRENT*TIMESTAMP *(Pole dodane przez trigger `handle_new_user`, synchronizowane z `auth.users.created_at`)\_
 - `last_login_date` TIMESTAMP _(Pole opcjonalne, aktualizowane przez logikę aplikacji lub trigger)_
 - `password_hash` TEXT _(Pole synchronizowane z `auth.users`, hasła zarządzane przez Supabase Auth)_
 
@@ -28,7 +28,7 @@
 - `user_id` UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE
 - `title` VARCHAR(255) NOT NULL
 - `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-- `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP _(Trigger aktualizuje to pole)_
+- `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT*TIMESTAMP *(Trigger aktualizuje to pole)\_
 
 ### 1.4. `shopping_list_items`
 
@@ -37,7 +37,7 @@
 - `item_name` TEXT NOT NULL
 - `purchased` BOOLEAN NOT NULL DEFAULT FALSE
 - `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-- `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP _(Trigger aktualizuje to pole)_
+- `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT*TIMESTAMP *(Trigger aktualizuje to pole)\_
 
 ## 2. Relacje między tabelami
 

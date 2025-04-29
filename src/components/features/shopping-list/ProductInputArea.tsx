@@ -28,7 +28,6 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
     setIsAdding(true);
 
     try {
-      console.log("[ProductInputArea] Starting AI parse for list:", listId);
       const text = trimmedValue;
       if (!text) {
         showErrorToast("Input is empty", { description: "Please enter some text to parse." });
@@ -45,19 +44,11 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
         body: JSON.stringify({ text }),
       });
 
-      console.log("[ProductInputArea] AI parse response status:", response.status);
-
       const responseData = await response.json();
 
       if (!response.ok) {
-        console.error("[ProductInputArea] Błąd API:", responseData);
         throw new Error(responseData.error || responseData.details || "Failed to process text with AI");
       }
-
-      console.log(
-        "[ProductInputArea] Pomyślnie przetworzono tekst, znaleziono produktów:",
-        responseData.products?.length || 0
-      );
 
       // Przetwarzanie produktów z uwzględnieniem statusu purchased
       const products: Product[] = responseData.products.map((product: Product) => ({
@@ -80,7 +71,6 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
       // Usunięto odświeżenie widoku poprzez przeładowanie strony
       // window.location.href = `${window.location.pathname}?_t=${Date.now()}`;
     } catch (error) {
-      console.error("[ProductInputArea] Error:", error);
       showErrorToast("Błąd podczas przetwarzania tekstu", {
         description: error instanceof Error ? error.message : "Nieznany błąd podczas przetwarzania tekstu",
       });

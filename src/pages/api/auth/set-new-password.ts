@@ -15,7 +15,6 @@ const SetNewPasswordSchema = z.object({
 export const POST: APIRoute = async ({ request, locals }) => {
   const supabase = (locals as AstroLocals)?.supabase;
   if (!supabase) {
-    console.error("API Error: Supabase client not found in locals");
     return new Response(JSON.stringify({ message: "Błąd serwera: Klient Supabase niedostępny." }), { status: 500 });
   }
 
@@ -42,8 +41,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const { accessToken, password } = validationResult.data;
 
-  console.log(`API: Received request to set new password.`);
-
   try {
     // Step 1: Verify the access token to get the user context
     const {
@@ -52,7 +49,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     } = await supabase.auth.getUser(accessToken);
 
     if (getUserError || !user) {
-      console.error("API: Failed to verify access token:", getUserError?.message);
       // Use a generic error message for security
       return new Response(
         JSON.stringify({ message: "Link do resetowania hasła jest nieprawidłowy lub wygasł. Spróbuj ponownie." }),
@@ -62,7 +58,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Step 2: If token is valid, update the user's password
     // The user context is now set for the Supabase client for this request
-    console.log(`API: Access token verified for user: ${user.email}. Attempting password update.`);
     const { error: updateError } = await supabase.auth.updateUser({
       password: password,
       // No need to pass accessToken here, context is already set
@@ -70,7 +65,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Check for errors during the update process
     if (updateError) {
-      console.error("API: Supabase updateUser error after token verification:", updateError.message);
       let userMessage = "Nie udało się zaktualizować hasła po weryfikacji tokenu.";
       if (updateError.message.includes("same password")) {
         userMessage = "Nowe hasło nie może być takie samo jak stare.";
@@ -80,16 +74,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Password updated successfully
-    console.log(`API: Password successfully updated for user: ${user.email}`); // Log email obtained from getUser
-
-    return new Response(
-      JSON.stringify({
-        message: "Hasło zostało pomyślnie zaktualizowane. Możesz się teraz zalogować.",
-      }),
-      { status: 200 }
-    );
-  } catch (error: unknown) {
-    console.error("API: Unexpected error during password update:", error);
+    return new Response(JSON.stringify({ message: "Password updated successfully." }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (_error: unknown) {
     return new Response(
       JSON.stringify({ message: "Wystąpił nieoczekiwany błąd serwera podczas aktualizacji hasła." }),
       { status: 500 }

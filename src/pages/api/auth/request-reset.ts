@@ -13,7 +13,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Ensure locals and supabase client are available
   const supabase = (locals as AstroLocals)?.supabase;
   if (!supabase) {
-    console.error("API Error: Supabase client not found in locals");
     return new Response(JSON.stringify({ message: "Błąd serwera: Klient Supabase niedostępny." }), { status: 500 });
   }
 
@@ -40,8 +39,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const { email } = validationResult.data;
 
-  console.log(`API: Received password reset request for email: ${email}`);
-
   try {
     // Call Supabase to send the password reset email
     // Note: Configure email templates and redirect URL in Supabase project settings
@@ -51,22 +48,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     if (error) {
-      console.error("API: Supabase resetPasswordForEmail error:", error.message);
       // Avoid revealing if email exists - return generic success message anyway
       // Or return a specific error for logging but generic for user
       // return new Response(JSON.stringify({ message: error.message || 'Błąd podczas wysyłania emaila.' }), { status: 500 });
     }
 
     // IMPORTANT: Always return a generic success message to prevent email enumeration attacks
-    console.log(`API: Password reset email initiated for ${email} (if user exists).`);
     return new Response(
       JSON.stringify({
         message: "Jeśli konto istnieje, link do resetowania hasła został wysłany na podany adres email.",
       }),
       { status: 200 }
     );
-  } catch (error: unknown) {
-    console.error("API: Unexpected error during password reset request:", error);
-    return new Response(JSON.stringify({ message: "Wystąpił nieoczekiwany błąd serwera." }), { status: 500 });
+  } catch (_error) {
+    // Log the unexpected error for server-side analysis
+    // logger.error("Unexpected error during password reset request", { error: error });
+    return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
   }
 };

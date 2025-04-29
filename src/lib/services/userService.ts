@@ -55,7 +55,6 @@ export async function getAllUsers(
   const { data, error, count } = await query.range(from, to);
 
   if (error) {
-    console.error("Błąd podczas pobierania użytkowników:", error);
     return { data: [], pagination: { totalItems: 0, totalPages: 0, currentPage: page, pageSize } };
   }
 
@@ -105,7 +104,6 @@ export async function getUserById(
     .single();
 
   if (error || !data) {
-    console.error("Błąd podczas pobierania użytkownika:", error);
     return null;
   }
 
@@ -136,7 +134,6 @@ export async function isEmailTaken(supabase: SupabaseClient, email: string, user
 
   if (error && error.code !== "PGRST116") {
     // PGRST116 = No rows returned
-    console.error("Błąd podczas sprawdzania unikalności email:", error);
     // W razie błędu lepiej uznać, że email jest zajęty
     return true;
   }
@@ -196,7 +193,6 @@ export async function updateUser(
     .single();
 
   if (error || !data) {
-    console.error("Błąd podczas aktualizacji użytkownika:", error);
     return null;
   }
 

@@ -41,8 +41,6 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
     return next();
   }
 
-  console.log(`Middleware: Running auth checks for path: ${pathname}`);
-
   // Tworzymy instancję klienta Supabase dla tego żądania
   const supabase = createSupabaseServerInstance({
     headers: request.headers,
@@ -56,7 +54,6 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   let authUser: UserDTO | null = null;
   let isAuthenticated = false;
 
-  console.log("Middleware: Attempting to get user via supabase.auth.getUser()...");
   const { data, error: getUserError } = await supabase.auth.getUser();
 
   // Pobieramy sesję osobno, ponieważ getUser nie zwraca sesji bezpośrednio
@@ -64,18 +61,15 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   const session = sessionData?.session;
 
   if (getUserError || !data.user) {
-    console.log("Middleware: User not found or error. Auth session missing!");
     isAuthenticated = false;
     authUser = null;
   } else {
     // Użytkownik jest zalogowany
     const user = data.user;
-    console.log(`Middleware: User verified: ${user.email}`);
     isAuthenticated = true;
 
     // Jeśli mamy aktywną sesję, ustawiamy token sesji jako cookie
     if (session?.access_token) {
-      console.log("Middleware: Setting supabase specific cookies");
       // Dodajemy specjalne cookie dla Supabase
       cookies.set("sb-access-token", session.access_token, {
         path: "/",
@@ -110,7 +104,6 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   (locals as AstroLocals).user = data.user;
   (locals as AstroLocals & { userDTO: UserDTO | null; isAuthenticated: boolean }).userDTO = authUser;
   (locals as AstroLocals & { userDTO: UserDTO | null; isAuthenticated: boolean }).isAuthenticated = isAuthenticated;
-  console.log("Middleware: Locals set", { isAuthenticated, userId: authUser?.id });
 
   // Sprawdzamy reguły przekierowania
   const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
@@ -119,35 +112,22 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   const isShoppingListApiRoute = SHOPPING_LIST_API_ROUTES.some((route) => pathname.startsWith(route));
   const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route));
 
-  console.log("Middleware: Checking redirects for path:", pathname, {
-    isProtectedRoute,
-    isAuthRoute,
-    isAuthApiRoute,
-    isShoppingListApiRoute,
-    isAdminRoute,
-    isAuthenticated,
-  });
-
   // Przekierowanie na stronę logowania, gdy próbujemy uzyskać dostęp do chronionej strony będąc niezalogowanym
   // (z wyjątkiem ścieżek autoryzacyjnych i API autoryzacji)
   if (isProtectedRoute && !isAuthenticated && !isAuthRoute && !isAuthApiRoute && !isShoppingListApiRoute) {
-    console.log("Middleware: Redirecting to /login (protected route, not authenticated, not auth route)");
     return redirect("/login");
   }
 
   // Przekierowanie na stronę główną, gdy próbujemy uzyskać dostęp do strony autoryzacji będąc zalogowanym
   if (isAuthRoute && isAuthenticated) {
-    console.log("Middleware: Redirecting to / (auth route, authenticated)");
     return redirect("/");
   }
 
   // Przekierowanie na stronę główną, gdy próbujemy uzyskać dostęp do strony admina bez bycia adminem
   if (isAdminRoute && (!isAuthenticated || !authUser?.isAdmin)) {
-    console.log("Middleware: Redirecting to / (admin route, not admin or not authenticated)");
     return redirect("/");
   }
 
   // Brak przekierowania, przechodzimy do żądanej strony
-  console.log("Middleware: No redirect needed, calling next()");
   return await next();
 });

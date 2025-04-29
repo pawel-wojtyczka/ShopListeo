@@ -18,13 +18,10 @@ const SetNewPasswordView: React.FC = () => {
 
       if (token) {
         setAccessToken(token);
-        console.log("Access token found in URL hash.");
       } else {
-        console.error("Access token not found in URL hash.");
         setTokenError("Nie znaleziono wymaganego tokenu w adresie URL. Upewnij się, że link jest poprawny.");
       }
     } catch (e) {
-      console.error("Error parsing URL hash:", e);
       setTokenError("Wystąpił błąd podczas przetwarzania linku resetującego.");
     }
   }, []); // Empty dependency array ensures this runs only once on mount
@@ -38,7 +35,6 @@ const SetNewPasswordView: React.FC = () => {
     setIsSubmitting(true);
     setApiError(null);
     setSuccessMessage(null);
-    console.log("Attempting to set new password...");
 
     try {
       const response = await fetch("/api/auth/set-new-password", {
@@ -62,18 +58,19 @@ const SetNewPasswordView: React.FC = () => {
             (responseData.error ? String(responseData.error) : undefined) ||
             errorMessage;
         }
-        console.error("Set new password API error details:", responseData);
         throw new Error(String(errorMessage));
       }
 
       setSuccessMessage(responseData.message || "Hasło zostało pomyślnie zaktualizowane.");
-      console.log("Set new password successful:", responseData.message);
     } catch (error) {
-      console.error("Set new password fetch error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleFocus = (_e: React.FocusEvent<HTMLInputElement>) => {
+    // Można tutaj dodać logikę, np. czyszczenie błędów dla danego pola
   };
 
   // Render based on token status and API status

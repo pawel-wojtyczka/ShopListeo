@@ -7,14 +7,14 @@ import type { ProductItemViewModel } from "@/lib/hooks/useShoppingListDetail";
 
 interface ProductItemProps {
   item: ProductItemViewModel;
-  listId: string; // Potrzebne dla API
+  _listId: string; // Potrzebne dla API
   // Funkcje obsługi zdarzeń z hooka
   onTogglePurchase: (itemId: string) => Promise<void>;
   onUpdateName: (itemId: string, newName: string) => Promise<void>;
   onDeleteItem: (itemId: string) => Promise<void>;
 }
 
-const ProductItem: React.FC<ProductItemProps> = ({ item, listId, onTogglePurchase, onUpdateName, onDeleteItem }) => {
+const ProductItem: React.FC<ProductItemProps> = ({ item, _listId, onTogglePurchase, onUpdateName, onDeleteItem }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [currentName, setCurrentName] = useState(item.itemName);
 
@@ -41,8 +41,7 @@ const ProductItem: React.FC<ProductItemProps> = ({ item, listId, onTogglePurchas
       try {
         await onUpdateName(item.id, trimmedName);
         // Stan lokalny zostanie zaktualizowany przez useEffect, gdy prop `item.itemName` się zmieni
-      } catch (error) {
-        console.error("Failed to update item name:", error);
+      } catch (_error) {
         setCurrentName(item.itemName); // Przywróć starą nazwę w razie błędu
       }
     } else {
@@ -64,8 +63,7 @@ const ProductItem: React.FC<ProductItemProps> = ({ item, listId, onTogglePurchas
   const handleCheckboxChange = async () => {
     try {
       await onTogglePurchase(item.id);
-    } catch (error) {
-      console.error("Failed to toggle purchase status:", error);
+    } catch (_error) {
       // Stan UI zostanie przywrócony przez hook w razie błędu (optymistyczne UI)
     }
   };
@@ -75,8 +73,7 @@ const ProductItem: React.FC<ProductItemProps> = ({ item, listId, onTogglePurchas
     // TODO: Dodać potwierdzenie usunięcia?
     try {
       await onDeleteItem(item.id);
-    } catch (error) {
-      console.error("Failed to delete item:", error);
+    } catch (_error) {
       // Stan UI zostanie obsłużony przez hook (optymistyczne UI)
     }
   };

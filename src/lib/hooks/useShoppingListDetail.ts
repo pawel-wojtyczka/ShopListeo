@@ -40,14 +40,13 @@ export function useShoppingListDetail(listId: string) {
     async (isRetry = false) => {
       // Jeśli to nie jest ponowna próba, resetujemy stan
       if (!isRetry) {
-        console.log(`[useShoppingListDetail] Fetching details for list ID: ${listId}`);
         setIsLoading(true);
         setError(null);
         setViewModel(null); // Wyczyść poprzednie dane na czas ładowania
       } else {
-        console.log(
-          `[useShoppingListDetail] Retrying fetch for list ID: ${listId}, attempt: ${retryCount.current + 1}`
-        );
+        // console.log( // Usunięte
+        //   `[useShoppingListDetail] Retrying fetch for list ID: ${listId}, attempt: ${retryCount.current + 1}`
+        // );
       }
 
       try {
@@ -80,10 +79,8 @@ export function useShoppingListDetail(listId: string) {
 
         setViewModel(fetchedViewModel);
         retryCount.current = 0; // Resetuj licznik prób po sukcesie
-        console.log("[useShoppingListDetail] List details loaded:", fetchedViewModel);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas pobierania szczegółów listy.";
-        console.error("[useShoppingListDetail] Error fetching details:", errorMessage);
 
         // Sprawdź, czy błąd dotyczy uwierzytelniania i czy możemy spróbować ponownie
         const isAuthError =
@@ -94,9 +91,9 @@ export function useShoppingListDetail(listId: string) {
         if (isAuthError && retryCount.current < maxRetries) {
           // Jeśli to błąd uwierzytelniania, spróbuj ponownie po krótkim opóźnieniu
           retryCount.current += 1;
-          console.log(
-            `[useShoppingListDetail] Auth error detected, scheduling retry #${retryCount.current} in ${retryDelay}ms`
-          );
+          // console.log( // Usunięte
+          //   `[useShoppingListDetail] Auth error detected, scheduling retry #${retryCount.current} in ${retryDelay}ms`
+          // );
 
           // Nie ustawiamy błędu ani nie pokazujemy toastu dla automatycznych ponownych prób
           setTimeout(() => {
@@ -211,7 +208,6 @@ export function useShoppingListDetail(listId: string) {
 
       const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
       if (itemIndex === -1) {
-        console.error(`[toggleItemPurchased] Item with id ${itemId} not found.`);
         showErrorToast("Błąd", {
           description: "Nie znaleziono produktu do zaktualizowania.",
           duration: 5000, // Dłuższy czas dla błędów
@@ -304,7 +300,6 @@ export function useShoppingListDetail(listId: string) {
 
       const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
       if (itemIndex === -1) {
-        console.error(`[deleteItem] Item with id ${itemId} not found.`);
         showErrorToast("Błąd", {
           description: "Nie znaleziono produktu do usunięcia.",
           duration: 5000, // Dłuższy czas dla błędów
@@ -333,7 +328,6 @@ export function useShoppingListDetail(listId: string) {
         }
 
         // Potwierdzenie usunięcia
-        console.log(`[deleteItem] Successfully deleted item ${itemId}`);
         // Nie pokazujemy osobnego toastu dla usunięć, aby nie zaśmiecać interfejsu
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas usuwania produktu.";
@@ -363,7 +357,6 @@ export function useShoppingListDetail(listId: string) {
 
       const itemIndex = viewModel.items.findIndex((item) => item.id === itemId);
       if (itemIndex === -1) {
-        console.error(`[updateItemName] Item with id ${itemId} not found.`);
         showErrorToast("Błąd", {
           description: "Nie znaleziono produktu do zaktualizowania.",
           duration: 5000, // Dłuższy czas dla błędów
@@ -460,7 +453,6 @@ export function useShoppingListDetail(listId: string) {
 
   // Zmieniono nazwę i logikę funkcji - teraz tylko odświeża listę
   const refreshListAfterAiUpdate = useCallback(async () => {
-    console.log("[useShoppingListDetail] Refreshing list details after AI update...");
     // Po prostu wywołaj funkcję pobierającą świeże dane z serwera
     await fetchListDetails();
     // Nie ma potrzeby obsługi błędów tutaj, fetchListDetails ma swoją obsługę

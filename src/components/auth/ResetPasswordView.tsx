@@ -36,7 +36,6 @@ const ResetPasswordView: React.FC = () => {
 
         setIsValidToken(true);
       } catch (error) {
-        console.error("Token validation error:", error);
         setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
         setIsValidToken(false);
       } finally {
@@ -47,7 +46,7 @@ const ResetPasswordView: React.FC = () => {
     validateToken();
   }, []);
 
-  const handleResetPassword = async (password: string) => {
+  const handleResetPassword = async (_password: string) => {
     setIsSubmitting(true);
     setApiError(null);
 
@@ -57,12 +56,12 @@ const ResetPasswordView: React.FC = () => {
       }
 
       // This is just a placeholder - actual password reset logic will be implemented later
-      console.log(
-        "Password reset attempt with token:",
-        token,
-        "and new password:",
-        password.length > 0 ? "********" : ""
-      );
+      // console.log(
+      //   "Password reset attempt with token:",
+      //   token,
+      //   "and new password:",
+      //   password.length > 0 ? "********" : ""
+      // );
 
       // Simulate API request delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -75,7 +74,6 @@ const ResetPasswordView: React.FC = () => {
       // Show success message
       setSuccessMessage("Twoje hasło zostało pomyślnie zresetowane. Możesz teraz zalogować się używając nowego hasła.");
     } catch (error) {
-      console.error("Password reset error:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);

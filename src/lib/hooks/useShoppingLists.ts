@@ -59,13 +59,11 @@ export function useShoppingLists({
   const fetchShoppingLists = useCallback(
     async (page = 1, pageSize = 20) => {
       if (!isAuthenticated || !user) {
-        console.warn("[useShoppingLists] fetchShoppingLists called but user not authenticated.");
         setViewModel((prev) => ({ ...prev, isLoading: false, error: "Użytkownik nie jest zalogowany" }));
         return;
       }
 
       setViewModel((prev) => ({ ...prev, isLoading: true, error: null }));
-      console.log(`[useShoppingLists] Refetching shopping lists (Page: ${page})...`);
 
       try {
         // Zmieniamy URL na endpoint klienta - Updated to new path
@@ -122,7 +120,6 @@ export function useShoppingLists({
   const createList = async (): Promise<string | null> => {
     // Auth check removed
     setViewModel((prev) => ({ ...prev, isCreating: true, error: null }));
-    console.log("[useShoppingLists] Creating new list via client endpoint...");
 
     try {
       const defaultTitle = `Lista zakupów ${new Date().toLocaleDateString("pl-PL")}`;
@@ -144,11 +141,8 @@ export function useShoppingLists({
         credentials: "include", // Keep this
       });
 
-      console.log(`[useShoppingLists] Create list (client endpoint) response status: ${response.status}`);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: response.statusText }));
-        console.error(`[useShoppingLists] Error creating list (${response.status}):`, errorData);
         if (response.status === 401) {
           throw new Error("Sesja wygasła lub użytkownik nie jest zalogowany.");
         }
@@ -159,7 +153,6 @@ export function useShoppingLists({
 
       // Assuming the new endpoint returns the same CreateShoppingListResponse shape
       const data: CreateShoppingListResponse = await response.json();
-      console.log("[useShoppingLists] List created successfully:", data);
 
       // Przygotuj nowy element listy w formacie ViewModel
       const newListViewModel: ShoppingListItemViewModel = {
@@ -186,7 +179,6 @@ export function useShoppingLists({
       return data.id;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Nieznany błąd podczas tworzenia listy";
-      console.error("[useShoppingLists] Create list catch block error:", errorMessage);
       setViewModel((prev) => ({ ...prev, isCreating: false, error: errorMessage }));
       showErrorToast("Nie udało się utworzyć listy zakupów", { description: errorMessage });
       return null;
@@ -202,7 +194,6 @@ export function useShoppingLists({
       ...prev,
       lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: true } : list)),
     }));
-    console.log(`[useShoppingLists] Attempting to delete list ${listId} via client endpoint...`);
 
     try {
       // Headers: Remove Authorization header logic
@@ -219,8 +210,6 @@ export function useShoppingLists({
         headers: headers,
         credentials: "include", // Keep this
       });
-
-      console.log(`[useShoppingLists] Delete list (client endpoint) response status: ${response.status}`);
 
       if (!response.ok) {
         // Revert optimistic update
@@ -240,7 +229,6 @@ export function useShoppingLists({
           /* Ignore parsing error - fix linter */
         }
 
-        console.error(`[useShoppingLists] Error deleting list ${listId} (${response.status}):`, errorJson);
         if (response.status === 401) {
           throw new Error("Sesja wygasła lub użytkownik nie jest zalogowany.");
         }
@@ -253,7 +241,6 @@ export function useShoppingLists({
       }
 
       // Status 204 No Content on successful delete
-      console.log(`[useShoppingLists] List ${listId} deleted successfully.`);
       setViewModel((prev) => ({
         ...prev,
         lists: prev.lists.filter((list) => list.id !== listId),
@@ -270,7 +257,6 @@ export function useShoppingLists({
         lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: false } : list)),
         error: err instanceof Error ? err.message : "Nieznany błąd podczas usuwania listy",
       }));
-      console.error(`[useShoppingLists] Delete list ${listId} catch block error:`, err);
       showErrorToast("Nie udało się usunąć listy zakupów", {
         description: err instanceof Error ? err.message : "Nieznany błąd podczas usuwania listy",
         duration: 5000, // Dłuższy czas dla błędów
