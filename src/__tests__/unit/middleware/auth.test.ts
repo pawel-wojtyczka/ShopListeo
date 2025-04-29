@@ -15,9 +15,9 @@ vi.mock("astro:middleware", async () => {
 // Mockujemy cały moduł middleware
 vi.mock("@/middleware", () => {
   return {
-    onRequest: vi.fn(async (context, next) => {
+    onRequest: vi.fn(async (context, _next) => {
       // Domyślne zachowanie - przekazujemy sterowanie do next
-      return next();
+      return _next();
     }),
   };
 });
@@ -108,11 +108,11 @@ describe("Auth Middleware", () => {
   describe("Authentication checks", () => {
     it("should set isAuthenticated to true for authenticated user", async () => {
       // Ustawiamy zachowanie dla tego testu
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         // Symulujemy, że użytkownik jest zalogowany
         context.locals.user = mockUser;
         context.locals.isAuthenticated = true;
-        return next();
+        return _next();
       });
 
       await authMiddleware(mockContext as AstroGlobal, mockNext);
@@ -123,11 +123,11 @@ describe("Auth Middleware", () => {
 
     it("should set isAuthenticated to false for unauthenticated user", async () => {
       // Ustawiamy zachowanie dla tego testu
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         // Symulujemy, że użytkownik nie jest zalogowany
         context.locals.user = null;
         context.locals.isAuthenticated = false;
-        return next();
+        return _next();
       });
 
       await authMiddleware(mockContext as AstroGlobal, mockNext);
@@ -138,11 +138,11 @@ describe("Auth Middleware", () => {
 
     it("should handle authentication errors gracefully", async () => {
       // Ustawiamy zachowanie dla tego testu
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         // Symulujemy błąd autoryzacji
         context.locals.user = null;
         context.locals.isAuthenticated = false;
-        return next();
+        return _next();
       });
 
       await authMiddleware(mockContext as AstroGlobal, mockNext);
@@ -188,7 +188,7 @@ describe("Auth Middleware", () => {
       mockContext.url = new URL("http://localhost:3000/login");
 
       // Symulujemy przekierowanie
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         context.locals.user = mockUser;
         context.locals.isAuthenticated = true;
         context.redirect("/");
@@ -204,9 +204,9 @@ describe("Auth Middleware", () => {
       mockContext.url = new URL("http://localhost:3000/about");
 
       // Symulujemy brak przekierowania
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         context.locals.isAuthenticated = false;
-        return next();
+        return _next();
       });
 
       await authMiddleware(mockContext as AstroGlobal, mockNext);
@@ -243,10 +243,10 @@ describe("Auth Middleware", () => {
       mockContext.url = new URL("http://localhost:3000/api/shopping-lists");
 
       // Symulujemy przejście dalej
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         context.locals.user = mockUser;
         context.locals.isAuthenticated = true;
-        return next();
+        return _next();
       });
 
       await authMiddleware(mockContext as AstroGlobal, mockNext);
@@ -262,7 +262,7 @@ describe("Auth Middleware", () => {
       const mockCookies = mockContext.cookies as AstroCookies;
 
       // Symulujemy ustawienie ciasteczka
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         context.locals.user = mockUser;
         context.locals.isAuthenticated = true;
         context.cookies.set("authToken", mockToken, {
@@ -271,7 +271,7 @@ describe("Auth Middleware", () => {
           sameSite: "lax",
           path: "/",
         });
-        return next();
+        return _next();
       });
 
       await authMiddleware(mockContext as AstroGlobal, mockNext);
@@ -289,9 +289,9 @@ describe("Auth Middleware", () => {
       const mockCookies = mockContext.cookies as AstroCookies;
 
       // Symulujemy usunięcie ciasteczka
-      vi.mocked(authMiddleware).mockImplementationOnce(async (context, next) => {
+      vi.mocked(authMiddleware).mockImplementationOnce(async (context, _next) => {
         context.cookies.delete("authToken");
-        return next();
+        return _next();
       });
 
       await authMiddleware(mockContext as AstroGlobal, mockNext);
