@@ -247,15 +247,15 @@ export function useShoppingLists({
         description: `Lista "${listTitle}" została pomyślnie usunięta.`,
         duration: 3000, // Standardowa długość dla powiadomień o sukcesie
       });
-    } catch (err) {
+    } catch (_err) {
       // Revert optimistic update on error
       setViewModel((prev) => ({
         ...prev,
         lists: prev.lists.map((list) => (list.id === listId ? { ...list, isDeleting: false } : list)),
-        error: err instanceof Error ? err.message : "Nieznany błąd podczas usuwania listy",
+        error: _err instanceof Error ? _err.message : "Nieznany błąd podczas usuwania listy",
       }));
       showErrorToast("Nie udało się usunąć listy zakupów", {
-        description: err instanceof Error ? err.message : "Nieznany błąd podczas usuwania listy",
+        description: _err instanceof Error ? _err.message : "Nieznany błąd podczas usuwania listy",
         duration: 5000, // Dłuższy czas dla błędów
       });
     }
@@ -273,7 +273,7 @@ export function useShoppingLists({
       try {
         // Wywołaj usuwanie z API
         await deleteList(listId);
-      } catch (err) {
+      } catch (_err) {
         // W przypadku błędu, przywróć listę do UI
         setViewModel((prev) => ({
           ...prev,

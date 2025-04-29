@@ -17,25 +17,27 @@ interface LogEntry {
 /**
  * Funkcja formatująca wpis logu
  */
-function formatLogEntry(entry: LogEntry): string {
-  const { level, message, timestamp, context, error } = entry;
-
-  let formattedMessage = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-
-  if (context && Object.keys(context).length > 0) {
-    formattedMessage += `\nContext: ${JSON.stringify(context, null, 2)}`;
-  }
-
-  if (error instanceof Error) {
-    formattedMessage += `\nError: ${error.message}`;
-    if (error.stack) {
-      formattedMessage += `\nStack: ${error.stack}`;
-    }
-  } else if (error) {
-    formattedMessage += `\nError: ${JSON.stringify(error)}`;
-  }
-
-  return formattedMessage;
+function formatLogEntry(_entry: LogEntry): string {
+  // Usunięto implementację, bo funkcja nie jest używana
+  return "";
+  // const { level, message, timestamp, context, error } = entry;
+  //
+  // let formattedMessage = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+  //
+  // if (context && Object.keys(context).length > 0) {
+  //   formattedMessage += `\nContext: ${JSON.stringify(context, null, 2)}`;
+  // }
+  //
+  // if (error instanceof Error) {
+  //   formattedMessage += `\nError: ${error.message}`;
+  //   if (error.stack) {
+  //     formattedMessage += `\nStack: ${error.stack}`;
+  //   }
+  // } else if (error) {
+  //   formattedMessage += `\nError: ${JSON.stringify(error)}`;
+  // }
+  //
+  // return formattedMessage;
 }
 
 /**
@@ -75,7 +77,7 @@ export const logger = {
    */
   log(level: LogLevel, message: string, context?: Record<string, unknown>, error?: Error | unknown): void {
     const timestamp = new Date().toISOString();
-    const entry: LogEntry = { level, message, timestamp, context, error };
+    const _entry: LogEntry = { level, message, timestamp, context, error };
 
     // W zależności od poziomu logowania używamy odpowiedniej metody konsoli
     switch (level) {

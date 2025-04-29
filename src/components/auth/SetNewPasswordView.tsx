@@ -21,7 +21,7 @@ const SetNewPasswordView: React.FC = () => {
       } else {
         setTokenError("Nie znaleziono wymaganego tokenu w adresie URL. Upewnij się, że link jest poprawny.");
       }
-    } catch (e) {
+    } catch (_e) {
       setTokenError("Wystąpił błąd podczas przetwarzania linku resetującego.");
     }
   }, []); // Empty dependency array ensures this runs only once on mount
