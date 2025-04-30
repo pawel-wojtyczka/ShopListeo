@@ -20,3 +20,12 @@ declare global {
 }
 
 export {};
+
+interface ImportMetaEnv {
+  // Tutaj możesz dodać definicje innych zmiennych środowiskowych, jeśli są potrzebne
+  // np. readonly VITE_API_URL: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

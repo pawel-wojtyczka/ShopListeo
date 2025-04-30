@@ -16,6 +16,16 @@ export default defineConfig({
     ssr: {
       external: ["crypto"],
     },
+    resolve: {
+      // Force usage of edge renderer in production
+      alias:
+        process.env.NODE_ENV === "production"
+          ? {
+              "react-dom/server": "react-dom/server.edge",
+              "react-dom/server.browser": "react-dom/server.edge",
+            }
+          : undefined,
+    },
   },
   adapter: cloudflare(),
 });
