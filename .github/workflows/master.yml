@@ -59,7 +59,10 @@ jobs:
             --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} \
             --branch=${{ github.head_ref || github.ref_name }} \
             --commit-hash=${{ github.sha }} \
-            --commit-message="${{ github.event.head_commit.message }}"
+            --commit-message="${{ github.event.head_commit.message }}" \
+            --env PUBLIC_SUPABASE_URL="${{ secrets.PUBLIC_SUPABASE_URL }}" \
+            --env PUBLIC_SUPABASE_ANON_KEY="${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}" \
+            --env OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
 
       - name: Set Supabase URL
         env:
