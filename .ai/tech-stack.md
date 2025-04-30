@@ -29,7 +29,7 @@ ShopListeo is a web application designed to simplify the creation, management, a
 ### CI/CD and Hosting
 
 - **Github Actions**: Used to create CI/CD pipelines.
-- **DigitalOcean**: Hosts the application using Docker containers.
+- **Claudflare Pages**: Used to host the application.
 
 ### Testing
 
