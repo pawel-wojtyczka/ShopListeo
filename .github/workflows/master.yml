@@ -52,5 +52,5 @@ jobs:
         # Przekazuje bezwzględną ścieżkę do katalogu builda ($GITHUB_WORKSPACE/dist)
         # Używa npx wrangler@3 do wymuszenia wersji 3.x
         # Dodaje flagę --commit-dirty=true, aby zignorować zmiany w package*.json (nadal może być potrzebne po npm ci)
-        #run: npx wrangler@3 pages deploy $GITHUB_WORKSPACE/dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true 
-        run: npx wrangler@3 pages deploy --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true 
+        run: npx wrangler@3 pages deploy ./dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true 
+        
