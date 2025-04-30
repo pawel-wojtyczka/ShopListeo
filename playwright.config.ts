@@ -37,7 +37,7 @@ export default defineConfig({
     trace: "on-first-retry",
 
     /* Run tests in headed mode */
-    headless: false, // Uruchamiaj w trybie widocznym
+    headless: true, // Uruchamiaj w tle
 
     /* Slow down execution - moved here */
     launchOptions: {
