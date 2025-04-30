@@ -142,7 +142,7 @@ należy skonfigurować webhook w panelu Supabase:
    - Events: wybierz "User Created"
    - Secret: wygeneruj losowy ciąg znaków i zapisz go jako zmienną środowiskową `WEBHOOK_SECRET`
 
-3. Dodaj następujące zmienne środowiskowe do projektu (do zrobienia):
+3. Dodaj następujące zmienne środowiskowe do projektu:
 ```
 
 PUBLIC_SUPABASE_URL=https://twój-projekt.supabase.co
