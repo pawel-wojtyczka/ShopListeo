@@ -34,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         # Instaluje również wrangler
-        run: npm ci && npm install --save-dev wrangler 
+        run: npm ci
 
       - name: Run linter
         run: npm run lint
@@ -50,5 +50,6 @@ jobs:
       - name: Deploy to Cloudflare Pages
         # Uruchamia wrangler pages deploy
         # Przekazuje bezwzględną ścieżkę do katalogu builda ($GITHUB_WORKSPACE/dist)
-        # Dodaje flagę --commit-dirty=true, aby zignorować zmiany w package*.json
-        run: npx wrangler pages deploy $GITHUB_WORKSPACE/dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true 
+        # Używa npx wrangler@3 do wymuszenia wersji 3.x
+        # Dodaje flagę --commit-dirty=true, aby zignorować zmiany w package*.json (nadal może być potrzebne po npm ci)
+        run: npx wrangler@3 pages deploy $GITHUB_WORKSPACE/dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true 
