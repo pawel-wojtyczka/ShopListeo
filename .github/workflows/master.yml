@@ -49,5 +49,6 @@ jobs:
       # Krok wdrażania na Cloudflare Pages za pomocą Wrangler CLI
       - name: Deploy to Cloudflare Pages
         # Uruchamia wrangler pages deploy
-        # Przekazuje katalog builda ('dist') oraz nazwę projektu i gałąź
-        run: npx wrangler pages deploy dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} 
+        # Przekazuje bezwzględną ścieżkę do katalogu builda ($GITHUB_WORKSPACE/dist)
+        # Dodaje flagę --commit-dirty=true, aby zignorować zmiany w package*.json
+        run: npx wrangler pages deploy $GITHUB_WORKSPACE/dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true 
