@@ -102,6 +102,10 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: npm run build
 
+      # Instaluje Wrangler CLI globalnie
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
       # Wdraża aplikację na Cloudflare Pages
       - name: Deploy to Cloudflare Pages
         id: deployment
