@@ -1,17 +1,75 @@
+# .github/workflows/master.yml
+
 name: Deploy to Cloudflare Pages
 
+# Kontroluje, kiedy przepływ pracy będzie uruchamiany
 on:
+  # Uruchamia się na pushach do gałęzi master
   push:
     branches: [master]
-  pull_request:
-    branches: [master]
+
+  # Pozwala na ręczne uruchomienie tego przepływu pracy ze strony Actions na GitHubie
   workflow_dispatch:
 
+# Grupuje zadania, które będą wykonywane w ramach przepływu pracy
 jobs:
+  # Zadanie sprawdzania kodu
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint Check
+    steps:
+      # Pobiera kod repozytorium
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Ustawia środowisko Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      # Instaluje zależności projektu
+      - name: Install dependencies
+        run: npm ci
+
+      # Uruchamia linter, aby sprawdzić jakość kodu
+      - name: Run linter
+        run: npm run lint
+
+  # Zadanie testów jednostkowych
+  test:
+    runs-on: ubuntu-latest
+    name: Unit Tests
+    needs: lint
+    steps:
+      # Pobiera kod repozytorium
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Ustawia środowisko Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      # Instaluje zależności projektu
+      - name: Install dependencies
+        run: npm ci
+
+      # Uruchamia testy jednostkowe
+      - name: Run unit tests
+        run: npm run test
+
+  # Zadanie budowania i wdrażania aplikacji
   deploy:
     runs-on: ubuntu-latest
+    name: Build and Deploy
+    needs: [lint, test]
     env:
       CLOUDFLARE_PROJECT_NAME: shoplisteo
+    # Ustawienie uprawnień
     permissions:
       contents: read
       deployments: write
@@ -20,24 +78,22 @@ jobs:
       name: production
       url: ${{ steps.deployment.outputs.url }}
     steps:
+      # Pobiera kod repozytorium
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Ustawia środowisko Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
 
+      # Instaluje zależności projektu
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linter
-        run: npm run lint
-
-      - name: Run unit tests
-        run: npm run test
-
+      # Buduje aplikację w wersji produkcyjnej
       - name: Build production application
         env:
           NODE_ENV: production
@@ -46,38 +102,22 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: npm run build
 
-      - name: Install Wrangler
-        run: npm install -g wrangler@4
-
+      # Wdraża aplikację na Cloudflare Pages
       - name: Deploy to Cloudflare Pages
         id: deployment
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      # Ustawia zmienne środowiskowe w projekcie Cloudflare Pages
+      - name: Set Cloudflare Pages Environment Variables
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          wrangler pages deploy dist \
-            --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} \
-            --branch=${{ github.head_ref || github.ref_name }} \
-            --commit-hash=${{ github.sha }} \
-            --commit-message="${{ github.event.head_commit.message }}" \
-            --env PUBLIC_SUPABASE_URL="${{ secrets.PUBLIC_SUPABASE_URL }}" \
-            --env PUBLIC_SUPABASE_ANON_KEY="${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}" \
-            --env OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
-
-      - name: Set Supabase URL
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: wrangler pages deployment env set PUBLIC_SUPABASE_URL "${{ secrets.PUBLIC_SUPABASE_URL }}" --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }}
-
-      - name: Set Supabase Anon Key
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: wrangler pages deployment env set PUBLIC_SUPABASE_ANON_KEY "${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}" --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }}
-
-      - name: Set OpenAI Key
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: wrangler pages deployment env set OPENAI_API_KEY "${{ secrets.OPENAI_API_KEY }}" --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} 
+          wrangler pages deployment environment set PUBLIC_SUPABASE_URL "${{ secrets.PUBLIC_SUPABASE_URL }}" --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }}
+          wrangler pages deployment environment set PUBLIC_SUPABASE_ANON_KEY "${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}" --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }}
+          wrangler pages deployment environment set OPENAI_API_KEY "${{ secrets.OPENAI_API_KEY }}" --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} 
