@@ -21,11 +21,13 @@ declare global {
 
 export {};
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface ImportMetaEnv {
   // Tutaj możesz dodać definicje innych zmiennych środowiskowych, jeśli są potrzebne
   // np. readonly VITE_API_URL: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }

@@ -9,6 +9,7 @@ import eslintPluginReactHooks from "eslint-plugin-react-hooks";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import tseslint from "typescript-eslint";
+import globals from "globals";
 
 // File path setup
 const __filename = fileURLToPath(import.meta.url);
@@ -27,6 +28,15 @@ const baseConfig = tseslint.config({
         caughtErrorsIgnorePattern: "^_",
       },
     ],
+  },
+});
+
+const nodeConfig = tseslint.config({
+  files: ["**/*.mjs"],
+  languageOptions: {
+    globals: {
+      ...globals.node,
+    },
   },
 });
 
@@ -68,6 +78,7 @@ export default tseslint.config(
   baseConfig,
   jsxA11yConfig,
   reactConfig,
+  nodeConfig,
   eslintPluginAstro.configs["flat/recommended"],
   eslintPluginPrettier
 );
