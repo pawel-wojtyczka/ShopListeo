@@ -15,8 +15,10 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      id-token: write
     environment:
       name: production
+      url: ${{ steps.deployment.outputs.url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,6 +47,7 @@ jobs:
         run: npm install -g wrangler@4
 
       - name: Deploy to Cloudflare Pages
+        id: deployment
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
