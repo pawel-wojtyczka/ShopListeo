@@ -1,21 +1,17 @@
-# .github/workflows/master.yml
-
 name: Deploy to Cloudflare Pages
 
-# Uruchamia się tylko na pushach do gałęzi master
 on:
   push:
+    branches: [master]
+  pull_request:
     branches: [master]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Definiuje zmienne środowiskowe dla zadania
     env:
-      # Nazwa projektu w Cloudflare Pages
       CLOUDFLARE_PROJECT_NAME: shoplisteo
-    # Definiuje uprawnienia dla GITHUB_TOKEN
     permissions:
       contents: read
       deployments: write
@@ -40,19 +36,17 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
-      # Krok budowania jest nadal potrzebny przed wdrożeniem
       - name: Build production application
         env:
-          NODE_ENV: production # Explicitly set NODE_ENV
+          NODE_ENV: production
         run: npm run build
 
-      # Krok wdrażania na Cloudflare Pages za pomocą Wrangler Action
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/pages-action@v1
         with:
-          # Określa komendę do wykonania (wdrożenie na Pages)
-          command: pages deploy dist --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }}
-          # Ustawia token API i ID konta jako zmienne środowiskowe dla Wrangler
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        
+          projectName: ${{ env.CLOUDFLARE_PROJECT_NAME }}
+          directory: dist
+          branch: ${{ github.head_ref || github.ref_name }}
+          production: ${{ github.ref_name == 'master' }} 
