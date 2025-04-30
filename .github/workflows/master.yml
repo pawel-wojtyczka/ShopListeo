@@ -41,6 +41,9 @@ jobs:
       - name: Build production application
         env:
           NODE_ENV: production
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: npm run build
 
       - name: Install Wrangler
@@ -52,8 +55,20 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          VARS=(
+            "PUBLIC_SUPABASE_URL=${{ secrets.PUBLIC_SUPABASE_URL }}"
+            "PUBLIC_SUPABASE_ANON_KEY=${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}"
+            "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
+          )
+          
+          ENV_VARS=""
+          for VAR in "${VARS[@]}"; do
+            ENV_VARS="$ENV_VARS --env $VAR"
+          done
+          
           wrangler pages deploy dist \
             --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} \
             --branch=${{ github.head_ref || github.ref_name }} \
             --commit-hash=${{ github.sha }} \
-            --commit-message="${{ github.event.head_commit.message }}" 
+            --commit-message="${{ github.event.head_commit.message }}" \
+            $ENV_VARS 
