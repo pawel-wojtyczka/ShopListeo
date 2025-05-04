@@ -3,7 +3,7 @@ name: Azure Static Web Apps CI/CD ver. 3
 on:
   push:
     branches:
-      - master
+      - master_fake
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
