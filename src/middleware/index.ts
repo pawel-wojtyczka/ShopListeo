@@ -41,6 +41,14 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
     return next();
   }
 
+  // ---- DEBUG LOGS START ----
+  // WARNING: Logging secrets is a security risk. Remove these logs after debugging.
+  console.log("Attempting to create Supabase client...");
+  console.log("PUBLIC_SUPABASE_URL:", import.meta.env.PUBLIC_SUPABASE_URL ? "Loaded" : "NOT LOADED");
+  // Avoid logging the actual key value, just check if it exists
+  console.log("PUBLIC_SUPABASE_ANON_KEY:", import.meta.env.PUBLIC_SUPABASE_ANON_KEY ? "Loaded" : "NOT LOADED");
+  // ---- DEBUG LOGS END ----
+
   // Tworzymy instancję klienta Supabase dla tego żądania
   const supabase = createSupabaseServerInstance({
     headers: request.headers,
