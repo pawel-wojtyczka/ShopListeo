@@ -4,23 +4,23 @@ import { getErrorMessage } from "@/lib/utils/error";
 import { supabaseClient } from "@/db/supabase.client";
 import type { AstroLocals } from "@/types/locals";
 
-// Pobieramy klucz API ze zmiennych środowiskowych
-const OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
-
 export const POST: APIRoute = async ({ params, request, locals }) => {
   const requestId = crypto.randomUUID().substring(0, 8); // Short ID for logs
   console.log(`[${requestId}] [ai-parse] Received request`);
 
+  // Odczytujemy zmienną środowiskową wewnątrz handlera
+  const OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
+
   try {
     // Sprawdź, czy klucz API OpenRouter jest dostępny
     if (!OPENROUTER_API_KEY) {
-      console.error(`[${requestId}] [ai-parse] OpenRouter API key is missing!`);
+      console.error(`[${requestId}] [ai-parse] OpenRouter API key is missing! Read inside handler.`); // Updated log message
       return new Response(
         JSON.stringify({ error: "Configuration error", details: "OpenRouter API key is not configured" }),
         { status: 500 }
       );
     }
-    console.log(`[${requestId}] [ai-parse] OpenRouter API key check passed.`);
+    console.log(`[${requestId}] [ai-parse] OpenRouter API key check passed (read inside handler).`);
 
     // Pobieramy dane uwierzytelniające bezpośrednio z middleware locals
     const { user, isAuthenticated, authUser } = locals as AstroLocals & { isAuthenticated: boolean };
@@ -134,7 +134,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     let openRouter: OpenRouterService;
     try {
       console.log(`[${requestId}] [ai-parse] Initializing OpenRouterService...`);
-      // Używamy klucza ze zmiennej środowiskowej
+      // Używamy klucza ze zmiennej środowiskowej odczytanej w handlerze
       openRouter = new OpenRouterService(OPENROUTER_API_KEY);
       console.log(`[${requestId}] [ai-parse] OpenRouterService initialized.`);
     } catch (initError) {
