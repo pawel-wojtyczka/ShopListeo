@@ -1,6 +1,6 @@
 # .github/workflows/master.yml
 
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Pages ver. 1.0.0
 
 # Kontroluje, kiedy przepływ pracy będzie uruchamiany
 on:
