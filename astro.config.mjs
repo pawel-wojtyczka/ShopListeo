@@ -1,33 +1,15 @@
 // @ts-check
 import { defineConfig } from "astro/config";
-import node from "@astrojs/node";
+import cloudflare from "@astrojs/cloudflare";
 
 import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
-import tailwindcss from "@tailwindcss/vite";
+import tailwind from "@astrojs/tailwind";
 
 // https://astro.build/config
 export default defineConfig({
   output: "server",
-  adapter: node({
-    mode: "standalone",
-  }),
-  integrations: [react(), sitemap()],
+  adapter: cloudflare(),
+  integrations: [react(), sitemap(), tailwind()],
   server: { port: 3000 },
-  vite: {
-    plugins: [tailwindcss()],
-    ssr: {
-      external: ["crypto"],
-    },
-    resolve: {
-      // Force usage of edge renderer in production
-      alias:
-        process.env.NODE_ENV === "production"
-          ? {
-              "react-dom/server": "react-dom/server.edge",
-              "react-dom/server.browser": "react-dom/server.edge",
-            }
-          : undefined,
-    },
-  },
 });
