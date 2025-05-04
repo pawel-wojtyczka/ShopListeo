@@ -4,34 +4,41 @@ import { getErrorMessage } from "@/lib/utils/error";
 import { supabaseClient } from "@/db/supabase.client";
 import type { AstroLocals } from "@/types/locals";
 
+// Define a basic type for the expected AI response structure
+interface AiResponse {
+  choices: {
+    message: {
+      content: string;
+    };
+  }[];
+  // Add other potential fields if known
+}
+
 export const POST: APIRoute = async ({ params, request, locals }) => {
-  const requestId = crypto.randomUUID().substring(0, 8); // Short ID for logs
-  console.log(`[${requestId}] [ai-parse] Received request`);
+  // Removed request ID and initial log
 
   // Odczytujemy zmienną środowiskową wewnątrz handlera używając locals.runtime.env
-  // const OPENROUTER_API_KEY_IMPORT_META = import.meta.env.OPENROUTER_API_KEY;
-  // console.log(`[${requestId}] [ai-parse] Key from import.meta.env: ${OPENROUTER_API_KEY_IMPORT_META ? 'Found' : 'Missing'}`);
-
   const OPENROUTER_API_KEY = locals.runtime?.env?.OPENROUTER_API_KEY;
-  console.log(`[${requestId}] [ai-parse] Attempting to read key from locals.runtime.env...`);
+  // Removed log checking for key source
 
   try {
     // Sprawdź, czy klucz API OpenRouter jest dostępny
     if (!OPENROUTER_API_KEY) {
-      console.error(`[${requestId}] [ai-parse] OpenRouter API key is missing! Read via locals.runtime.env.`); // Updated log message
+      // Keep minimal error log for this critical check
+      console.error("[ai-parse] OpenRouter API key is missing or not accessible via locals.runtime.env");
       return new Response(
         JSON.stringify({ error: "Configuration error", details: "OpenRouter API key is not configured" }),
         { status: 500 }
       );
     }
-    console.log(`[${requestId}] [ai-parse] OpenRouter API key check passed (read via locals.runtime.env).`);
+    // Removed success log
 
     // Pobieramy dane uwierzytelniające bezpośrednio z middleware locals
     const { user, isAuthenticated, authUser } = locals as AstroLocals & { isAuthenticated: boolean };
 
     // Sprawdź, czy użytkownik jest zalogowany
     if (!isAuthenticated || (!user && !authUser)) {
-      console.warn(`[${requestId}] [ai-parse] Unauthorized access attempt.`);
+      // Removed warning log
       return new Response(JSON.stringify({ error: "Unauthorized", details: "Użytkownik niezalogowany" }), {
         status: 401,
       });
@@ -39,10 +46,10 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
     // Ustal ID użytkownika (mogą być dwa źródła: user z Supabase i authUser ze zserializowanego DTO)
     const userId = user?.id || authUser?.id;
-    console.log(`[${requestId}] [ai-parse] User ID: ${userId || "Not Found"}`);
+    // Removed user ID log
 
     if (!userId) {
-      console.error(`[${requestId}] [ai-parse] User ID is missing after auth check.`);
+      // Removed error log
       return new Response(JSON.stringify({ error: "Unauthorized", details: "Brak ID użytkownika" }), {
         status: 401,
       });
@@ -50,9 +57,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
     // Get list ID from params
     const { listId } = params;
-    console.log(`[${requestId}] [ai-parse] List ID: ${listId}`);
+    // Removed list ID log
     if (!listId) {
-      console.error(`[${requestId}] [ai-parse] List ID is missing from params.`);
+      // Removed error log
       return new Response(JSON.stringify({ error: "List ID is required" }), {
         status: 400,
       });
@@ -60,10 +67,10 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
     // Użyj supabase z locals jeśli dostępne, w przeciwnym razie użyj globalnego klienta
     const supabase = (locals as AstroLocals).supabase || supabaseClient;
-    console.log(`[${requestId}] [ai-parse] Supabase client obtained.`);
+    // Removed supabase client obtained log
 
     // Verify list exists and belongs to user
-    console.log(`[${requestId}] [ai-parse] Verifying list ${listId} ownership for user ${userId}...`);
+    // Removed verification log
     const { data: list, error: listError } = await supabase
       .from("shopping_lists")
       .select("id")
@@ -72,22 +79,22 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       .single();
 
     if (listError) {
-      console.error(`[${requestId}] [ai-parse] Error fetching list: ${listError.message}`);
+      console.error(`[ai-parse] Error fetching list ${listId}: ${listError.message}`); // Keep minimal error log
       return new Response(JSON.stringify({ error: "List not found or access denied", details: listError.message }), {
         status: 404, // Could be 403 or 404 depending on RLS
       });
     }
 
     if (!list) {
-      console.warn(`[${requestId}] [ai-parse] List ${listId} not found for user ${userId}.`);
+      // Removed warning log
       return new Response(JSON.stringify({ error: "List not found" }), {
         status: 404,
       });
     }
-    console.log(`[${requestId}] [ai-parse] List ${listId} ownership verified.`);
+    // Removed ownership verified log
 
     // Pobierz istniejące produkty z listy zakupów wraz ze statusem purchased
-    console.log(`[${requestId}] [ai-parse] Fetching existing items for list ${listId}...`);
+    // Removed fetching items log
     const { data: existingItems, error: itemsError } = await supabase
       .from("shopping_list_items")
       .select("id, item_name, purchased")
@@ -95,30 +102,31 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       .order("created_at", { ascending: true });
 
     if (itemsError) {
-      console.error(`[${requestId}] [ai-parse] Error fetching existing items: ${itemsError.message}`);
+      console.error(`[ai-parse] Error fetching existing items for list ${listId}: ${itemsError.message}`); // Keep minimal error log
       return new Response(JSON.stringify({ error: "Failed to fetch existing products", details: itemsError.message }), {
         status: 500,
       });
     }
-    console.log(`[${requestId}] [ai-parse] Found ${existingItems?.length ?? 0} existing items.`);
+    // Removed found items log
 
     // Get text content from request body
     let body;
     let text: string | undefined;
     try {
-      console.log(`[${requestId}] [ai-parse] Parsing request body...`);
+      // Removed parsing log
       body = await request.json();
       text = (body as { text: string }).text;
-      console.log(`[${requestId}] [ai-parse] Received text: "${text ? text.substring(0, 50) + "..." : "undefined"}"`);
-    } catch (jsonError) {
-      console.error(`[${requestId}] [ai-parse] Error parsing request body: ${getErrorMessage(jsonError)}`);
+      // Removed received text log
+    } catch (_jsonError) {
+      // Use underscore for unused var
+      console.error(`[ai-parse] Error parsing request body: ${getErrorMessage(_jsonError)}`); // Keep minimal error log
       return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
       });
     }
 
     if (!text || typeof text !== "string") {
-      console.error(`[${requestId}] [ai-parse] Text content is missing or invalid.`);
+      // Removed error log
       return new Response(JSON.stringify({ error: "Text content is required" }), {
         status: 400,
       });
@@ -130,19 +138,18 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       purchased: item.purchased,
     }));
     const existingProductsFormatted = JSON.stringify(productsWithStatus);
-    console.log(
-      `[${requestId}] [ai-parse] Formatted existing items for AI: ${existingProductsFormatted.substring(0, 100)}...`
-    );
+    // Removed formatted items log
 
     // Initialize OpenRouter service
     let openRouter: OpenRouterService;
     try {
-      console.log(`[${requestId}] [ai-parse] Initializing OpenRouterService...`);
+      // Removed initializing log
       // Używamy klucza ze zmiennej środowiskowej odczytanej przez locals.runtime.env
       openRouter = new OpenRouterService(OPENROUTER_API_KEY);
-      console.log(`[${requestId}] [ai-parse] OpenRouterService initialized.`);
-    } catch (initError) {
-      console.error(`[${requestId}] [ai-parse] Failed to initialize OpenRouterService: ${getErrorMessage(initError)}`);
+      // Removed initialized log
+    } catch (_initError) {
+      // Use underscore for unused var
+      console.error(`[ai-parse] Failed to initialize OpenRouterService: ${getErrorMessage(_initError)}`); // Keep minimal error log
       return new Response(JSON.stringify({ error: "AI service initialization failed" }), {
         status: 500,
       });
@@ -179,14 +186,12 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       temperature: 0.2,
       max_tokens: 1000,
     };
-    console.log(`[${requestId}] [ai-parse] Prepared payload for OpenRouter.`);
+    // Removed prepared payload log
 
     // Wykonaj zapytanie do OpenRouter
     let response: Response;
     try {
-      console.log(
-        `[${requestId}] [ai-parse] Sending request to OpenRouter: ${openRouter.getBaseUrl()}/chat/completions`
-      );
+      // Removed sending request log
       response = await fetch(`${openRouter.getBaseUrl()}/chat/completions`, {
         method: "POST",
         headers: {
@@ -195,40 +200,41 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         },
         body: JSON.stringify(requestPayload),
       });
-      console.log(`[${requestId}] [ai-parse] Received response from OpenRouter. Status: ${response.status}`);
-    } catch (fetchError) {
-      console.error(`[${requestId}] [ai-parse] Fetch error calling OpenRouter: ${getErrorMessage(fetchError)}`);
+      // Removed received response log
+    } catch (_fetchError) {
+      // Use underscore for unused var
+      console.error(`[ai-parse] Fetch error calling OpenRouter: ${getErrorMessage(_fetchError)}`); // Keep minimal error log
       return new Response(JSON.stringify({ error: "Failed to communicate with AI service" }), { status: 502 }); // Bad Gateway
     }
 
     if (!response.ok) {
-      let errorText = "Unknown API error";
+      // let _errorText = "Unknown API error"; // errorText is not used, removed assignment
       try {
-        errorText = await response.text();
+        const errorBody = await response.text();
         console.error(
-          `[${requestId}] [ai-parse] OpenRouter API error response: ${response.status} - ${errorText.substring(0, 200)}...`
-        );
-      } catch (textError) {
-        console.error(
-          `[${requestId}] [ai-parse] OpenRouter API error response: ${response.status}. Failed to read error body.`
-        );
+          `[ai-parse] OpenRouter API error response: ${response.status} - ${errorBody.substring(0, 200)}...`
+        ); // Log error body
+      } catch (_textError) {
+        // Use _textError
+        console.error(`[ai-parse] OpenRouter API error response: ${response.status}. Failed to read error body.`);
       }
       return new Response(
         JSON.stringify({ error: "Failed to process text with AI", details: `API error: ${response.status}` }),
         {
-          status: 500, // Keep 500 or use 502?
+          status: 500,
         }
       );
     }
 
     // Parse the response
-    let responseData: any;
+    let responseData: AiResponse; // Use the defined interface type
     try {
-      console.log(`[${requestId}] [ai-parse] Parsing AI response body...`);
+      // Removed parsing log
       responseData = await response.json();
-      console.log(`[${requestId}] [ai-parse] Parsed AI response successfully.`);
-    } catch (parseError) {
-      console.error(`[${requestId}] [ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(parseError)}`);
+      // Removed success log
+    } catch (_parseError) {
+      // Use underscore for unused var
+      console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(_parseError)}`); // Keep minimal error log
       return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
         status: 500,
       });
@@ -237,8 +243,8 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
     // Sprawdź, czy odpowiedź ma oczekiwaną strukturę
     if (!responseData.choices || !responseData.choices[0]?.message?.content) {
       console.error(
-        `[${requestId}] [ai-parse] Invalid structure in AI response: Missing choices or content. Data: ${JSON.stringify(responseData).substring(0, 200)}...`
-      );
+        `[ai-parse] Invalid structure in AI response: Missing choices or content. Data: ${JSON.stringify(responseData).substring(0, 200)}...`
+      ); // Keep minimal error log
       return new Response(
         JSON.stringify({ error: "Invalid response from AI", details: "Missing choices or content" }),
         {
@@ -251,13 +257,14 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
     const contentStr = responseData.choices[0].message.content;
     let contentJson: { products: { name: string; purchased: boolean }[] };
     try {
-      console.log(`[${requestId}] [ai-parse] Parsing content string from AI message...`);
+      // Removed parsing log
       contentJson = JSON.parse(contentStr);
-      console.log(`[${requestId}] [ai-parse] Parsed content string successfully.`);
-    } catch (jsonError) {
+      // Removed success log
+    } catch (_jsonError) {
+      // Use underscore for unused var
       console.error(
-        `[${requestId}] [ai-parse] Failed to parse JSON content string from AI message: ${getErrorMessage(jsonError)}. Content: ${contentStr.substring(0, 200)}...`
-      );
+        `[ai-parse] Failed to parse JSON content string from AI message: ${getErrorMessage(_jsonError)}. Content: ${contentStr.substring(0, 200)}...`
+      ); // Keep minimal error log
       return new Response(JSON.stringify({ error: "Failed to parse AI response content" }), {
         status: 500,
       });
@@ -266,8 +273,8 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
     // Sprawdź, czy zawiera tablicę produktów
     if (!contentJson.products || !Array.isArray(contentJson.products)) {
       console.error(
-        `[${requestId}] [ai-parse] Parsed content JSON does not contain 'products' array. Content: ${JSON.stringify(contentJson).substring(0, 200)}...`
-      );
+        `[ai-parse] Parsed content JSON does not contain 'products' array. Content: ${JSON.stringify(contentJson).substring(0, 200)}...`
+      ); // Keep minimal error log
       return new Response(
         JSON.stringify({
           error: "Invalid response format",
@@ -276,7 +283,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         { status: 500 }
       );
     }
-    console.log(`[${requestId}] [ai-parse] Validated 'products' array in AI response.`);
+    // Removed validation log
 
     // Sprawdź, czy produkty mają wymagane pola
     for (const product of contentJson.products) {
@@ -288,7 +295,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         product.purchased = false;
       }
     }
-    console.log(`[${requestId}] [ai-parse] Normalized products from AI response.`);
+    // Removed normalization log
 
     // 1. Pobierz ponownie istniejące elementy dla pewności (lub użyj `existingItems` pobranych wcześniej)
     const currentItems = existingItems; // Używamy danych pobranych wcześniej
@@ -322,13 +329,11 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         itemsToDelete.push({ id: currentItem.id });
       }
     }
-    console.log(
-      `[${requestId}] [ai-parse] Calculated diff: ${itemsToAdd.length} items to add, ${itemsToDelete.length} items to delete.`
-    );
+    // Removed diff calculation log
 
     // 3. Wywołaj funkcję RPC w Supabase, aby zastosować zmiany w transakcji
     if (itemsToAdd.length > 0 || itemsToDelete.length > 0) {
-      console.log(`[${requestId}] [ai-parse] Calling RPC 'apply_shopping_list_changes'...`);
+      // Removed RPC call log
       const { error: rpcError } = await supabase.rpc("apply_shopping_list_changes", {
         p_list_id: listId,
         p_user_id: userId, // Przekazujemy userId do weryfikacji uprawnień w funkcji SQL
@@ -337,19 +342,19 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       });
 
       if (rpcError) {
-        console.error(`[${requestId}] [ai-parse] RPC Error applying changes: ${rpcError.message}`);
+        console.error(`[ai-parse] RPC Error applying changes: ${rpcError.message}`); // Keep minimal error log
         return new Response(
           JSON.stringify({ error: "Failed to apply changes atomically", details: rpcError.message }),
           { status: 500 }
         );
       }
-      console.log(`[${requestId}] [ai-parse] RPC 'apply_shopping_list_changes' successful.`);
+      // Removed RPC success log
     } else {
-      console.log(`[${requestId}] [ai-parse] No changes detected, skipping RPC call.`);
+      // Removed skipping RPC log
     }
 
     // 4. Zwróć nową listę elementów
-    console.log(`[${requestId}] [ai-parse] Fetching updated items list...`);
+    // Removed fetching updated items log
     const { data: updatedItems, error: fetchUpdatedError } = await supabase
       .from("shopping_list_items")
       .select("id, item_name, purchased, created_at, updated_at")
@@ -357,7 +362,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       .order("created_at", { ascending: true });
 
     if (fetchUpdatedError) {
-      console.error(`[${requestId}] [ai-parse] Error fetching updated items: ${fetchUpdatedError.message}`);
+      console.error(`[ai-parse] Error fetching updated items for list ${listId}: ${fetchUpdatedError.message}`); // Keep minimal error log
       return new Response(
         JSON.stringify({
           error: "Failed to fetch updated products after applying changes",
@@ -366,7 +371,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         { status: 500 } // Zwróć błąd, ale operacje mogły się powieść
       );
     }
-    console.log(`[${requestId}] [ai-parse] Fetched ${updatedItems?.length ?? 0} updated items.`);
+    // Removed fetched items count log
 
     // Mapujemy na format DTO
     const updatedItemsDTO = updatedItems.map((item) => ({
@@ -377,7 +382,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       updatedAt: item.updated_at,
     }));
 
-    console.log(`[${requestId}] [ai-parse] Sending successful response with updated items.`);
+    // Removed sending success log
     return new Response(JSON.stringify({ products: updatedItemsDTO }), {
       status: 200,
       headers: {
@@ -386,7 +391,8 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
     });
   } catch (error) {
     const errorMessage = getErrorMessage(error);
-    console.error(`[${requestId}] [ai-parse] Unhandled error in main try block: ${errorMessage}`);
+    // Keep the final catch-all error log
+    console.error(`[ai-parse] Unhandled error in main try block: ${errorMessage}`);
     return new Response(JSON.stringify({ error: "Internal Server Error", details: errorMessage }), {
       status: 500,
     });
