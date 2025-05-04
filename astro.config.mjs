@@ -13,5 +13,16 @@ export default defineConfig({
   server: { port: 3000 },
   vite: {
     plugins: [tailwindcss()],
+    // Explicitly alias react-dom/server to the edge runtime for production builds
+    resolve: {
+      alias: {
+        "react-dom/server": "react-dom/server.edge",
+        "react-dom/server.browser": "react-dom/server.edge",
+      },
+    },
+    // Optional: Address the crypto warning, though likely unrelated to MessageChannel
+    // ssr: {
+    //   external: ["crypto"],
+    // },
   },
 });
