@@ -15,6 +15,9 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
     "@astrojs/node": "^9.2.1",
