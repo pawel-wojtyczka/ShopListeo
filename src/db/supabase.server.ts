@@ -25,18 +25,23 @@ function parseCookieHeader(cookieHeader: string): { name: string; value: string 
  * zgodnie z dokumentacją @supabase/ssr dla Astro
  */
 export const createSupabaseServerInstance = (context: { headers: Headers; cookies: AstroCookies }) => {
-  const supabase = createServerClient<Database>(import.meta.env.SUPABASE_URL, import.meta.env.SUPABASE_KEY, {
-    cookieOptions,
-    cookies: {
-      // Implementacja getAll zamiast get/set/remove zgodnie z zaleceniami
-      getAll() {
-        return parseCookieHeader(context.headers.get("Cookie") ?? "");
+  // Use the environment variables with the PUBLIC_ prefix, as defined in Cloudflare Pages settings
+  const supabase = createServerClient<Database>(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookieOptions,
+      cookies: {
+        // Implementacja getAll zamiast get/set/remove zgodnie z zaleceniami
+        getAll() {
+          return parseCookieHeader(context.headers.get("Cookie") ?? "");
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => context.cookies.set(name, value, options));
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => context.cookies.set(name, value, options));
-      },
-    },
-  });
+    }
+  );
 
   return supabase;
 };
