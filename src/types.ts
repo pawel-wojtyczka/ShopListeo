@@ -97,7 +97,6 @@ export interface GetShoppingListByIdResponse {
   title: string;
   createdAt: string;
   updatedAt: string;
-  items: ShoppingListItemDTO[];
 }
 
 export interface CreateShoppingListRequest {
