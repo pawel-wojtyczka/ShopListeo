@@ -90,7 +90,7 @@ const ShoppingListDetailView: React.FC<ShoppingListDetailViewProps> = ({ listId 
 
       {/* Użyj komponentu EditableShoppingListTitle - używamy title */}
       <div className="mb-6">
-        <EditableShoppingListTitle initialTitle={title ?? "Nowa lista"} listId={listId} onUpdateTitle={updateTitle} />
+        <EditableShoppingListTitle initialTitle={title ?? "Nowa lista"} listId={listId} onTitleUpdate={updateTitle} />
       </div>
 
       {/* Obszar dodawania produktów - Zmieniono prop onAddItems */}
