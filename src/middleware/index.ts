@@ -1,7 +1,8 @@
 import { defineMiddleware } from "astro:middleware";
-import { createSupabaseServerInstance } from "../db/supabase.server";
+import { createSupabaseServerInstance, createSupabaseAdminClient } from "../db/supabase.server";
 import type { AstroLocals } from "../types/locals";
 import type { UserDTO } from "../types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Ścieżki wymagające autentykacji - usunięto /shopping-lists
 const PROTECTED_ROUTES = ["/", "/profile"];
@@ -31,9 +32,8 @@ export const prerender = false;
 /**
  * Middleware obsługujące uwierzytelnianie, dostęp do Supabase i kontrolę dostępu
  */
-export const onRequest = defineMiddleware(async ({ request, locals, cookies, redirect }, next) => {
+export const onRequest = defineMiddleware(async ({ request, locals, cookies, redirect, url }, next) => {
   // Pobieramy ścieżkę z URL
-  const url = new URL(request.url);
   const pathname = url.pathname;
 
   // Pomijamy sprawdzanie autoryzacji dla statycznych zasobów (ale nie dla endpointów API)
@@ -41,67 +41,142 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
     return next();
   }
 
-  // Tworzymy instancję klienta Supabase dla tego żądania
-  const supabase = createSupabaseServerInstance({
-    headers: request.headers,
-    cookies,
-  });
+  // --- Inicjalizacja Supabase ---
+  // Odczytujemy zmienne środowiskowe z kontekstu wykonania Cloudflare Pages
+  const env = locals.runtime?.env ?? {};
+  const supabaseUrl = env.PUBLIC_SUPABASE_URL as string;
+  const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY as string;
+  const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY as string;
+  const adminSupabaseUrl = (env.SUPABASE_URL as string) || supabaseUrl;
 
-  // Zapisujemy instancję klienta w lokalnym kontekście żądania
-  (locals as AstroLocals).supabase = supabase;
+  // Logowanie zmiennych środowiskowych dla diagnostyki (pojawi się w logach Cloudflare)
+  console.log("Middleware: Attempting to read Supabase env vars.");
+  console.log("PUBLIC_SUPABASE_URL available:", !!supabaseUrl);
+  console.log("PUBLIC_SUPABASE_ANON_KEY available:", !!supabaseAnonKey);
+  console.log("SUPABASE_URL available:", !!env.SUPABASE_URL);
+  console.log("SUPABASE_SERVICE_ROLE_KEY available:", !!supabaseServiceRoleKey);
 
-  // Sprawdzamy, czy użytkownik jest zalogowany
-  let authUser: UserDTO | null = null;
-  let isAuthenticated = false;
+  // Sprawdzamy, czy kluczowe zmienne są dostępne
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("Middleware Error: PUBLIC Supabase URL or Key is missing from runtime environment!");
+  }
+  // Sprawdzamy zmienne dla klienta admina (tylko jeśli będą używane)
+  const adminCredentialsAvailable = !!adminSupabaseUrl && !!supabaseServiceRoleKey;
+  console.log("Admin client credentials available:", adminCredentialsAvailable);
 
-  const { data, error: getUserError } = await supabase.auth.getUser();
-
-  // Pobieramy sesję osobno, ponieważ getUser nie zwraca sesji bezpośrednio
-  const { data: sessionData } = await supabase.auth.getSession();
-  const session = sessionData?.session;
-
-  if (getUserError || !data.user) {
-    isAuthenticated = false;
-    authUser = null;
+  // Tworzymy standardową instancję klienta Supabase dla tego żądania
+  let supabase: SupabaseClient | null = null;
+  if (supabaseUrl && supabaseAnonKey) {
+    supabase = createSupabaseServerInstance({
+      supabaseUrl: supabaseUrl,
+      supabaseKey: supabaseAnonKey,
+      headers: request.headers,
+      cookies,
+    });
+    (locals as AstroLocals).supabase = supabase;
   } else {
-    // Użytkownik jest zalogowany
-    const user = data.user;
-    isAuthenticated = true;
-
-    // Jeśli mamy aktywną sesję, ustawiamy token sesji jako cookie
-    if (session?.access_token) {
-      // Dodajemy specjalne cookie dla Supabase
-      cookies.set("sb-access-token", session.access_token, {
-        path: "/",
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7, // 7 dni
-      });
-
-      if (session.refresh_token) {
-        cookies.set("sb-refresh-token", session.refresh_token, {
-          path: "/",
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          maxAge: 60 * 60 * 24 * 7, // 7 dni
-        });
-      }
-    }
-
-    // Mapujemy dane użytkownika do UserDTO
-    authUser = {
-      id: user.id,
-      email: user.email || "",
-      registrationDate: user.created_at || "",
-      lastLoginDate: user.last_sign_in_at || null,
-      isAdmin: user.app_metadata?.isAdmin || false,
-    };
+    console.error("Middleware: Failed to create standard Supabase client due to missing URL/Key.");
+    (locals as AstroLocals).supabase = null;
   }
 
-  // Ustawiamy dane autoryzacyjne w kontekście lokalnym
-  (locals as AstroLocals).user = data.user;
+  // Tworzymy instancję klienta Supabase z uprawnieniami administratora
+  let supabaseAdmin: SupabaseClient | null = null;
+  if (adminCredentialsAvailable) {
+    try {
+      supabaseAdmin = createSupabaseAdminClient({
+        supabaseUrl: adminSupabaseUrl,
+        supabaseKey: supabaseServiceRoleKey,
+      });
+      (locals as AstroLocals).supabaseAdmin = supabaseAdmin;
+    } catch (error) {
+      console.error("Middleware Error: Failed to create Supabase admin client:", error);
+      (locals as AstroLocals).supabaseAdmin = null;
+    }
+  } else {
+    console.warn(
+      "Middleware: Admin Supabase client cannot be created due to missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY."
+    );
+    (locals as AstroLocals).supabaseAdmin = null;
+  }
+
+  // Sprawdzamy, czy standardowy klient został poprawnie utworzony przed próbą użycia
+  if (!supabase) {
+    console.error("Middleware: Cannot proceed with authentication check, Supabase client is not available.");
+    // Można zdecydować o przerwaniu lub kontynuacji w zależności od wymagań
+    // return new Response("Internal Server Error: Supabase client unavailable", { status: 500 });
+    // Na razie pozwalamy kontynuować, aby inne części aplikacji mogły działać
+  }
+
+  // --- Sprawdzanie autentykacji --- (Używamy supabase, jeśli jest dostępny)
+  let authUser: UserDTO | null = null;
+  let isAuthenticated = false;
+  let session = null;
+
+  if (supabase) {
+    try {
+      const { data, error: getUserError } = await supabase.auth.getUser();
+
+      // Pobieramy sesję osobno, ponieważ getUser nie zwraca sesji bezpośrednio
+      const { data: sessionData } = await supabase.auth.getSession();
+      session = sessionData?.session;
+
+      if (getUserError || !data.user) {
+        isAuthenticated = false;
+        authUser = null;
+        if (getUserError) {
+          console.error("Middleware: Error fetching user:", getUserError.message);
+        }
+      } else {
+        // Użytkownik jest zalogowany
+        const user = data.user;
+        isAuthenticated = true;
+
+        // Jeśli mamy aktywną sesję, ustawiamy token sesji jako cookie
+        if (session?.access_token) {
+          cookies.set("sb-access-token", session.access_token, {
+            path: "/",
+            httpOnly: true,
+            secure: env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 7, // 7 dni
+          });
+
+          if (session.refresh_token) {
+            cookies.set("sb-refresh-token", session.refresh_token, {
+              path: "/",
+              httpOnly: true,
+              secure: env.NODE_ENV === "production",
+              sameSite: "lax",
+              maxAge: 60 * 60 * 24 * 7, // 7 dni
+            });
+          }
+        }
+
+        // Mapujemy dane użytkownika do UserDTO
+        authUser = {
+          id: user.id,
+          email: user.email || "",
+          registrationDate: user.created_at || "",
+          lastLoginDate: user.last_sign_in_at || null,
+          isAdmin: user.app_metadata?.isAdmin || false,
+        };
+      }
+      // Ustawiamy dane autoryzacyjne w kontekście lokalnym
+      (locals as AstroLocals).user = data.user;
+    } catch (error) {
+      console.error("Middleware: Unexpected error during authentication check:", error);
+      isAuthenticated = false;
+      authUser = null;
+      (locals as AstroLocals).user = null;
+    }
+  } else {
+    // Jeśli klient Supabase nie jest dostępny, zakładamy, że użytkownik nie jest zalogowany
+    isAuthenticated = false;
+    authUser = null;
+    (locals as AstroLocals).user = null;
+  }
+
+  // Ustawiamy userDTO i isAuthenticated niezależnie od błędu klienta Supabase
   (locals as AstroLocals & { userDTO: UserDTO | null; isAuthenticated: boolean }).userDTO = authUser;
   (locals as AstroLocals & { userDTO: UserDTO | null; isAuthenticated: boolean }).isAuthenticated = isAuthenticated;
 

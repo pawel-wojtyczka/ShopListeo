@@ -10,11 +10,26 @@ import type { UserDTO } from "./types";
 
 declare global {
   namespace App {
+    // Dodajemy typ dla środowiska wykonawczego Cloudflare Pages
+
+    interface Platform {
+      // Definiujemy Platform, które może zawierać 'env'
+      env: Record<string, unknown>;
+      // Można dodać inne właściwości specyficzne dla platformy
+    }
+
     interface Locals {
-      supabase: SupabaseClient<Database>;
+      supabase: SupabaseClient<Database> | null; // Pozwalamy na null
+      supabaseAdmin?: SupabaseClient<Database> | null; // Opcjonalny klient admina, może być null
       user: import("@supabase/supabase-js").User | null;
-      authUser: UserDTO | null;
+      // Używamy userDTO i isAuthenticated zgodnie z kodem middleware
+      userDTO: UserDTO | null;
       isAuthenticated: boolean;
+      // Usuwamy authUser, jeśli nie jest już potrzebne
+      // authUser: UserDTO | null;
+
+      // Dodajemy runtime z platformy
+      runtime?: Platform | undefined;
     }
   }
 }

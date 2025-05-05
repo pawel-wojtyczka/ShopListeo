@@ -24,43 +24,41 @@ function parseCookieHeader(cookieHeader: string): { name: string; value: string 
  * Tworzy instancję klienta Supabase do użytku po stronie serwera,
  * zgodnie z dokumentacją @supabase/ssr dla Astro
  */
-export const createSupabaseServerInstance = (context: { headers: Headers; cookies: AstroCookies }) => {
-  // Use the environment variables with the PUBLIC_ prefix, as defined in Cloudflare Pages settings
-  const supabase = createServerClient<Database>(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookieOptions,
-      cookies: {
-        // Implementacja getAll zamiast get/set/remove zgodnie z zaleceniami
-        getAll() {
-          return parseCookieHeader(context.headers.get("Cookie") ?? "");
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => context.cookies.set(name, value, options));
-        },
+export const createSupabaseServerInstance = (options: {
+  supabaseUrl: string;
+  supabaseKey: string;
+  headers: Headers;
+  cookies: AstroCookies;
+}) => {
+  const supabase = createServerClient<Database>(options.supabaseUrl, options.supabaseKey, {
+    cookieOptions,
+    cookies: {
+      getAll() {
+        return parseCookieHeader(options.headers.get("Cookie") ?? "");
       },
-    }
-  );
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options: cookieOpts }) => options.cookies.set(name, value, cookieOpts));
+      },
+    },
+  });
 
   return supabase;
 };
 
 // Dla operacji wymagających uprawnień administratora
 // Używamy service_role key, który pomija RLS (Row Level Security)
-export const createSupabaseAdminClient = () => {
-  if (!import.meta.env.SUPABASE_URL || !import.meta.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("Brak wymaganych zmiennych środowiskowych dla klienta administratora Supabase");
-  }
-
-  return createServerClient<Database>(import.meta.env.SUPABASE_URL, import.meta.env.SUPABASE_SERVICE_ROLE_KEY, {
-    cookieOptions,
+export const createSupabaseAdminClient = (options: { supabaseUrl: string; supabaseKey: string }) => {
+  // Używamy przekazanych argumentów
+  return createServerClient<Database>(options.supabaseUrl, options.supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
     cookies: {
       getAll: () => [],
-      setAll: () => {
-        // Administrator nie potrzebuje zapisywać ciasteczek sesji użytkownika
-        // To celowo pusta metoda, ponieważ admin działa poza kontekstem sesji użytkownika
-      },
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      setAll: () => {}, // Pusta implementacja jest celowa dla klienta admina
     },
   });
 };

@@ -91,21 +91,6 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler@latest
 
-      # Tworzy dynamiczny plik wrangler.toml z konfiguracją
-      - name: Create Wrangler config
-        run: |
-          cat > wrangler.toml << EOL
-          name = "shoplisteo"
-          pages_build_output_dir = "./dist"
-
-          # Zmienne środowiskowe
-          [vars]
-          PUBLIC_SUPABASE_URL = "${{ secrets.PUBLIC_SUPABASE_URL }}"
-          PUBLIC_SUPABASE_ANON_KEY = "${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}"
-          SUPABASE_SERVICE_ROLE_KEY = "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-          SUPABASE_URL = "${{ secrets.SUPABASE_URL }}"
-          EOL
-
       # Wdraża aplikację na Cloudflare Pages
       - name: Deploy to Cloudflare Pages
         env:
