@@ -6,7 +6,7 @@ import type { LoginUserResponse } from "src/types";
 export const prerender = false;
 
 // Schema do walidacji danych wejściowych
-const LoginSchema = z.object({
+export const LoginSchema = z.object({
   email: z.string().email("Nieprawidłowy format adresu email."),
   password: z.string().min(1, "Hasło jest wymagane."),
   rememberMe: z.boolean().optional(),

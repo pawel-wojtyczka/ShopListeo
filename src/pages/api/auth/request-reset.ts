@@ -5,7 +5,7 @@ import type { AstroLocals } from "../../../types/locals"; // Adjust path if need
 export const prerender = false;
 
 // Input validation schema
-const RequestResetSchema = z.object({
+export const RequestResetSchema = z.object({
   email: z.string().email("Nieprawidłowy format adresu email."),
 });
 

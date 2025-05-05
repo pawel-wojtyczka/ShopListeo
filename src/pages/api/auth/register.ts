@@ -6,7 +6,7 @@ import type { RegisterUserResponse } from "src/types";
 export const prerender = false;
 
 // Schema do walidacji danych wejściowych
-const RegisterSchema = z.object({
+export const RegisterSchema = z.object({
   email: z.string().email("Nieprawidłowy format adresu email."),
   password: z.string().min(8, "Hasło musi mieć minimum 8 znaków."),
 });

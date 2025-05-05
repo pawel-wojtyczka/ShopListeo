@@ -5,7 +5,7 @@ import type { AstroLocals } from "../../../types/locals"; // Adjust path if need
 export const prerender = false;
 
 // Input validation schema
-const SetNewPasswordSchema = z.object({
+export const SetNewPasswordSchema = z.object({
   // Token received by the client from the URL hash fragment
   accessToken: z.string().min(1, "Token dostępu jest wymagany."),
   password: z.string().min(8, "Hasło musi mieć co najmniej 8 znaków."),
