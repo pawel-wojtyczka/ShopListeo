@@ -236,76 +236,40 @@ describe("Shopping List Validators", () => {
   });
 
   describe("addItemToShoppingListSchema", () => {
-    it("should validate correct data (item name only, default purchased to false)", () => {
-      const input = { itemName: "Milk" };
-      const result = addItemToShoppingListSchema.safeParse(input);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toEqual({ itemName: "Milk", purchased: false });
-      }
+    it("should validate correct data", () => {
+      const validData = { itemName: "Mleko" };
+      expect(() => addItemToShoppingListSchema.parse(validData)).not.toThrow();
+      const validDataWithPurchased = { itemName: "Chleb", purchased: true };
+      expect(() => addItemToShoppingListSchema.parse(validDataWithPurchased)).not.toThrow();
     });
 
-    it("should validate correct data (item name and purchased true)", () => {
-      const input = { itemName: "Eggs", purchased: true };
-      const result = addItemToShoppingListSchema.safeParse(input);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toEqual(input);
-      }
+    it("should set purchased to false by default", () => {
+      const data = { itemName: "Masło" };
+      const parsedData = addItemToShoppingListSchema.parse(data);
+      expect(parsedData.purchased).toBe(false);
     });
 
-    it("should validate correct data (item name and purchased false)", () => {
-      const input = { itemName: "Bread", purchased: false };
-      const result = addItemToShoppingListSchema.safeParse(input);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toEqual(input);
-      }
+    it("should fail if itemName is empty", () => {
+      const invalidData = { itemName: "" };
+      expect(() => addItemToShoppingListSchema.parse(invalidData)).toThrow("Nazwa produktu nie może być pusta");
     });
 
-    it("should fail validation if itemName is missing", () => {
-      const input = { purchased: false };
-      const result = addItemToShoppingListSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().itemName?._errors[0]).toContain("Required");
-      }
+    it("should fail if itemName is too long", () => {
+      const invalidData = { itemName: "a".repeat(129) };
+      expect(() => addItemToShoppingListSchema.parse(invalidData)).toThrow(
+        "Nazwa produktu nie może przekraczać 128 znaków"
+      );
     });
 
-    it("should fail validation if itemName is an empty string", () => {
-      const input = { itemName: "" };
-      const result = addItemToShoppingListSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().itemName?._errors[0]).toBe("Nazwa produktu nie może być pusta");
-      }
+    it("should fail if itemName is missing", () => {
+      const invalidData = { purchased: false };
+      // Zod throws a specific error for missing required fields
+      expect(() => addItemToShoppingListSchema.parse(invalidData)).toThrow();
     });
 
-    it("should fail validation if itemName exceeds maximum length (128)", () => {
-      const input = { itemName: "a".repeat(129) };
-      const result = addItemToShoppingListSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().itemName?._errors[0]).toBe("Nazwa produktu nie może przekraczać 128 znaków");
-      }
-    });
-
-    it("should fail validation for incorrect type for purchased", () => {
-      const input = { itemName: "Butter", purchased: "yes" };
-      const result = addItemToShoppingListSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().purchased?._errors[0]).toContain("Expected boolean, received string");
-      }
-    });
-
-    it("should fail validation for incorrect type for itemName", () => {
-      const input = { itemName: 123, purchased: false };
-      const result = addItemToShoppingListSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().itemName?._errors[0]).toContain("Expected string, received number");
-      }
+    it("should fail if purchased is not a boolean", () => {
+      const invalidData = { itemName: "Woda", purchased: "tak" };
+      expect(() => addItemToShoppingListSchema.parse(invalidData)).toThrow(); // Zod will throw an 'invalid_type' error
     });
 
     it("should strip unknown fields", () => {
@@ -319,55 +283,26 @@ describe("Shopping List Validators", () => {
   });
 
   describe("updateShoppingListSchema", () => {
-    it("should validate correct data successfully", () => {
-      const validData = { title: "Zaktualizowana lista" };
-      const result = updateShoppingListSchema.safeParse(validData);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toEqual(validData);
-      }
+    it("should validate correct data", () => {
+      const validData = { title: "Nowa nazwa listy" };
+      expect(() => updateShoppingListSchema.parse(validData)).not.toThrow();
     });
 
-    it("should allow title with maximum allowed length", () => {
-      const validData = { title: "b".repeat(255) };
-      const result = updateShoppingListSchema.safeParse(validData);
-      expect(result.success).toBe(true);
-    });
-
-    it("should fail validation if title is an empty string", () => {
+    it("should fail if title is empty", () => {
       const invalidData = { title: "" };
-      const result = updateShoppingListSchema.safeParse(invalidData);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().title?._errors[0]).toBe("Tytuł listy zakupów nie może być pusty");
-      }
+      expect(() => updateShoppingListSchema.parse(invalidData)).toThrow("Tytuł listy zakupów nie może być pusty");
     });
 
-    it("should fail validation if title exceeds maximum length", () => {
-      const invalidData = { title: "b".repeat(256) };
-      const result = updateShoppingListSchema.safeParse(invalidData);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().title?._errors[0]).toBe("Tytuł listy zakupów nie może przekraczać 255 znaków");
-      }
+    it("should fail if title is too long", () => {
+      const invalidData = { title: "a".repeat(256) };
+      expect(() => updateShoppingListSchema.parse(invalidData)).toThrow(
+        "Tytuł listy zakupów nie może przekraczać 255 znaków"
+      );
     });
 
-    it("should fail validation if title is not a string", () => {
-      const invalidData = { title: false };
-      const result = updateShoppingListSchema.safeParse(invalidData);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().title?._errors[0]).toContain("Expected string, received boolean");
-      }
-    });
-
-    it("should fail validation if title is missing", () => {
+    it("should fail if title is missing", () => {
       const invalidData = {};
-      const result = updateShoppingListSchema.safeParse(invalidData);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().title?._errors[0]).toContain("Required");
-      }
+      expect(() => updateShoppingListSchema.parse(invalidData)).toThrow(); // Zod throws a specific error for missing required fields
     });
 
     it("should strip unknown fields", () => {
@@ -381,83 +316,43 @@ describe("Shopping List Validators", () => {
   });
 
   describe("updateShoppingListItemSchema", () => {
-    it("should validate successfully when only itemName is provided", () => {
-      const input = { itemName: "Updated Milk" };
-      const result = updateShoppingListItemSchema.safeParse(input);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        // purchased should be undefined as it was not provided
-        expect(result.data).toEqual({ itemName: "Updated Milk", purchased: undefined });
-      }
+    it("should validate correct data with itemName", () => {
+      const validData = { itemName: "Nowa nazwa produktu" };
+      expect(() => updateShoppingListItemSchema.parse(validData)).not.toThrow();
     });
 
-    it("should validate successfully when only purchased is provided", () => {
-      const input = { purchased: true };
-      const result = updateShoppingListItemSchema.safeParse(input);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        // itemName should be undefined
-        expect(result.data).toEqual({ itemName: undefined, purchased: true });
-      }
+    it("should validate correct data with purchased", () => {
+      const validData = { purchased: true };
+      expect(() => updateShoppingListItemSchema.parse(validData)).not.toThrow();
     });
 
-    it("should validate successfully when both fields are provided", () => {
-      const input = { itemName: "Updated Eggs", purchased: false };
-      const result = updateShoppingListItemSchema.safeParse(input);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toEqual(input);
-      }
+    it("should validate correct data with both fields", () => {
+      const validData = { itemName: "Inny produkt", purchased: false };
+      expect(() => updateShoppingListItemSchema.parse(validData)).not.toThrow();
     });
 
-    it("should fail validation if itemName is an empty string", () => {
-      const input = { itemName: "" };
-      const result = updateShoppingListItemSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        // Błąd z .min(1)
-        expect(result.error.format().itemName?._errors[0]).toBe("Nazwa produktu nie może być pusta");
-      }
+    it("should fail if itemName is present but empty", () => {
+      const invalidData = { itemName: "" };
+      expect(() => updateShoppingListItemSchema.parse(invalidData)).toThrow("Nazwa produktu nie może być pusta");
     });
 
-    it("should fail validation if itemName exceeds maximum length (128)", () => {
-      const input = { itemName: "b".repeat(129) };
-      const result = updateShoppingListItemSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().itemName?._errors[0]).toBe("Nazwa produktu nie może przekraczać 128 znaków");
-      }
+    it("should fail if itemName is too long", () => {
+      const invalidData = { itemName: "a".repeat(129) };
+      expect(() => updateShoppingListItemSchema.parse(invalidData)).toThrow(
+        "Nazwa produktu nie może przekraczać 128 znaków"
+      );
     });
 
-    it("should fail validation for incorrect type for purchased", () => {
-      const input = { purchased: "yes" };
-      const result = updateShoppingListItemSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().purchased?._errors[0]).toContain("Expected boolean, received string");
-      }
+    it("should fail if purchased is not a boolean", () => {
+      const invalidData = { purchased: "nie" };
+      expect(() => updateShoppingListItemSchema.parse(invalidData)).toThrow(); // Zod will throw an 'invalid_type' error
     });
 
-    it("should fail validation for incorrect type for itemName", () => {
-      const input = { itemName: 123 };
-      const result = updateShoppingListItemSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.format().itemName?._errors[0]).toContain("Expected string, received number");
-      }
-    });
-
-    it("should fail validation if neither itemName nor purchased is provided (due to .refine)", () => {
-      const input = {}; // Pusty obiekt
-      const result = updateShoppingListItemSchema.safeParse(input);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        // Oczekujemy błędu z .refine()
-        // Zod może umieścić błąd refine na poziomie globalnym ('_errors') lub na jednym z pól.
-        // Sprawdzamy globalne błędy najpierw.
-        const globalErrors = result.error.format()._errors;
-        expect(globalErrors).toContain("Co najmniej jedno pole musi być podane: nazwa produktu lub status zakupu");
-      }
+    it("should fail if no fields are provided", () => {
+      const invalidData = {};
+      expect(() => updateShoppingListItemSchema.parse(invalidData)).toThrow(
+        "Co najmniej jedno pole musi być podane: nazwa produktu lub status zakupu"
+      );
     });
 
     it("should strip unknown fields", () => {

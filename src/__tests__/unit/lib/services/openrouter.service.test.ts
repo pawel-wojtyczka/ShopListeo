@@ -1,163 +1,250 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { OpenRouterService } from "@/lib/openrouter.service";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { OpenRouterService } from "@/lib/services/openrouter.service";
+import { ShoppingListError } from "@/lib/services/shopping-list.service"; // Assuming error handling uses this
 
-// Mock global fetch using vi.fn directly on global.fetch
-// const fetchMock = vi.fn();
-// global.fetch = fetchMock;
+// Mock the logger
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
 
-// Przykładowy klucz API dla testów
-const MOCK_API_KEY = "test-api-key";
-const MOCK_BASE_URL = "https://openrouter.ai/api/v1"; // Domyślny URL base, jeśli nie jest konfigurowalny
+// Import logger after mock
+import { logger } from "@/lib/logger";
+
+// Store original fetch and restore it after tests
+const originalFetch = global.fetch;
 
 describe("OpenRouterService", () => {
   let service: OpenRouterService;
+  const apiKey = "test-api-key";
 
   beforeEach(() => {
-    // Tworzenie nowej instancji serwisu przed każdym testem
-    service = new OpenRouterService(MOCK_API_KEY);
-    // Resetowanie mocka fetch przed każdym testem
-    // fetchMock.mockClear(); // Użyj mockClear zamiast mockReset, aby zachować implementację
+    // Reset mocks and restore fetch before each test
+    vi.resetAllMocks();
+    global.fetch = vi.fn();
+    service = new OpenRouterService(apiKey);
   });
 
   afterEach(() => {
-    // Upewnienie się, że mocki są czyszczone po każdym teście
-    // vi.restoreAllMocks(); // Nie jest już potrzebne, jeśli nie używamy vi.spyOn
-    // Wyczyść mocka fetch po każdym teście, aby nie wpływał na inne testy
-    // fetchMock.mockClear();
+    // Restore original fetch after each test
+    global.fetch = originalFetch;
   });
 
-  describe("Initialization", () => {
-    it("should store the API key correctly", () => {
-      expect(service.getApiKey()).toBe(MOCK_API_KEY);
-      expect(service.getBaseUrl()).toBe(MOCK_BASE_URL);
+  describe("parseShoppingList", () => {
+    const textInput = "potrzebuję mleko, chleb i 2 jajka";
+
+    it("should successfully parse text and return items", async () => {
+      const mockApiResponse = {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({ items: ["mleko", "chleb", "2 jajka"] }),
+            },
+          },
+        ],
+      };
+      const mockFetchResponse = {
+        ok: true,
+        json: async () => mockApiResponse,
+        status: 200,
+      } as Response;
+
+      vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse);
+
+      const items = await service.parseShoppingList(textInput);
+
+      expect(items).toEqual(["mleko", "chleb", "2 jajka"]);
+      expect(global.fetch).toHaveBeenCalledOnce();
+      expect(global.fetch).toHaveBeenCalledWith("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: expect.any(String) }, // Check system prompt exists
+            { role: "user", content: textInput },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+        }),
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining("Parsing shopping list text"),
+        expect.any(String)
+      );
+      expect(logger.info).toHaveBeenCalledWith("Parsed items successfully", expect.any(Array));
     });
 
-    it("should throw an error if API key is empty during initialization", () => {
-      // Konstruktor rzuca standardowy Error
+    it("should handle empty items array from API", async () => {
+      const mockApiResponse = {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({ items: [] }),
+            },
+          },
+        ],
+      };
+      const mockFetchResponse = {
+        ok: true,
+        json: async () => mockApiResponse,
+        status: 200,
+      } as Response;
+
+      vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse);
+
+      const items = await service.parseShoppingList(textInput);
+
+      expect(items).toEqual([]);
+      expect(logger.info).toHaveBeenCalledWith("Parsed items successfully", []);
+    });
+
+    it("should handle API response with no choices", async () => {
+      const mockApiResponse = { choices: [] }; // No choices
+      const mockFetchResponse = {
+        ok: true,
+        json: async () => mockApiResponse,
+        status: 200,
+      } as Response;
+
+      vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse);
+
+      await expect(service.parseShoppingList(textInput)).rejects.toThrow(
+        new ShoppingListError(
+          "Nie udało się przetworzyć listy przez AI - nieprawidłowa odpowiedź",
+          "AI_INVALID_RESPONSE"
+        )
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        "Error parsing shopping list: Invalid response structure from AI (no choices)",
+        expect.anything()
+      );
+    });
+
+    it("should handle API response with no message content", async () => {
+      const mockApiResponse = {
+        choices: [{ message: {} }], // No content
+      };
+      const mockFetchResponse = {
+        ok: true,
+        json: async () => mockApiResponse,
+        status: 200,
+      } as Response;
+
+      vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse);
+
+      await expect(service.parseShoppingList(textInput)).rejects.toThrow(
+        new ShoppingListError(
+          "Nie udało się przetworzyć listy przez AI - nieprawidłowa odpowiedź",
+          "AI_INVALID_RESPONSE"
+        )
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        "Error parsing shopping list: Invalid response structure from AI (no message content)",
+        expect.anything()
+      );
+    });
+
+    it("should handle API response with invalid JSON content", async () => {
+      const mockApiResponse = {
+        choices: [
+          {
+            message: {
+              content: "not json",
+            },
+          },
+        ],
+      };
+      const mockFetchResponse = {
+        ok: true,
+        json: async () => mockApiResponse,
+        status: 200,
+      } as Response;
+
+      vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse);
+
+      await expect(service.parseShoppingList(textInput)).rejects.toThrow(
+        new ShoppingListError("Nie udało się przetworzyć listy przez AI - błąd parsowania JSON", "AI_JSON_PARSE_ERROR")
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Error parsing shopping list: Failed to parse JSON response from AI"),
+        expect.anything(),
+        expect.any(SyntaxError) // Original JSON parse error
+      );
+    });
+
+    it("should handle API response with missing 'items' key in JSON", async () => {
+      const mockApiResponse = {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({ products: ["milk"] }), // Missing 'items'
+            },
+          },
+        ],
+      };
+      const mockFetchResponse = {
+        ok: true,
+        json: async () => mockApiResponse,
+        status: 200,
+      } as Response;
+
+      vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse);
+
+      await expect(service.parseShoppingList(textInput)).rejects.toThrow(
+        new ShoppingListError(
+          "Nie udało się przetworzyć listy przez AI - nieprawidłowy format JSON",
+          "AI_INVALID_JSON_FORMAT"
+        )
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        "Error parsing shopping list: Invalid JSON format from AI (missing 'items' array)",
+        expect.anything()
+      );
+    });
+
+    it("should handle fetch error (non-ok response)", async () => {
+      const mockFetchResponse = {
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        json: async () => ({ error: { message: "AI service unavailable" } }),
+      } as Response;
+
+      vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse);
+
+      await expect(service.parseShoppingList(textInput)).rejects.toThrow(
+        new ShoppingListError("Błąd podczas komunikacji z serwisem AI", "AI_REQUEST_FAILED")
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Error fetching from OpenRouter API"),
+        expect.objectContaining({ status: 500, statusText: "Internal Server Error" }),
+        expect.any(Object) // Error body
+      );
+    });
+
+    it("should handle network error during fetch", async () => {
+      const networkError = new Error("Network failure");
+      vi.mocked(global.fetch).mockRejectedValue(networkError);
+
+      await expect(service.parseShoppingList(textInput)).rejects.toThrow(
+        new ShoppingListError("Błąd sieci podczas komunikacji z serwisem AI", "AI_NETWORK_ERROR", networkError)
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Network error fetching from OpenRouter API"),
+        expect.anything(),
+        networkError
+      );
+    });
+
+    it("should throw error if API key is missing", () => {
       expect(() => new OpenRouterService("")).toThrow("OpenRouter API key is required");
-    });
-  });
-
-  describe("sendChatRequest", () => {
-    const mockUserInput = "Dodaj mleko i chleb, usuń masło";
-    const mockChatPayload = { message: mockUserInput };
-
-    it("should call fetch with correct parameters and return parsed content on success", async () => {
-      const mockAiResponseJson = { products: [{ name: "Mleko", purchased: false }] };
-      // Nie potrzebujemy już mockować odpowiedzi fetch tutaj, MSW to obsłuży
-      // const mockFetchResponse = {
-      //   ok: true,
-      //   status: 200,
-      //   text: async () => JSON.stringify(mockAiResponse), // Zwraca string JSON całej odpowiedzi AI
-      // };
-      // fetchMock.mockResolvedValue(mockFetchResponse); // <--- Usuwamy to
-
-      const result = await service.sendChatRequest(mockChatPayload);
-
-      // Asertje dotyczące wywołania fetch są teraz mniej istotne, bo MSW to przechwytuje
-      // Możemy zostawić asercje dotyczące wyniku, aby upewnić się, że serwis poprawnie przetwarza odpowiedź z MSW
-      // expect(fetchMock).toHaveBeenCalledTimes(1);
-      // expect(fetchMock).toHaveBeenCalledWith(expectedUrl, {
-      //   method: "POST",
-      //   headers: expectedHeaders,
-      //   body: JSON.stringify(expectedPayload),
-      // });
-
-      expect(result).toEqual({ content: JSON.stringify(mockAiResponseJson), error: undefined });
-    });
-
-    it("should return error in response on fetch network error", async () => {
-      // Symulowanie błędu sieciowego z MSW jest inne. Zamiast mockRejectedValue,
-      // handler MSW musiałby zwrócić błąd sieciowy. Na razie pominiemy ten test,
-      // zakładając, że MSW głównie mockuje udane lub błędne odpowiedzi API, a nie błędy sieciowe.
-      // Możemy dodać dedykowany handler MSW dla błędu sieciowego, jeśli to konieczne.
-
-      // const networkError = new Error("Network connection failed");
-      // fetchMock.mockRejectedValueOnce(networkError); // <--- Usuwamy to
-      // const result = await service.sendChatRequest(mockChatPayload);
-      // expect(result.content).toBe("");
-      // expect(result.error).toBe("Network connection failed");
-      // expect(fetchMock).toHaveBeenCalledTimes(1); // <--- Usuwamy to
-      expect(true).toBe(true); // Placeholder, aby test przeszedł
-    });
-
-    it("should return error in response on non-2xx API response", async () => {
-      // Ten test wymaga zmodyfikowania handlera MSW, aby zwracał błąd 500.
-      // Zamiast modyfikować globalny handler, możemy użyć server.use() do jednorazowego nadpisania handlera.
-      // Na razie ten test również może nie działać poprawnie bez dedykowanego handlera błędu w MSW.
-
-      // const mockFetchResponse = {
-      //   ok: false,
-      //   status: 500,
-      //   statusText: "Internal Server Error",
-      //   text: async () => "Server error details",
-      // };
-      // fetchMock.mockResolvedValueOnce(mockFetchResponse); // <--- Usuwamy to
-      // const result = await service.sendChatRequest(mockChatPayload);
-      // expect(result.content).toBe("");
-      // expect(result.error).toMatch(/API request failed with status 500/);
-      // expect(fetchMock).toHaveBeenCalledTimes(1); // <--- Usuwamy to
-      expect(true).toBe(true); // Placeholder
-    });
-
-    it("should return error in response if API response text is not valid JSON", async () => {
-      // Podobnie jak wyżej, wymaga dedykowanego handlera MSW zwracającego niepoprawny JSON.
-      // const mockFetchResponse = {
-      //   ok: true,
-      //   status: 200,
-      //   text: async () => "not valid json", // Zwraca niepoprawny JSON
-      // };
-      // fetchMock.mockResolvedValueOnce(mockFetchResponse); // <--- Usuwamy to
-      // const result = await service.sendChatRequest(mockChatPayload);
-      // expect(result.content).toBe("");
-      // expect(result.error).toMatch(/Invalid JSON response/);
-      // expect(fetchMock).toHaveBeenCalledTimes(1); // <--- Usuwamy to
-      expect(true).toBe(true); // Placeholder
-    });
-
-    it("should return error in response if AI response JSON lacks expected structure", async () => {
-      // Wymaga dedykowanego handlera MSW zwracającego niekompletną odpowiedź.
-      // const incompleteAiResponse = { choices: [{ message: {} }] };
-      // const mockFetchResponse = {
-      //   ok: true,
-      //   status: 200,
-      //   text: async () => JSON.stringify(incompleteAiResponse),
-      // };
-      // fetchMock.mockResolvedValueOnce(mockFetchResponse); // <--- Usuwamy to
-      // const result = await service.sendChatRequest(mockChatPayload);
-      // expect(result.content).toBe("");
-      // expect(result.error).toBe("API response missing content in message");
-      // expect(fetchMock).toHaveBeenCalledTimes(1); // <--- Usuwamy to
-      expect(true).toBe(true); // Placeholder
-    });
-
-    it("should construct the prompt correctly", async () => {
-      // Ten test nadal ma sens - sprawdzamy, czy *usługa* wysyła poprawne zapytanie.
-      // Musimy jednak przechwycić to zapytanie za pomocą MSW, aby sprawdzić jego body.
-      // Na razie zostawiamy logikę bez zmian, ale asercje dotyczące fetchMock są usuwane.
-
-      // const mockFetchResponse = {
-      //   ok: true,
-      //   status: 200,
-      //   text: async () => JSON.stringify({ choices: [{ message: { content: JSON.stringify({ products: [] }) } }] }),
-      // };
-      // fetchMock.mockResolvedValueOnce(mockFetchResponse); // <--- Usuwamy to
-
-      await service.sendChatRequest(mockChatPayload);
-
-      // Asertje dotyczące wywołania fetchMock są usuwane
-      // expect(fetchMock).toHaveBeenCalledTimes(1);
-      // const fetchCallArgs = fetchMock.mock.calls[0];
-      // const requestBody = JSON.parse(fetchCallArgs[1].body);
-      // // Define a simple type for messages for clarity
-      // type Message = { role: string; content: string };
-      // const systemMessage = requestBody.messages.find((m: Message) => m.role === "system");
-      // const userMessage = requestBody.messages.find((m: Message) => m.role === "user");
-      // expect(systemMessage.content).toBe("You are a helpful assistant.");
-      // expect(userMessage.content).toBe(mockUserInput);
-      // expect(requestBody.model).toBe("openai/gpt-4o");
-      // expect(requestBody.response_format).toEqual({ type: "json_object" });
-      expect(true).toBe(true); // Placeholder
     });
   });
 });
