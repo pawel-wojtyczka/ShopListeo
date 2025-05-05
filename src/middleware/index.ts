@@ -1,11 +1,10 @@
-import { defineMiddleware } from "astro:middleware";
-import { createSupabaseServerInstance, createSupabaseAdminClient } from "../db/supabase.server";
-import type { AstroLocals } from "../types/locals";
+import { defineMiddleware } from "astro/middleware";
+import { createServerClient } from "@supabase/ssr";
 import type { UserDTO } from "../types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Ścieżki wymagające autentykacji - usunięto /shopping-lists
-const PROTECTED_ROUTES = ["/", "/profile"];
+const protectedPaths = ["/dashboard", "/settings"];
 
 // Ścieżki dostępne tylko dla niezalogowanych użytkowników (lub obu stanów)
 const AUTH_ROUTES = ["/login", "/register", "/reset-password", "/set-new-password", "/recover", "/recover-password"];
@@ -32,7 +31,10 @@ export const prerender = false;
 /**
  * Middleware obsługujące uwierzytelnianie, dostęp do Supabase i kontrolę dostępu
  */
-export const onRequest = defineMiddleware(async ({ request, locals, cookies, redirect, url }, next) => {
+const supabaseMiddleware = defineMiddleware(async (context, next) => {
+  // Pobieramy potrzebne właściwości z context
+  const { locals, cookies, redirect, url } = context;
+
   // Pobieramy ścieżkę z URL
   const pathname = url.pathname;
 
@@ -49,60 +51,76 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY as string;
   const adminSupabaseUrl = (env.SUPABASE_URL as string) || supabaseUrl;
 
-  // Logowanie zmiennych środowiskowych dla diagnostyki (pojawi się w logach Cloudflare)
-  console.log("Middleware: Attempting to read Supabase env vars.");
-  console.log("PUBLIC_SUPABASE_URL available:", !!supabaseUrl);
-  console.log("PUBLIC_SUPABASE_ANON_KEY available:", !!supabaseAnonKey);
-  console.log("SUPABASE_URL available:", !!env.SUPABASE_URL);
-  console.log("SUPABASE_SERVICE_ROLE_KEY available:", !!supabaseServiceRoleKey);
-
   // Sprawdzamy, czy kluczowe zmienne są dostępne
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("Middleware Error: PUBLIC Supabase URL or Key is missing from runtime environment!");
+    // console.error("Middleware Error: PUBLIC Supabase URL or Key is missing from runtime environment!");
+    // Zamiast rzucać błędem lub logować, zwracamy odpowiedź błędu, co jest bezpieczniejsze
+    return new Response("Internal Server Error: Supabase configuration missing", {
+      status: 500,
+    });
   }
   // Sprawdzamy zmienne dla klienta admina (tylko jeśli będą używane)
   const adminCredentialsAvailable = !!adminSupabaseUrl && !!supabaseServiceRoleKey;
-  console.log("Admin client credentials available:", adminCredentialsAvailable);
+  // console.log("Admin client credentials available:", adminCredentialsAvailable);
 
   // Tworzymy standardową instancję klienta Supabase dla tego żądania
   let supabase: SupabaseClient | null = null;
   if (supabaseUrl && supabaseAnonKey) {
-    supabase = createSupabaseServerInstance({
-      supabaseUrl: supabaseUrl,
-      supabaseKey: supabaseAnonKey,
-      headers: request.headers,
-      cookies,
+    supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        get(key) {
+          return cookies.get(key)?.value;
+        },
+        set(key, value, options) {
+          cookies.set(key, value, options);
+        },
+        remove(key, options) {
+          cookies.delete(key, options);
+        },
+      },
     });
-    (locals as AstroLocals).supabase = supabase;
+    (locals as App.Locals).supabase = supabase;
   } else {
-    console.error("Middleware: Failed to create standard Supabase client due to missing URL/Key.");
-    (locals as AstroLocals).supabase = null;
+    // console.error("Middleware: Failed to create standard Supabase client due to missing URL/Key.");
+    // Jeśli klient nie mógł zostać utworzony, przypisujemy null.
+    (locals as App.Locals).supabase = null;
   }
 
   // Tworzymy instancję klienta Supabase z uprawnieniami administratora
   let supabaseAdmin: SupabaseClient | null = null;
   if (adminCredentialsAvailable) {
     try {
-      supabaseAdmin = createSupabaseAdminClient({
-        supabaseUrl: adminSupabaseUrl,
-        supabaseKey: supabaseServiceRoleKey,
+      supabaseAdmin = createServerClient(adminSupabaseUrl, supabaseServiceRoleKey, {
+        cookies: {
+          get(key) {
+            return cookies.get(key)?.value;
+          },
+          set(key, value, options) {
+            cookies.set(key, value, options);
+          },
+          remove(key, options) {
+            cookies.delete(key, options);
+          },
+        },
       });
-      (locals as AstroLocals).supabaseAdmin = supabaseAdmin;
-    } catch (error) {
-      console.error("Middleware Error: Failed to create Supabase admin client:", error);
-      (locals as AstroLocals).supabaseAdmin = null;
+      (locals as App.Locals).supabaseAdmin = supabaseAdmin;
+    } catch (_error) {
+      // Zmieniono nazwę zmiennej błędu na _error, aby uniknąć ostrzeżenia o nieużywaniu
+      // console.error("Middleware Error: Failed to create Supabase admin client:", _error);
+      (locals as App.Locals).supabaseAdmin = null;
     }
   } else {
-    console.warn(
-      "Middleware: Admin Supabase client cannot be created due to missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY."
-    );
-    (locals as AstroLocals).supabaseAdmin = null;
+    // console.warn(
+    //   "Middleware: Admin Supabase client cannot be created due to missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY."
+    // );
+    (locals as App.Locals).supabaseAdmin = null;
   }
 
-  // Sprawdzamy, czy standardowy klient został poprawnie utworzony przed próbą użycia
-  if (!supabase) {
-    console.error("Middleware: Cannot proceed with authentication check, Supabase client is not available.");
-    // Można zdecydować o przerwaniu lub kontynuacji w zależności od wymagań
+  // Sprawdzamy, czy standardowy klient Supabase jest dostępny w locals
+  const currentSupabase = (locals as App.Locals).supabase;
+  if (!currentSupabase) {
+    // console.error("Middleware: Cannot proceed with authentication check, Supabase client is not available.");
+    // Można zdecydować, czy zwrócić błąd, czy kontynuować bez uwierzytelniania
     // return new Response("Internal Server Error: Supabase client unavailable", { status: 500 });
     // Na razie pozwalamy kontynuować, aby inne części aplikacji mogły działać
   }
@@ -112,19 +130,19 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   let isAuthenticated = false;
   let session = null;
 
-  if (supabase) {
+  if (currentSupabase) {
     try {
-      const { data, error: getUserError } = await supabase.auth.getUser();
+      const { data, error: getUserError } = await currentSupabase.auth.getUser();
 
       // Pobieramy sesję osobno, ponieważ getUser nie zwraca sesji bezpośrednio
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData } = await currentSupabase.auth.getSession();
       session = sessionData?.session;
 
       if (getUserError || !data.user) {
         isAuthenticated = false;
         authUser = null;
         if (getUserError) {
-          console.error("Middleware: Error fetching user:", getUserError.message);
+          // console.error("Middleware: Error fetching user:", getUserError.message);
         }
       } else {
         // Użytkownik jest zalogowany
@@ -160,28 +178,31 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
           lastLoginDate: user.last_sign_in_at || null,
           isAdmin: user.app_metadata?.isAdmin || false,
         };
+
+        // Jeśli jest sesja i użytkownik, ustawiamy go w locals
+        isAuthenticated = true;
+        (locals as App.Locals).user = data.user;
       }
-      // Ustawiamy dane autoryzacyjne w kontekście lokalnym
-      (locals as AstroLocals).user = data.user;
-    } catch (error) {
-      console.error("Middleware: Unexpected error during authentication check:", error);
+    } catch (_error) {
+      // Zmieniono nazwę zmiennej błędu na _error
+      // console.error("Middleware: Unexpected error during authentication check:", _error);
       isAuthenticated = false;
       authUser = null;
-      (locals as AstroLocals).user = null;
+      (locals as App.Locals).user = null;
     }
   } else {
     // Jeśli klient Supabase nie jest dostępny, zakładamy, że użytkownik nie jest zalogowany
     isAuthenticated = false;
     authUser = null;
-    (locals as AstroLocals).user = null;
+    (locals as App.Locals).user = null;
   }
 
   // Ustawiamy userDTO i isAuthenticated niezależnie od błędu klienta Supabase
-  (locals as AstroLocals & { userDTO: UserDTO | null; isAuthenticated: boolean }).userDTO = authUser;
-  (locals as AstroLocals & { userDTO: UserDTO | null; isAuthenticated: boolean }).isAuthenticated = isAuthenticated;
+  (locals as App.Locals & { userDTO: UserDTO | null; isAuthenticated: boolean }).userDTO = authUser;
+  (locals as App.Locals & { userDTO: UserDTO | null; isAuthenticated: boolean }).isAuthenticated = isAuthenticated;
 
   // Sprawdzamy reguły przekierowania
-  const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+  const isProtectedRoute = protectedPaths.some((route) => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthApiRoute = AUTH_API_ROUTES.some((route) => pathname.startsWith(route));
   const isShoppingListApiRoute = SHOPPING_LIST_API_ROUTES.some((route) => pathname.startsWith(route));
@@ -206,3 +227,6 @@ export const onRequest = defineMiddleware(async ({ request, locals, cookies, red
   // Brak przekierowania, przechodzimy do żądanej strony
   return await next();
 });
+
+// Eksportujemy bezpośrednio supabaseMiddleware
+export const onRequest = supabaseMiddleware;
