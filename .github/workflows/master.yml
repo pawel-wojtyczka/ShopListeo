@@ -41,7 +41,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Build
-    needs: lint
+    needs: lint # Build zależy od lint
     steps:
       # Pobiera kod repozytorium
       - name: Checkout repository
@@ -73,17 +73,44 @@ jobs:
           path: ./dist
           if-no-files-found: error
 
+  # Zadanie testowania (umieszczone po build)
+  test:
+    runs-on: ubuntu-latest
+    name: Run Unit Tests
+    needs: build # Testy uruchamiane po pomyślnym budowaniu
+    steps:
+      # Pobiera kod repozytorium
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Ustawia środowisko Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      # Instaluje zależności projektu (w tym devDependencies potrzebne do testów)
+      - name: Install dependencies
+        run: npm ci
+
+      # Uruchamia testy jednostkowe
+      - name: Run tests
+        run: npm test # Założenie: komenda do testów to 'npm test'
+
   # Zadanie wdrażania na Cloudflare Pages
   deploy:
     runs-on: ubuntu-latest
     name: Deploy to Cloudflare Pages
-    needs: build
+    needs: test # Deploy uruchamiany po pomyślnych testach
     steps:
       # Pobiera kod repozytorium
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # Pobiera artefakty budowania
+      # Uwaga: Artefakty są z joba 'build', ale pobieramy je w jobie 'deploy'
+      # Job 'test' nie potrzebuje artefaktów budowania, tylko zależności
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:

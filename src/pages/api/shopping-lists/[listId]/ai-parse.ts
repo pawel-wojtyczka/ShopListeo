@@ -15,42 +15,44 @@ interface AiResponse {
 }
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
-  // Removed request ID and initial log
+  // console.log(`[ai-parse] Received request for listId: ${params.listId}`); // Log start
 
   // Odczytujemy zmienną środowiskową w zależności od trybu uruchomienia
   let OPENROUTER_API_KEY: string | undefined;
+  let _keySource: string;
 
   if (import.meta.env.MODE === "development") {
-    // W trybie deweloperskim ('npm run dev') odczytujemy bezpośrednio z import.meta.env
-    // Zmienne z .env są tutaj automatycznie ładowane przez Astro dla kodu server-side.
     OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
+    _keySource = "import.meta.env (development)";
   } else {
-    // W trybie produkcyjnym lub innym (np. 'production' po buildzie) próbujemy odczytać z locals.runtime.env,
-    // które jest zazwyczaj dostarczane przez adaptery (np. Cloudflare).
-    // Linter może tu pokazywać błąd lokalnie, bo 'runtime' nie jest w podstawowym typie Astro.Locals,
-    // ale w środowisku docelowym (np. Cloudflare) powinno działać dzięki adapterowi.
-    OPENROUTER_API_KEY = locals.runtime?.env?.OPENROUTER_API_KEY;
+    const potentialKey = locals.runtime?.env?.OPENROUTER_API_KEY;
+    if (typeof potentialKey === "string") {
+      OPENROUTER_API_KEY = potentialKey;
+    } else {
+      OPENROUTER_API_KEY = undefined; // Explicitly set to undefined if not a string
+    }
+    _keySource = "locals.runtime.env (production/other)";
   }
-  // Removed log checking for key source
+  // console.log(`[ai-parse] Attempting to read OPENROUTER_API_KEY from: ${_keySource}`);
 
   try {
     // Sprawdź, czy klucz API OpenRouter jest dostępny
     if (!OPENROUTER_API_KEY) {
-      // Keep minimal error log for this critical check
-      // console.error("[ai-parse] OpenRouter API key is missing or not accessible"); // Uproszczono komunikat - COMMENTED OUT
+      // console.error(`[ai-parse] CRITICAL: OpenRouter API key is missing from ${_keySource}. Cannot proceed.`); // Critical log
       return new Response(
         JSON.stringify({ error: "Configuration error", details: "OpenRouter API key is not configured" }),
         { status: 500 }
       );
     }
-    // Removed success log
+    // console.log("[ai-parse] OpenRouter API key found."); // Success log
 
     // Pobieramy dane uwierzytelniające bezpośrednio z middleware locals
     const { user, isAuthenticated, authUser } = locals as AstroLocals & { isAuthenticated: boolean };
+    // console.log(`[ai-parse] Authentication status: isAuthenticated=${isAuthenticated}`);
 
     // Sprawdź, czy użytkownik jest zalogowany
     if (!isAuthenticated || (!user && !authUser)) {
-      // Removed warning log
+      // console.warn("[ai-parse] Unauthorized attempt: User not authenticated."); // Warning log
       return new Response(JSON.stringify({ error: "Unauthorized", details: "Użytkownik niezalogowany" }), {
         status: 401,
       });
@@ -58,10 +60,10 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
     // Ustal ID użytkownika (mogą być dwa źródła: user z Supabase i authUser ze zserializowanego DTO)
     const userId = user?.id || authUser?.id;
-    // Removed user ID log
+    // console.log(`[ai-parse] User ID determined: ${userId}`);
 
     if (!userId) {
-      // Removed error log
+      // console.error("[ai-parse] CRITICAL: Could not determine User ID after authentication check."); // Error log
       return new Response(JSON.stringify({ error: "Unauthorized", details: "Brak ID użytkownika" }), {
         status: 401,
       });
@@ -69,20 +71,22 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 
     // Get list ID from params
     const { listId } = params;
-    // Removed list ID log
     if (!listId) {
-      // Removed error log
+      // console.error("[ai-parse] Bad Request: List ID is missing from params."); // Error log
       return new Response(JSON.stringify({ error: "List ID is required" }), {
         status: 400,
       });
     }
 
     // Użyj supabase z locals jeśli dostępne, w przeciwnym razie użyj globalnego klienta
-    const supabase = (locals as AstroLocals).supabase || supabaseClient;
-    // Removed supabase client obtained log
+    const supabaseFromLocals = (locals as App.Locals).supabase; // Use App.Locals
+    const supabase = supabaseFromLocals || supabaseClient;
+    // console.log(
+    //   `[ai-parse] Supabase client source: ${supabaseFromLocals ? "locals.supabase" : "global supabaseClient (fallback)"}`
+    // );
 
     // Verify list exists and belongs to user
-    // Removed verification log
+    // console.log(`[ai-parse] Verifying ownership for list ${listId} and user ${userId}...`);
     const { data: list, error: listError } = await supabase
       .from("shopping_lists")
       .select("id")
@@ -91,22 +95,22 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       .single();
 
     if (listError) {
-      // console.error(`[ai-parse] Error fetching list ${listId}: ${listError.message}`); // Keep minimal error log - COMMENTED OUT
+      // console.error(`[ai-parse] Error fetching list ${listId} for user ${userId}: ${listError.message}`); // Error log
       return new Response(JSON.stringify({ error: "List not found or access denied", details: listError.message }), {
         status: 404, // Could be 403 or 404 depending on RLS
       });
     }
 
     if (!list) {
-      // Removed warning log
+      // console.warn(`[ai-parse] List ${listId} not found for user ${userId}.`); // Warning log
       return new Response(JSON.stringify({ error: "List not found" }), {
         status: 404,
       });
     }
-    // Removed ownership verified log
+    // console.log(`[ai-parse] List ${listId} ownership verified for user ${userId}.`);
 
     // Pobierz istniejące produkty z listy zakupów wraz ze statusem purchased
-    // Removed fetching items log
+    // console.log(`[ai-parse] Fetching existing items for list ${listId}...`);
     const { data: existingItems, error: itemsError } = await supabase
       .from("shopping_list_items")
       .select("id, item_name, purchased")
@@ -114,31 +118,30 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       .order("created_at", { ascending: true });
 
     if (itemsError) {
-      // console.error(`[ai-parse] Error fetching existing items for list ${listId}: ${itemsError.message}`); // Keep minimal error log - COMMENTED OUT
+      // console.error(`[ai-parse] Error fetching existing items for list ${listId}: ${itemsError.message}`); // Error log
       return new Response(JSON.stringify({ error: "Failed to fetch existing products", details: itemsError.message }), {
         status: 500,
       });
     }
-    // Removed found items log
+    // console.log(`[ai-parse] Found ${existingItems.length} existing items for list ${listId}.`);
 
     // Get text content from request body
     let body;
     let text: string | undefined;
     try {
-      // Removed parsing log
+      // console.log("[ai-parse] Parsing request body...");
       body = await request.json();
       text = (body as { text: string }).text;
-      // Removed received text log
+      // console.log(`[ai-parse] Received text: ${text ? text.substring(0, 50) + "..." : "empty"}`);
     } catch (_jsonError) {
-      // Use underscore for unused var
-      // console.error(`[ai-parse] Error parsing request body: ${getErrorMessage(_jsonError)}`); // Keep minimal error log - COMMENTED OUT
+      // console.error(`[ai-parse] Error parsing request body: ${getErrorMessage(_jsonError)}`); // Error log
       return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
       });
     }
 
     if (!text || typeof text !== "string") {
-      // Removed error log
+      // console.error("[ai-parse] Bad Request: Text content is missing or not a string."); // Error log
       return new Response(JSON.stringify({ error: "Text content is required" }), {
         status: 400,
       });
@@ -150,18 +153,17 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       purchased: item.purchased,
     }));
     const existingProductsFormatted = JSON.stringify(productsWithStatus);
-    // Removed formatted items log
+    // console.log(`[ai-parse] Formatted existing items for AI: ${existingProductsFormatted.substring(0, 100)}...`);
 
     // Initialize OpenRouter service
     let openRouter: OpenRouterService;
     try {
-      // Removed initializing log
+      // console.log("[ai-parse] Initializing OpenRouterService...");
       // Używamy klucza ze zmiennej środowiskowej odczytanej przez locals.runtime.env
       openRouter = new OpenRouterService(OPENROUTER_API_KEY);
-      // Removed initialized log
+      // console.log("[ai-parse] OpenRouterService initialized successfully.");
     } catch (_initError) {
-      // Use underscore for unused var
-      // console.error(`[ai-parse] Failed to initialize OpenRouterService: ${getErrorMessage(_initError)}`); // Keep minimal error log - COMMENTED OUT
+      // console.error(`[ai-parse] Failed to initialize OpenRouterService: ${getErrorMessage(_initError)}`); // Error log
       return new Response(JSON.stringify({ error: "AI service initialization failed" }), {
         status: 500,
       });
@@ -198,12 +200,10 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       temperature: 0.2,
       max_tokens: 1000,
     };
-    // Removed prepared payload log
-
-    // Wykonaj zapytanie do OpenRouter
+    // console.log("[ai-parse] Preparing payload for OpenRouter...");
     let response: Response;
     try {
-      // Removed sending request log
+      // console.log("[ai-parse] Sending request to OpenRouter...");
       response = await fetch(`${openRouter.getBaseUrl()}/chat/completions`, {
         method: "POST",
         headers: {
@@ -212,37 +212,34 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         },
         body: JSON.stringify(requestPayload),
       });
-      // Removed received response log
+      // console.log(`[ai-parse] Received response from OpenRouter with status: ${response.status}`);
     } catch (_fetchError) {
-      // Use underscore for unused var
-      // console.error(`[ai-parse] Fetch error calling OpenRouter: ${getErrorMessage(_fetchError)}`); // Keep minimal error log - COMMENTED OUT
+      // console.error(`[ai-parse] Fetch error calling OpenRouter: ${getErrorMessage(_fetchError)}`); // Error log
       return new Response(JSON.stringify({ error: "Failed to communicate with AI service" }), { status: 502 }); // Bad Gateway
     }
 
     if (!response.ok) {
+      let _errorBodyText = "Could not read error body";
       try {
-        // Prefix with underscore as errorBody is no longer used after removing console.error
-        const _errorBody = await response.text();
+        _errorBodyText = await response.text();
       } catch (_textError) {
-        // Remove empty catch block
+        // ignore
       }
+      // console.error(`[ai-parse] OpenRouter API request failed with status ${response.status}. Body: ${_errorBodyText}`); // Error log
       return new Response(
         JSON.stringify({ error: "Failed to process text with AI", details: `API error: ${response.status}` }),
-        {
-          status: 500,
-        }
+        { status: 500 }
       );
     }
 
     // Parse the response
-    let responseData: AiResponse; // Use the defined interface type
+    let responseData: AiResponse;
     try {
-      // Removed parsing log
+      // console.log("[ai-parse] Parsing JSON response from OpenRouter...");
       responseData = await response.json();
-      // Removed success log
+      // console.log("[ai-parse] Successfully parsed AI response.");
     } catch (_parseError) {
-      // Use underscore for unused var
-      // console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(_parseError)}`); // Keep minimal error log - COMMENTED OUT
+      // console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(_parseError)}`); // Error log
       return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
         status: 500,
       });
@@ -390,7 +387,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       updatedAt: item.updated_at,
     }));
 
-    // Removed sending success log
+    // console.log("[ai-parse] Request processed successfully.");
     return new Response(JSON.stringify({ products: updatedItemsDTO }), {
       status: 200,
       headers: {
