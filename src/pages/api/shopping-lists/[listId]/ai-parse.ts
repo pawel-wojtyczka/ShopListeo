@@ -17,15 +17,27 @@ interface AiResponse {
 export const POST: APIRoute = async ({ params, request, locals }) => {
   // Removed request ID and initial log
 
-  // Odczytujemy zmienną środowiskową wewnątrz handlera używając locals.runtime.env
-  const OPENROUTER_API_KEY = locals.runtime?.env?.OPENROUTER_API_KEY;
+  // Odczytujemy zmienną środowiskową w zależności od trybu uruchomienia
+  let OPENROUTER_API_KEY: string | undefined;
+
+  if (import.meta.env.MODE === "development") {
+    // W trybie deweloperskim ('npm run dev') odczytujemy bezpośrednio z import.meta.env
+    // Zmienne z .env są tutaj automatycznie ładowane przez Astro dla kodu server-side.
+    OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
+  } else {
+    // W trybie produkcyjnym lub innym (np. 'production' po buildzie) próbujemy odczytać z locals.runtime.env,
+    // które jest zazwyczaj dostarczane przez adaptery (np. Cloudflare).
+    // Linter może tu pokazywać błąd lokalnie, bo 'runtime' nie jest w podstawowym typie Astro.Locals,
+    // ale w środowisku docelowym (np. Cloudflare) powinno działać dzięki adapterowi.
+    OPENROUTER_API_KEY = locals.runtime?.env?.OPENROUTER_API_KEY;
+  }
   // Removed log checking for key source
 
   try {
     // Sprawdź, czy klucz API OpenRouter jest dostępny
     if (!OPENROUTER_API_KEY) {
       // Keep minimal error log for this critical check
-      console.error("[ai-parse] OpenRouter API key is missing or not accessible via locals.runtime.env");
+      console.error("[ai-parse] OpenRouter API key is missing or not accessible"); // Uproszczono komunikat
       return new Response(
         JSON.stringify({ error: "Configuration error", details: "OpenRouter API key is not configured" }),
         { status: 500 }
