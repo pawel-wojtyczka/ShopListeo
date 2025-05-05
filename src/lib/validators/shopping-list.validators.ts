@@ -16,14 +16,25 @@ export const createShoppingListSchema = z.object({
  * Schemat walidacji dla parametrów zapytania przy pobieraniu list zakupów
  */
 export const getAllShoppingListsQuerySchema = z.object({
-  page: z
-    .preprocess((val) => (val ? String(val) : undefined), z.string().optional())
-    .transform((val) => (val ? parseInt(val, 10) : 1))
-    .pipe(z.number().int().positive().default(1)),
-  pageSize: z
-    .preprocess((val) => (val ? String(val) : undefined), z.string().optional())
-    .transform((val) => (val ? parseInt(val, 10) : 20))
-    .pipe(z.number().int().positive().max(100).default(20)),
+  page: z.preprocess(
+    (val) => val ?? undefined,
+    z.coerce
+      .number()
+      .int({ message: "Numer strony musi być liczbą całkowitą." })
+      .positive({ message: "Numer strony musi być liczbą dodatnią." })
+      .optional()
+      .default(1)
+  ),
+  pageSize: z.preprocess(
+    (val) => val ?? undefined,
+    z.coerce
+      .number()
+      .int({ message: "Rozmiar strony musi być liczbą całkowitą." })
+      .positive({ message: "Rozmiar strony musi być liczbą dodatnią." })
+      .max(100, { message: "Rozmiar strony nie może przekraczać 100." })
+      .optional()
+      .default(20)
+  ),
   sort: z.preprocess(
     (val) => val ?? undefined,
     z.enum(["title", "createdAt", "updatedAt"]).optional().default("createdAt")
