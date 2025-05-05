@@ -6,7 +6,7 @@ name: Deploy to Cloudflare Pages ver. 1.1.0
 on:
   # Uruchamia się na pushach do gałęzi master
   push:
-    branches: [master_fake]
+    branches: [master]
 
   # Pozwala na ręczne uruchomienie tego przepływu pracy ze strony Actions na GitHubie
   workflow_dispatch:
