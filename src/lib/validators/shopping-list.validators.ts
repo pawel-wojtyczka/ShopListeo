@@ -5,8 +5,10 @@ import { z } from "zod";
  */
 export const createShoppingListSchema = z.object({
   title: z
-    .string()
-    .min(1, { message: "Tytuł listy zakupów nie może być pusty" })
+    .string({
+      required_error: "Tytuł listy zakupów nie może być pusty",
+    })
+    .nonempty({ message: "Tytuł listy zakupów nie może być pusty" })
     .max(255, { message: "Tytuł listy zakupów nie może przekraczać 255 znaków" }),
 });
 

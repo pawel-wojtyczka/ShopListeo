@@ -4,29 +4,64 @@ import { createShoppingListSchema, addItemToShoppingListSchema } from "@/lib/val
 
 describe("Shopping List Validators", () => {
   describe("createShoppingListSchema", () => {
-    it("should validate correct data", () => {
-      const result = createShoppingListSchema.safeParse({ title: "My Groceries" });
+    it("should validate correct data successfully", () => {
+      const validData = { title: "Lista zakupów na weekend" };
+      const result = createShoppingListSchema.safeParse(validData);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual(validData);
+      }
+    });
+
+    it("should allow title with maximum allowed length", () => {
+      const validData = { title: "a".repeat(255) };
+      const result = createShoppingListSchema.safeParse(validData);
       expect(result.success).toBe(true);
     });
 
-    it("should invalidate empty title", () => {
-      const result = createShoppingListSchema.safeParse({ title: "" });
+    it("should fail validation if title is missing", () => {
+      const invalidData = {};
+      const result = createShoppingListSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error?.errors[0]?.message).toBe("Tytuł listy zakupów nie może być pusty");
+      if (!result.success) {
+        expect(result.error.format().title?._errors[0]).toBe("Tytuł listy zakupów nie może być pusty");
+      }
     });
 
-    it("should invalidate title exceeding max length (e.g., 255)", () => {
-      const longTitle = "a".repeat(256);
-      const result = createShoppingListSchema.safeParse({ title: longTitle });
+    it("should fail validation if title is an empty string", () => {
+      const invalidData = { title: "" };
+      const result = createShoppingListSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error?.errors[0]?.message).toBe("Tytuł listy zakupów nie może przekraczać 255 znaków");
+      if (!result.success) {
+        expect(result.error.format().title?._errors[0]).toBe("Tytuł listy zakupów nie może być pusty");
+      }
     });
 
-    it("should invalidate missing title", () => {
-      const result = createShoppingListSchema.safeParse({});
+    it("should fail validation if title exceeds maximum length", () => {
+      const invalidData = { title: "a".repeat(256) };
+      const result = createShoppingListSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error?.errors[0]?.path).toContain("title");
-      expect(result.error?.errors[0]?.message).toContain("Required");
+      if (!result.success) {
+        expect(result.error.format().title?._errors[0]).toBe("Tytuł listy zakupów nie może przekraczać 255 znaków");
+      }
+    });
+
+    it("should fail validation if title is not a string", () => {
+      const invalidData = { title: 123 };
+      const result = createShoppingListSchema.safeParse(invalidData);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.format().title?._errors[0]).toContain("Expected string, received number");
+      }
+    });
+
+    it("should strip unknown fields", () => {
+      const dataWithExtraField = { title: "Moja Lista", unknownField: "should be removed" };
+      const result = createShoppingListSchema.safeParse(dataWithExtraField);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({ title: "Moja Lista" });
+      }
     });
   });
 
