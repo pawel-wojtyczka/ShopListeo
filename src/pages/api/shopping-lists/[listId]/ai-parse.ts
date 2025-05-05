@@ -37,7 +37,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     // Sprawdź, czy klucz API OpenRouter jest dostępny
     if (!OPENROUTER_API_KEY) {
       // Keep minimal error log for this critical check
-      console.error("[ai-parse] OpenRouter API key is missing or not accessible"); // Uproszczono komunikat
+      // console.error("[ai-parse] OpenRouter API key is missing or not accessible"); // Uproszczono komunikat - COMMENTED OUT
       return new Response(
         JSON.stringify({ error: "Configuration error", details: "OpenRouter API key is not configured" }),
         { status: 500 }
@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       .single();
 
     if (listError) {
-      console.error(`[ai-parse] Error fetching list ${listId}: ${listError.message}`); // Keep minimal error log
+      // console.error(`[ai-parse] Error fetching list ${listId}: ${listError.message}`); // Keep minimal error log - COMMENTED OUT
       return new Response(JSON.stringify({ error: "List not found or access denied", details: listError.message }), {
         status: 404, // Could be 403 or 404 depending on RLS
       });
@@ -114,7 +114,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       .order("created_at", { ascending: true });
 
     if (itemsError) {
-      console.error(`[ai-parse] Error fetching existing items for list ${listId}: ${itemsError.message}`); // Keep minimal error log
+      // console.error(`[ai-parse] Error fetching existing items for list ${listId}: ${itemsError.message}`); // Keep minimal error log - COMMENTED OUT
       return new Response(JSON.stringify({ error: "Failed to fetch existing products", details: itemsError.message }), {
         status: 500,
       });
@@ -131,7 +131,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       // Removed received text log
     } catch (_jsonError) {
       // Use underscore for unused var
-      console.error(`[ai-parse] Error parsing request body: ${getErrorMessage(_jsonError)}`); // Keep minimal error log
+      // console.error(`[ai-parse] Error parsing request body: ${getErrorMessage(_jsonError)}`); // Keep minimal error log - COMMENTED OUT
       return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
       });
@@ -161,7 +161,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       // Removed initialized log
     } catch (_initError) {
       // Use underscore for unused var
-      console.error(`[ai-parse] Failed to initialize OpenRouterService: ${getErrorMessage(_initError)}`); // Keep minimal error log
+      // console.error(`[ai-parse] Failed to initialize OpenRouterService: ${getErrorMessage(_initError)}`); // Keep minimal error log - COMMENTED OUT
       return new Response(JSON.stringify({ error: "AI service initialization failed" }), {
         status: 500,
       });
@@ -215,20 +215,16 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       // Removed received response log
     } catch (_fetchError) {
       // Use underscore for unused var
-      console.error(`[ai-parse] Fetch error calling OpenRouter: ${getErrorMessage(_fetchError)}`); // Keep minimal error log
+      // console.error(`[ai-parse] Fetch error calling OpenRouter: ${getErrorMessage(_fetchError)}`); // Keep minimal error log - COMMENTED OUT
       return new Response(JSON.stringify({ error: "Failed to communicate with AI service" }), { status: 502 }); // Bad Gateway
     }
 
     if (!response.ok) {
-      // let _errorText = "Unknown API error"; // errorText is not used, removed assignment
       try {
-        const errorBody = await response.text();
-        console.error(
-          `[ai-parse] OpenRouter API error response: ${response.status} - ${errorBody.substring(0, 200)}...`
-        ); // Log error body
+        // Prefix with underscore as errorBody is no longer used after removing console.error
+        const _errorBody = await response.text();
       } catch (_textError) {
-        // Use _textError
-        console.error(`[ai-parse] OpenRouter API error response: ${response.status}. Failed to read error body.`);
+        // Remove empty catch block
       }
       return new Response(
         JSON.stringify({ error: "Failed to process text with AI", details: `API error: ${response.status}` }),
@@ -246,7 +242,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       // Removed success log
     } catch (_parseError) {
       // Use underscore for unused var
-      console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(_parseError)}`); // Keep minimal error log
+      // console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(_parseError)}`); // Keep minimal error log - COMMENTED OUT
       return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
         status: 500,
       });
@@ -254,9 +250,9 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
 
     // Sprawdź, czy odpowiedź ma oczekiwaną strukturę
     if (!responseData.choices || !responseData.choices[0]?.message?.content) {
-      console.error(
-        `[ai-parse] Invalid structure in AI response: Missing choices or content. Data: ${JSON.stringify(responseData).substring(0, 200)}...`
-      ); // Keep minimal error log
+      // console.error(
+      //   `[ai-parse] Invalid structure in AI response: Missing choices or content. Data: ${JSON.stringify(responseData).substring(0, 200)}...`
+      // ); // Keep minimal error log - COMMENTED OUT
       return new Response(
         JSON.stringify({ error: "Invalid response from AI", details: "Missing choices or content" }),
         {
@@ -274,9 +270,9 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       // Removed success log
     } catch (_jsonError) {
       // Use underscore for unused var
-      console.error(
-        `[ai-parse] Failed to parse JSON content string from AI message: ${getErrorMessage(_jsonError)}. Content: ${contentStr.substring(0, 200)}...`
-      ); // Keep minimal error log
+      // console.error(
+      //   `[ai-parse] Failed to parse JSON content string from AI message: ${getErrorMessage(_jsonError)}. Content: ${contentStr.substring(0, 200)}...`
+      // ); // Keep minimal error log - COMMENTED OUT
       return new Response(JSON.stringify({ error: "Failed to parse AI response content" }), {
         status: 500,
       });
@@ -284,9 +280,9 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
 
     // Sprawdź, czy zawiera tablicę produktów
     if (!contentJson.products || !Array.isArray(contentJson.products)) {
-      console.error(
-        `[ai-parse] Parsed content JSON does not contain 'products' array. Content: ${JSON.stringify(contentJson).substring(0, 200)}...`
-      ); // Keep minimal error log
+      // console.error(
+      //   `[ai-parse] Parsed content JSON does not contain 'products' array. Content: ${JSON.stringify(contentJson).substring(0, 200)}...`
+      // ); // Keep minimal error log - COMMENTED OUT
       return new Response(
         JSON.stringify({
           error: "Invalid response format",
@@ -354,7 +350,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       });
 
       if (rpcError) {
-        console.error(`[ai-parse] RPC Error applying changes: ${rpcError.message}`); // Keep minimal error log
+        // console.error(`[ai-parse] RPC Error applying changes: ${rpcError.message}`); // Keep minimal error log - COMMENTED OUT
         return new Response(
           JSON.stringify({ error: "Failed to apply changes atomically", details: rpcError.message }),
           { status: 500 }
@@ -374,7 +370,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       .order("created_at", { ascending: true });
 
     if (fetchUpdatedError) {
-      console.error(`[ai-parse] Error fetching updated items for list ${listId}: ${fetchUpdatedError.message}`); // Keep minimal error log
+      // console.error(`[ai-parse] Error fetching updated items for list ${listId}: ${fetchUpdatedError.message}`); // Keep minimal error log - COMMENTED OUT
       return new Response(
         JSON.stringify({
           error: "Failed to fetch updated products after applying changes",
@@ -404,7 +400,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
   } catch (error) {
     const errorMessage = getErrorMessage(error);
     // Keep the final catch-all error log
-    console.error(`[ai-parse] Unhandled error in main try block: ${errorMessage}`);
+    // console.error(`[ai-parse] Unhandled error in main try block: ${errorMessage}`); // COMMENTED OUT
     return new Response(JSON.stringify({ error: "Internal Server Error", details: errorMessage }), {
       status: 500,
     });
