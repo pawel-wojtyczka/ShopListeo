@@ -1,16 +1,29 @@
 // <docs-tag name="full-workflow-example">
 import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
 
-type Env = {
+// Use interface for consistency
+interface Env {
 	// Add your bindings here, e.g. Workers KV, D1, Workers AI, etc.
 	MY_WORKFLOW: Workflow;
-};
+}
 
-// User-defined params passed to your workflow
-type Params = {
+// Use interface for consistency
+interface Params {
 	email: string;
 	metadata: Record<string, string>;
-};
+}
+
+// Define the structure of the response from Cloudflare IPs API
+interface CloudflareIPsResponse {
+	result: {
+		ipv4_cidrs: string[];
+		ipv6_cidrs: string[];
+		etag: string;
+	};
+	success: boolean;
+	errors: string[];
+	messages: string[];
+}
 
 // <docs-tag name="workflow-entrypoint">
 export class MyWorkflow extends WorkflowEntrypoint<Env, Params> {
@@ -18,7 +31,8 @@ export class MyWorkflow extends WorkflowEntrypoint<Env, Params> {
 		// Can access bindings on `this.env`
 		// Can access params on `event.payload`
 
-		const files = await step.do('my first step', async () => {
+		// Prefix with '_' if files is unused, or remove if not needed
+		const _files = await step.do('my first step', async () => {
 			// Fetch a list of files from $SOME_SERVICE
 			return {
 				inputParams: event,
@@ -38,14 +52,19 @@ export class MyWorkflow extends WorkflowEntrypoint<Env, Params> {
 		// You can optionally have a Workflow wait for additional data:
 		// human approval or an external webhook or HTTP request, before progressing.
 		// You can submit data via HTTP POST to /accounts/{account_id}/workflows/{workflow_name}/instances/{instance_id}/events/{eventName}
-		const waitForApproval = await step.waitForEvent('request-approval', {
+		// Prefix with '_' if waitForApproval is unused, or remove if not needed
+		const _waitForApproval = await step.waitForEvent('request-approval', {
 			type: 'approval', // define an optional key to switch on
 			timeout: '1 minute', // keep it short for the example!
 		});
 
-		const apiResponse = await step.do('some other step', async () => {
-			let resp = await fetch('https://api.cloudflare.com/client/v4/ips');
-			return await resp.json<any>();
+		// Prefix with '_' if apiResponse is unused, or remove if not needed
+		const _apiResponse = await step.do('some other step', async () => {
+			// Use const for resp as it's not reassigned
+			const resp = await fetch('https://api.cloudflare.com/client/v4/ips');
+			// Use the specific interface for the API response type.
+			// This ensures the type is known and likely serializable by Cloudflare.
+			return await resp.json<CloudflareIPsResponse>();
 		});
 
 		await step.sleep('wait on something', '1 minute');
@@ -75,7 +94,8 @@ export class MyWorkflow extends WorkflowEntrypoint<Env, Params> {
 // <docs-tag name="workflows-fetch-handler">
 export default {
 	async fetch(req: Request, env: Env): Promise<Response> {
-		let url = new URL(req.url);
+		// Use const for url as it's not reassigned
+		const url = new URL(req.url);
 
 		if (url.pathname.startsWith('/favicon')) {
 			return Response.json({}, { status: 404 });
@@ -83,16 +103,19 @@ export default {
 
 		// Get the status of an existing instance, if provided
 		// GET /?instanceId=<id here>
-		let id = url.searchParams.get('instanceId');
+		// Use const for id as it's not reassigned
+		const id = url.searchParams.get('instanceId');
 		if (id) {
-			let instance = await env.MY_WORKFLOW.get(id);
+			// Use const for instance as it's not reassigned within this block
+			const instance = await env.MY_WORKFLOW.get(id);
 			return Response.json({
 				status: await instance.status(),
 			});
 		}
 
 		// Spawn a new instance and return the ID and status
-		let instance = await env.MY_WORKFLOW.create();
+		// Use const for instance as it's not reassigned
+		const instance = await env.MY_WORKFLOW.create();
 		// You can also set the ID to match an ID in your own system
 		// and pass an optional payload to the Workflow
 		// let instance = await env.MY_WORKFLOW.create({
