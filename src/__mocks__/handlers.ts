@@ -1,5 +1,17 @@
 import { http, HttpResponse } from "msw";
 
+// Przykładowa odpowiedź AI dla mocka
+const mockAiResponseJson = { products: [{ name: "Mleko", purchased: false }] };
+const mockAiApiResponse = {
+  choices: [
+    {
+      message: {
+        content: JSON.stringify(mockAiResponseJson), // Symulacja stringa JSON w odpowiedzi
+      },
+    },
+  ],
+};
+
 // Define handlers array to store all API mocks
 export const handlers = [
   // Example handler for shopping list creation
@@ -48,6 +60,11 @@ export const handlers = [
         email: "new@example.com",
       },
     });
+  }),
+
+  // Handler for OpenRouter chat completions
+  http.post("https://openrouter.ai/api/v1/chat/completions", () => {
+    return HttpResponse.json(mockAiApiResponse, { status: 200 });
   }),
 
   // Add more handlers as needed for other API endpoints

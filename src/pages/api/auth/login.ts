@@ -8,7 +8,7 @@ export const prerender = false;
 // Schema do walidacji danych wejściowych
 export const LoginSchema = z.object({
   email: z.string().email("Nieprawidłowy format adresu email."),
-  password: z.string().min(1, "Hasło jest wymagane."),
+  password: z.string().nonempty("Hasło jest wymagane."),
   rememberMe: z.boolean().optional(),
 });
 
