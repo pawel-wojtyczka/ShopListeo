@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Construct the absolute path to the root .env file
-const envPath = path.resolve(__dirname, ".env"); // Poprawiona ścieżka do .env
+const envPath = path.resolve(__dirname, "../.env"); // Zakładając, że playwright.config.ts jest w głównym katalogu
 
 // Load environment variables from the absolute path
 dotenv.config({ path: envPath });
@@ -17,7 +17,7 @@ dotenv.config({ path: envPath });
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: "./tests/e2e", // Katalog z testami E2E
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -25,15 +25,13 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Force sequential execution by using only 1 worker */
-  workers: 1,
+  workers: 1, // Używaj tylko jednego workera
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
-  globalTeardown: "./e2e/global.teardown.ts", // Path to global teardown script
-
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: "http://localhost:3000", // Ustaw bazowy URL
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
@@ -43,35 +41,30 @@ export default defineConfig({
 
     /* Slow down execution - moved here */
     launchOptions: {
-      slowMo: process.env.CI ? 0 : 250, // Slower locally for observation, faster on CI
+      slowMo: 500, // Spowolnienie każdej akcji Playwright o 500ms
     },
-
-    screenshot: "only-on-failure",
   },
 
   /* Configure projects for major browsers */
   projects: [
+    // Projekt setup (może być pusty lub zawierać global.setup.ts jeśli potrzebny)
+    // Jest wymagany do zdefiniowania zależności i teardown
     {
-      name: "setup-auth-state", // Renamed for clarity - runs registration and saves state
-      testMatch: /authentication\.noauth\.spec\.ts/,
-      use: {
-        ...devices["Desktop Chrome"],
-      },
+      name: "setup",
+      testMatch: /global\.setup\.ts/, // Wskaż plik setup, jeśli istnieje. Używamy podwójnego backslasha dla regexa w JS.
+      teardown: "cleanup db", // Nazwa projektu teardown
     },
+    // Projekt teardown
     {
-      name: "authenticated-tests",
-      testMatch: /.*\.auth\.spec\.ts/,
-      dependencies: ["setup-auth-state"],
-      use: {
-        ...devices["Desktop Chrome"],
-        storageState: "./e2e/.auth/user.json", // Use saved authentication state
-      },
+      name: "cleanup db",
+      testMatch: /global\.teardown\.ts/, // Wskaż plik teardown. Używamy podwójnego backslasha dla regexa w JS.
     },
-    // Legacy setup project, can be removed if not used for other .setup.ts files
-    // {
-    //   name: "setup",
-    //   testMatch: /.*\.setup\.ts/,
-    // },
+    // Główny projekt testowy
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"], // Zależność od projektu setup
+    },
 
     // Możesz odkomentować poniższe, aby testować na innych przeglądarkach
     // {
