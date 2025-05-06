@@ -4,7 +4,7 @@ import type { UserDTO } from "../types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Ścieżki wymagające autentykacji - usunięto /shopping-lists
-const protectedPaths = ["/dashboard", "/settings"];
+const protectedPaths = ["/dashboard", "/settings", "/"];
 
 // Ścieżki dostępne tylko dla niezalogowanych użytkowników (lub obu stanów)
 const AUTH_ROUTES = ["/login", "/register", "/reset-password", "/set-new-password", "/recover", "/recover-password"];

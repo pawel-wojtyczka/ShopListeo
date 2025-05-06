@@ -17,13 +17,9 @@ let fetchError: string | null = null;
 const { user, supabase } = Astro.locals;
 
 if (!user || !supabase) {
-  // If user is not logged in server-side, set an error or handle appropriately
-  // This case shouldn't happen if middleware redirects unauthenticated users,
-  // but it's good practice to check.
+  // If user is not logged in server-side, redirect to login
   logger.warn("[index.astro] User or Supabase client not found in locals.");
-  fetchError = "Użytkownik nie jest zalogowany lub wystąpił błąd serwera.";
-  // Redirecting might be better here:
-  // return Astro.redirect('/login');
+  return Astro.redirect("/login");
 } else {
   try {
     logger.info(`[index.astro] Fetching initial shopping lists for user ${user.id} on server-side.`);
