@@ -2,13 +2,12 @@
     ## Cel: Utwórz nową listę zakupów jako zarejestrowany użytkownik
     ## Grupa Testów: Zarządzanie Listami Zakupów
     ## Zależności / Warunki Wstępne:
-      - Użytkownik zarejestrowany w TEST_SCENARIO_1 (używający dynamicznego adresu e-mail) musi być zalogowany. Osiąga się to poprzez skonfigurowanie projektu testowego do używania zapisanego `storageState` z testu rejestracji.
-    ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
-      - Brak jawnych kroków w samym teście, ponieważ uwierzytelnianie jest obsługiwane przez konfigurację projektu Playwright wczytującą `storageState`.
+      - Użytkownik musi być zalogowany. Logowanie następuje przy użyciu danych uwierzytelniających predefiniowanego użytkownika testowego, zdefiniowanych w pliku `.env` jako `E2E_USERNAME` (e.g., `e2e_test@asperit.com`) oraz `E2E_PASSWORD`.
     ## Zestaw Testów: shopping-list.auth.spec.ts
     ## Kroki Przepływu Użytkownika:
-      1. Przejdź do `127.0.0.1:3000` (lub skonfigurowanego `baseURL`).
-      2. Kliknij przycisk "Nowa Lista".
+      1. Upewnij się, że użytkownik jest zalogowany przy użyciu danych z pliku `.env` (`E2E_USERNAME` i `E2E_PASSWORD`).
+      2. Przejdź do `127.0.0.1:3000` (lub skonfigurowanego `baseURL`).
+      3. Kliknij przycisk "Nowa Lista".
     ## Oczekiwane Wyniki / Asercje:
       - Nowy element listy zakupów pojawia się na liście list zakupów.
       - Nowy element listy zakupów nazywa się "Lista zakupów <DD.MM.RRRR>" (lub podobnie, w zależności od bieżącej lub mockowanej daty).
@@ -22,15 +21,16 @@
     ## Cel: Zmień nazwę listy zakupów jako zarejestrowany użytkownik
     ## Grupa Testów: Zarządzanie Listami Zakupów
     ## Zależności / Warunki Wstępne:
-      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Użytkownik musi być zalogowany. Logowanie następuje przy użyciu danych uwierzytelniających predefiniowanego użytkownika testowego, zdefiniowanych w pliku `.env` jako `E2E_USERNAME` (e.g., `e2e_test@asperit.com`) oraz `E2E_PASSWORD`.
       - Musi istnieć co najmniej jedna lista zakupów utworzona przez tego użytkownika.
     ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
       - Upewnij się, że dla tego użytkownika istnieje lista zakupów (np. utworzona w TEST_SCENARIO_2 lub w osobnym kroku konfiguracyjnym w ramach tego testu/zestawu) o znanej domyślnej nazwie (np. "Lista zakupów <DD.MM.RRRR>").
     ## Zestaw Testów: shopping-list.auth.spec.ts
     ## Kroki Przepływu Użytkownika:
-      1. Przejdź do `127.0.0.1:3000`.
-      2. Kliknij element listy zakupów o znanej domyślnej nazwie.
-      3. Zmień nazwę listy na "Lista zakupów na weekend".
+      1. Upewnij się, że użytkownik jest zalogowany przy użyciu danych z pliku `.env` (`E2E_USERNAME` i `E2E_PASSWORD`).
+      2. Przejdź do `127.0.0.1:3000`.
+      3. Kliknij element listy zakupów o znanej domyślnej nazwie.
+      4. Zmień nazwę listy na "Lista zakupów na weekend".
     ## Oczekiwane Wyniki / Asercje:
       - Strona szczegółów listy zakupów pozostaje otwarta.
       - Wyświetlane jest powiadomienie o sukcesie informujące, że nazwa listy zakupów została zmieniona.
@@ -45,16 +45,17 @@
     ## Cel: Dodaj produkty do listy zakupów jako zarejestrowany użytkownik
     ## Grupa Testów: Zarządzanie Pozycjami Listy Zakupów
     ## Zależności / Warunki Wstępne:
-      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Użytkownik musi być zalogowany. Logowanie następuje przy użyciu danych uwierzytelniających predefiniowanego użytkownika testowego, zdefiniowanych w pliku `.env` jako `E2E_USERNAME` (e.g., `e2e_test@asperit.com`) oraz `E2E_PASSWORD`.
       - Dla tego użytkownika musi istnieć lista zakupów (np. "Lista zakupów na weekend" z TEST_SCENARIO_3).
     ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
       - Upewnij się, że dla bieżącego użytkownika istnieje lista zakupów o nazwie "Lista zakupów na weekend".
     ## Zestaw Testów: shopping-list.auth.spec.ts
     ## Kroki Przepływu Użytkownika:
-      1. Przejdź do `127.0.0.1:3000`.
-      2. Kliknij element listy zakupów "Lista zakupów na weekend".
-      3. Wpisz "Kup chleb, mleko, kakao i jeszcze sporo jogurtów pitnych dla dzieci, bo jadar tego dużo" w pole tekstowe "Dodaj nowy produkt".
-      4. Kliknij przycisk "Dodaj produkt".
+      1. Upewnij się, że użytkownik jest zalogowany przy użyciu danych z pliku `.env` (`E2E_USERNAME` i `E2E_PASSWORD`).
+      2. Przejdź do `127.0.0.1:3000`.
+      3. Kliknij element listy zakupów "Lista zakupów na weekend".
+      4. Wpisz "Kup chleb, mleko, kakao i jeszcze sporo jogurtów pitnych dla dzieci, bo jadar tego dużo" w pole tekstowe "Dodaj nowy produkt".
+      5. Kliknij przycisk "Dodaj produkt".
     ## Oczekiwane Wyniki / Asercje:
       - Wyświetlana jest lista nowych pozycji na liście zakupów.
       - Lista zakupów zawiera pozycje "chleb", "mleko", "kakao", "k jogurtów pitnych dla dzieci".
@@ -68,7 +69,7 @@
     ## Cel: Edytuj pozycję listy zakupów jako zarejestrowany użytkownik
     ## Grupa Testów: Zarządzanie Pozycjami Listy Zakupów
     ## Zależności / Warunki Wstępne:
-      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Użytkownik musi być zalogowany. Logowanie następuje przy użyciu danych uwierzytelniających predefiniowanego użytkownika testowego, zdefiniowanych w pliku `.env` jako `E2E_USERNAME` (e.g., `e2e_test@asperit.com`) oraz `E2E_PASSWORD`.
       - Dla tego użytkownika musi istnieć lista zakupów (np. "Lista zakupów na weekend").
       - Lista zakupów musi zawierać pozycję "k jogurtów pitnych dla dzieci".
     ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
@@ -76,9 +77,10 @@
       - Upewnij się, że lista "Lista zakupów na weekend" zawiera pozycje "chleb", "mleko", "kakao", "k jogurtów pitnych dla dzieci".
     ## Zestaw Testów: shopping-list.auth.spec.ts
     ## Kroki Przepływu Użytkownika:
-      1. Przejdź do `127.0.0.1:3000`.
-      2. Kliknij element listy zakupów "Lista zakupów na weekend".
-      3. Znajdź pozycję listy zakupów z etykietą "k jogurtów pitnych dla dzieci" i edytuj ją na "6 szt. jogurtów pitnych dla dzieci".
+      1. Upewnij się, że użytkownik jest zalogowany przy użyciu danych z pliku `.env` (`E2E_USERNAME` i `E2E_PASSWORD`).
+      2. Przejdź do `127.0.0.1:3000`.
+      3. Kliknij element listy zakupów "Lista zakupów na weekend".
+      4. Znajdź pozycję listy zakupów z etykietą "k jogurtów pitnych dla dzieci" i edytuj ją na "6 szt. jogurtów pitnych dla dzieci".
     ## Oczekiwane Wyniki / Asercje:
       - Pozycja listy zakupów jest zaktualizowana na "6 szt. jogurtów pitnych dla dzieci".
     ## Uwagi Dotyczące Danych Dynamicznych:
@@ -91,7 +93,7 @@
     ## Cel: Usuń pozycję listy zakupów jako zarejestrowany użytkownik
     ## Grupa Testów: Zarządzanie Pozycjami Listy Zakupów
     ## Zależności / Warunki Wstępne:
-      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Użytkownik musi być zalogowany. Logowanie następuje przy użyciu danych uwierzytelniających predefiniowanego użytkownika testowego, zdefiniowanych w pliku `.env` jako `E2E_USERNAME` (e.g., `e2e_test@asperit.com`) oraz `E2E_PASSWORD`.
       - Dla tego użytkownika musi istnieć lista zakupów (np. "Lista zakupów na weekend").
       - Lista zakupów musi zawierać pozycję "mleko".
     ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
@@ -99,9 +101,10 @@
       - Upewnij się, że lista "Lista zakupów na weekend" zawiera pozycję "mleko" (i inne, zgodnie z poprzednimi krokami, jeśli testy są sekwencyjne).
     ## Zestaw Testów: shopping-list.auth.spec.ts
     ## Kroki Przepływu Użytkownika:
-      1. Przejdź do `127.0.0.1:3000`.
-      2. Kliknij element listy zakupów "Lista zakupów na weekend".
-      3. Znajdź pozycję listy zakupów z etykietą "mleko" i usuń ją.
+      1. Upewnij się, że użytkownik jest zalogowany przy użyciu danych z pliku `.env` (`E2E_USERNAME` i `E2E_PASSWORD`).
+      2. Przejdź do `127.0.0.1:3000`.
+      3. Kliknij element listy zakupów "Lista zakupów na weekend".
+      4. Znajdź pozycję listy zakupów z etykietą "mleko" i usuń ją.
     ## Oczekiwane Wyniki / Asercje:
       - Pozycja listy zakupów "mleko" zostaje usunięta z listy zakupów.
     ## Uwagi Dotyczące Danych Dynamicznych:
@@ -114,15 +117,16 @@
     ## Cel: Usuń listę zakupów jako zarejestrowany użytkownik
     ## Grupa Testów: Zarządzanie Listami Zakupów
     ## Zależności / Warunki Wstępne:
-      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Użytkownik musi być zalogowany. Logowanie następuje przy użyciu danych uwierzytelniających predefiniowanego użytkownika testowego, zdefiniowanych w pliku `.env` jako `E2E_USERNAME` (e.g., `e2e_test@asperit.com`) oraz `E2E_PASSWORD`.
       - Dla tego użytkownika musi istnieć lista zakupów (np. "Lista zakupów na weekend").
     ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
       - Upewnij się, że dla bieżącego użytkownika istnieje lista zakupów o nazwie "Lista zakupów na weekend".
     ## Zestaw Testów: shopping-list.auth.spec.ts
     ## Kroki Przepływu Użytkownika:
-      1. Przejdź do `127.0.0.1:3000`.
-      2. Znajdź element listy zakupów "Lista zakupów na weekend" i kliknij usuń.
-      3. Potwierdź usunięcie.
+      1. Upewnij się, że użytkownik jest zalogowany przy użyciu danych z pliku `.env` (`E2E_USERNAME` i `E2E_PASSWORD`).
+      2. Przejdź do `127.0.0.1:3000`.
+      3. Znajdź element listy zakupów "Lista zakupów na weekend" i kliknij usuń.
+      4. Potwierdź usunięcie.
     ## Oczekiwane Wyniki / Asercje:
       - Element listy zakupów "Lista zakupów na weekend" zostaje usunięty z listy list zakupów.
     ## Uwagi Dotyczące Danych Dynamicznych:
@@ -135,13 +139,14 @@
     ## Cel: Wyloguj zarejestrowanego użytkownika
     ## Grupa Testów: Uwierzytelnianie
     ## Zależności / Warunki Wstępne:
-      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Użytkownik musi być zalogowany. Logowanie następuje przy użyciu danych uwierzytelniających predefiniowanego użytkownika testowego, zdefiniowanych w pliku `.env` jako `E2E_USERNAME` (e.g., `e2e_test@asperit.com`) oraz `E2E_PASSWORD`.
     ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
       - Brak jawnych kroków w samym teście, ponieważ uwierzytelnianie jest obsługiwane przez konfigurację projektu Playwright wczytującą `storageState`.
     ## Zestaw Testów: authentication.auth.spec.ts
     ## Kroki Przepływu Użytkownika:
-      1. Przejdź do `127.0.0.1:3000`.
-      2. Kliknij przycisk "Wyloguj".
+      1. Upewnij się, że użytkownik jest zalogowany przy użyciu danych z pliku `.env` (`E2E_USERNAME` i `E2E_PASSWORD`).
+      2. Przejdź do `127.0.0.1:3000`.
+      3. Kliknij przycisk "Wyloguj".
     ## Oczekiwane Wyniki / Asercje:
       - Użytkownik jest przekierowywany na stronę logowania (`127.0.0.1:3000/login`).
       - Zapisany stan uwierzytelnienia (jeśli istnieje jakiś specyficzny dla tej sesji) powinien zostać unieważniony lub wyczyszczony, jeśli testy mają być ponownie uruchamiane niezależnie. (Uwaga: `storageState` Playwrighta zazwyczaj obsługuje to poprzez nadpisywanie lub bycie świeżym dla nowych uruchomień konfiguracji).
