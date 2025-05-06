@@ -1,5 +1,6 @@
 # ShopListeo
 
+
 Aplikacja webowa zaprojektowana w celu uproszczenia procesu tworzenia i zarządzania listami zakupów. Główną cechą aplikacji jest wykorzystanie asystenta AI do inteligentnego parsowania tekstu wprowadzonego przez użytkownika i przekształcania go w uporządkowaną listę produktów. Umożliwia tworzenie, edycję list, oznaczanie zakupionych produktów oraz zarządzanie kontem. Zawiera również panel administracyjny.
 
 ## Tech Stack
