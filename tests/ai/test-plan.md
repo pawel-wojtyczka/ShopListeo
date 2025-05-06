@@ -1,203 +1,203 @@
   <TEST_SCENARIO_1>
-    ## Objective: Create a new shopping list as the registered user
-    ## Test Group: Shopping List Management
-    ## Dependencies / Preconditions:
-      - The user registered in TEST_SCENARIO_1 (using a dynamic email) must be logged in. This is achieved by configuring the test project to use the saved `storageState` from the registration test.
-    ## Setup Steps (if needed beyond starting page):
-      - None explicitly in the test itself, as authentication is handled by Playwright project configuration loading `storageState`.
-    ## Test Suite: shopping-list.auth.spec.ts
-    ## User Workflow Steps:
-      1. Navigate to `127.0.0.1:3000` (or the configured `baseURL`).
-      2. Click the "New List" button.
-    ## Expected Outcomes / Assertions:
-      - A new shopping list item appears in the list of shopping lists.
-      - The new shopping list item is named "List zakupów <DD.MM.YYYY>" (or similar, based on current or mocked date).
-    ## Dynamic Data Considerations:
-      - Handle the dynamic date in the shopping list name. Consider mocking the date for test stability.
-    ## Potential Challenges:
-      - Requires mocking the current date to make tests stable.
+    ## Cel: Utwórz nową listę zakupów jako zarejestrowany użytkownik
+    ## Grupa Testów: Zarządzanie Listami Zakupów
+    ## Zależności / Warunki Wstępne:
+      - Użytkownik zarejestrowany w TEST_SCENARIO_1 (używający dynamicznego adresu e-mail) musi być zalogowany. Osiąga się to poprzez skonfigurowanie projektu testowego do używania zapisanego `storageState` z testu rejestracji.
+    ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
+      - Brak jawnych kroków w samym teście, ponieważ uwierzytelnianie jest obsługiwane przez konfigurację projektu Playwright wczytującą `storageState`.
+    ## Zestaw Testów: shopping-list.auth.spec.ts
+    ## Kroki Przepływu Użytkownika:
+      1. Przejdź do `127.0.0.1:3000` (lub skonfigurowanego `baseURL`).
+      2. Kliknij przycisk "Nowa Lista".
+    ## Oczekiwane Wyniki / Asercje:
+      - Nowy element listy zakupów pojawia się na liście list zakupów.
+      - Nowy element listy zakupów nazywa się "Lista zakupów <DD.MM.RRRR>" (lub podobnie, w zależności od bieżącej lub mockowanej daty).
+    ## Uwagi Dotyczące Danych Dynamicznych:
+      - Obsłuż dynamiczną datę w nazwie listy zakupów. Rozważ mockowanie daty dla stabilności testu.
+    ## Potencjalne Wyzwania:
+      - Wymaga mockowania bieżącej daty, aby testy były stabilne.
   </TEST_SCENARIO_1>
 
   <TEST_SCENARIO_2>
-    ## Objective: Rename a shopping list as the registered user
-    ## Test Group: Shopping List Management
-    ## Dependencies / Preconditions:
-      - The user registered in TEST_SCENARIO_1 must be logged in (via `storageState`).
-      - At least one shopping list, created by this user, must exist.
-    ## Setup Steps (if needed beyond starting page):
-      - Ensure a shopping list (e.g., created in TEST_SCENARIO_2 or a separate setup step within this test/suite) with a known default name (e.g., "List zakupów <DD.MM.YYYY>") exists for this user.
-    ## Test Suite: shopping-list.auth.spec.ts
-    ## User Workflow Steps:
-      1. Navigate to `127.0.0.1:3000`.
-      2. Click the shopping list item with the known default name.
-      3. Change the list name to "Lista zakupów na weekend".
-    ## Expected Outcomes / Assertions:
-      - The shopping list details page remains open.
-      - A success notification is displayed indicating that the shopping list name has been changed.
-      - Navigating back to the main lists page (`127.0.0.1:3000`) shows the updated list name "Lista zakupów na weekend".
-    ## Dynamic Data Considerations:
-      - Shopping list IDs will be dynamic.
-    ## Potential Challenges:
-      - Need to get the URL or identifier for the specific shopping list dynamically.
+    ## Cel: Zmień nazwę listy zakupów jako zarejestrowany użytkownik
+    ## Grupa Testów: Zarządzanie Listami Zakupów
+    ## Zależności / Warunki Wstępne:
+      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Musi istnieć co najmniej jedna lista zakupów utworzona przez tego użytkownika.
+    ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
+      - Upewnij się, że dla tego użytkownika istnieje lista zakupów (np. utworzona w TEST_SCENARIO_2 lub w osobnym kroku konfiguracyjnym w ramach tego testu/zestawu) o znanej domyślnej nazwie (np. "Lista zakupów <DD.MM.RRRR>").
+    ## Zestaw Testów: shopping-list.auth.spec.ts
+    ## Kroki Przepływu Użytkownika:
+      1. Przejdź do `127.0.0.1:3000`.
+      2. Kliknij element listy zakupów o znanej domyślnej nazwie.
+      3. Zmień nazwę listy na "Lista zakupów na weekend".
+    ## Oczekiwane Wyniki / Asercje:
+      - Strona szczegółów listy zakupów pozostaje otwarta.
+      - Wyświetlane jest powiadomienie o sukcesie informujące, że nazwa listy zakupów została zmieniona.
+      - Powrót na główną stronę list (`127.0.0.1:3000`) pokazuje zaktualizowaną nazwę listy "Lista zakupów na weekend".
+    ## Uwagi Dotyczące Danych Dynamicznych:
+      - Identyfikatory list zakupów będą dynamiczne.
+    ## Potencjalne Wyzwania:
+      - Potrzeba dynamicznego pobrania adresu URL lub identyfikatora dla konkretnej listy zakupów.
   </TEST_SCENARIO_2>
 
   <TEST_SCENARIO_3>
-    ## Objective: Add products to a shopping list as the registered user
-    ## Test Group: Shopping List Item Management
-    ## Dependencies / Preconditions:
-      - The user registered in TEST_SCENARIO_1 must be logged in (via `storageState`).
-      - A shopping list (e.g., "Lista zakupów na weekend" from TEST_SCENARIO_3) must exist for this user.
-    ## Setup Steps (if needed beyond starting page):
-      - Ensure a shopping list with the name "Lista zakupów na weekend" exists for the current user.
-    ## Test Suite: shopping-list.auth.spec.ts
-    ## User Workflow Steps:
-      1. Navigate to `127.0.0.1:3000`.
-      2. Click the shopping list item "Lista zakupów na weekend".
-      3. Type "Kup chleb, mleko, kakao i jeszcze sporo jogurtów pitnych dla dzieci, bo jadar tego dużo" into the "Add new product" text field.
-      4. Click the "Add product" button.
-    ## Expected Outcomes / Assertions:
-      - A list of new shopping list items is displayed.
-      - The shopping list contains items "chleb", "mleko", "kakao", "k jogurtów pitnych dla dzieci".
-    ## Dynamic Data Considerations:
-      - None
-    ## Potential Challenges:
-      - None
+    ## Cel: Dodaj produkty do listy zakupów jako zarejestrowany użytkownik
+    ## Grupa Testów: Zarządzanie Pozycjami Listy Zakupów
+    ## Zależności / Warunki Wstępne:
+      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Dla tego użytkownika musi istnieć lista zakupów (np. "Lista zakupów na weekend" z TEST_SCENARIO_3).
+    ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
+      - Upewnij się, że dla bieżącego użytkownika istnieje lista zakupów o nazwie "Lista zakupów na weekend".
+    ## Zestaw Testów: shopping-list.auth.spec.ts
+    ## Kroki Przepływu Użytkownika:
+      1. Przejdź do `127.0.0.1:3000`.
+      2. Kliknij element listy zakupów "Lista zakupów na weekend".
+      3. Wpisz "Kup chleb, mleko, kakao i jeszcze sporo jogurtów pitnych dla dzieci, bo jadar tego dużo" w pole tekstowe "Dodaj nowy produkt".
+      4. Kliknij przycisk "Dodaj produkt".
+    ## Oczekiwane Wyniki / Asercje:
+      - Wyświetlana jest lista nowych pozycji na liście zakupów.
+      - Lista zakupów zawiera pozycje "chleb", "mleko", "kakao", "k jogurtów pitnych dla dzieci".
+    ## Uwagi Dotyczące Danych Dynamicznych:
+      - Brak
+    ## Potencjalne Wyzwania:
+      - Brak
   </TEST_SCENARIO_3>
 
   <TEST_SCENARIO_4>
-    ## Objective: Edit a shopping list item as the registered user
-    ## Test Group: Shopping List Item Management
-    ## Dependencies / Preconditions:
-      - The user registered in TEST_SCENARIO_1 must be logged in (via `storageState`).
-      - A shopping list (e.g., "Lista zakupów na weekend") must exist for this user.
-      - The shopping list must contain the item "k jogurtów pitnych dla dzieci".
-    ## Setup Steps (if needed beyond starting page):
-      - Ensure a shopping list with the name "Lista zakupów na weekend" exists for the current user.
-      - Ensure the list "Lista zakupów na weekend" contains items "chleb", "mleko", "kakao", "k jogurtów pitnych dla dzieci".
-    ## Test Suite: shopping-list.auth.spec.ts
-    ## User Workflow Steps:
-      1. Navigate to `127.0.0.1:3000`.
-      2. Click the shopping list item "Lista zakupów na weekend".
-      3. Find the shopping list item with label "k jogurtów pitnych dla dzieci" and edit it to "6 szt. jogurtów pitnych dla dzieci".
-    ## Expected Outcomes / Assertions:
-      - The shopping list item is updated to "6 szt. jogurtów pitnych dla dzieci".
-    ## Dynamic Data Considerations:
-      - Needs stable selectors for the edit and delete buttons for each product item.
-    ## Potential Challenges:
-      - Need stable selectors for the edit button.
+    ## Cel: Edytuj pozycję listy zakupów jako zarejestrowany użytkownik
+    ## Grupa Testów: Zarządzanie Pozycjami Listy Zakupów
+    ## Zależności / Warunki Wstępne:
+      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Dla tego użytkownika musi istnieć lista zakupów (np. "Lista zakupów na weekend").
+      - Lista zakupów musi zawierać pozycję "k jogurtów pitnych dla dzieci".
+    ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
+      - Upewnij się, że dla bieżącego użytkownika istnieje lista zakupów o nazwie "Lista zakupów na weekend".
+      - Upewnij się, że lista "Lista zakupów na weekend" zawiera pozycje "chleb", "mleko", "kakao", "k jogurtów pitnych dla dzieci".
+    ## Zestaw Testów: shopping-list.auth.spec.ts
+    ## Kroki Przepływu Użytkownika:
+      1. Przejdź do `127.0.0.1:3000`.
+      2. Kliknij element listy zakupów "Lista zakupów na weekend".
+      3. Znajdź pozycję listy zakupów z etykietą "k jogurtów pitnych dla dzieci" i edytuj ją na "6 szt. jogurtów pitnych dla dzieci".
+    ## Oczekiwane Wyniki / Asercje:
+      - Pozycja listy zakupów jest zaktualizowana na "6 szt. jogurtów pitnych dla dzieci".
+    ## Uwagi Dotyczące Danych Dynamicznych:
+      - Potrzebne są stabilne selektory dla przycisków edycji i usuwania dla każdej pozycji produktu.
+    ## Potencjalne Wyzwania:
+      - Potrzebne są stabilne selektory dla przycisku edycji.
   </TEST_SCENARIO_4>
 
   <TEST_SCENARIO_5>
-    ## Objective: Delete a shopping list item as the registered user
-    ## Test Group: Shopping List Item Management
-    ## Dependencies / Preconditions:
-      - The user registered in TEST_SCENARIO_1 must be logged in (via `storageState`).
-      - A shopping list (e.g., "Lista zakupów na weekend") must exist for this user.
-      - The shopping list must contain the item "mleko".
-    ## Setup Steps (if needed beyond starting page):
-      - Ensure a shopping list with the name "Lista zakupów na weekend" exists for the current user.
-      - Ensure the list "Lista zakupów na weekend" contains item "mleko" (and others as per previous steps if tests are sequential).
-    ## Test Suite: shopping-list.auth.spec.ts
-    ## User Workflow Steps:
-      1. Navigate to `127.0.0.1:3000`.
-      2. Click the shopping list item "Lista zakupów na weekend".
-      3. Find the shopping list item with label "mleko" and delete it.
-    ## Expected Outcomes / Assertions:
-      - The shopping list item "mleko" is removed from the shopping list.
-    ## Dynamic Data Considerations:
-      - Needs stable selectors for the edit and delete buttons for each product item.
-    ## Potential Challenges:
-      - Need stable selectors for the delete button.
+    ## Cel: Usuń pozycję listy zakupów jako zarejestrowany użytkownik
+    ## Grupa Testów: Zarządzanie Pozycjami Listy Zakupów
+    ## Zależności / Warunki Wstępne:
+      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Dla tego użytkownika musi istnieć lista zakupów (np. "Lista zakupów na weekend").
+      - Lista zakupów musi zawierać pozycję "mleko".
+    ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
+      - Upewnij się, że dla bieżącego użytkownika istnieje lista zakupów o nazwie "Lista zakupów na weekend".
+      - Upewnij się, że lista "Lista zakupów na weekend" zawiera pozycję "mleko" (i inne, zgodnie z poprzednimi krokami, jeśli testy są sekwencyjne).
+    ## Zestaw Testów: shopping-list.auth.spec.ts
+    ## Kroki Przepływu Użytkownika:
+      1. Przejdź do `127.0.0.1:3000`.
+      2. Kliknij element listy zakupów "Lista zakupów na weekend".
+      3. Znajdź pozycję listy zakupów z etykietą "mleko" i usuń ją.
+    ## Oczekiwane Wyniki / Asercje:
+      - Pozycja listy zakupów "mleko" zostaje usunięta z listy zakupów.
+    ## Uwagi Dotyczące Danych Dynamicznych:
+      - Potrzebne są stabilne selektory dla przycisków edycji i usuwania dla każdej pozycji produktu.
+    ## Potencjalne Wyzwania:
+      - Potrzebne są stabilne selektory dla przycisku usuwania.
   </TEST_SCENARIO_5>
 
   <TEST_SCENARIO_6>
-    ## Objective: Delete a shopping list as the registered user
-    ## Test Group: Shopping List Management
-    ## Dependencies / Preconditions:
-      - The user registered in TEST_SCENARIO_1 must be logged in (via `storageState`).
-      - A shopping list (e.g., "Lista zakupów na weekend") must exist for this user.
-    ## Setup Steps (if needed beyond starting page):
-      - Ensure a shopping list with the name "Lista zakupów na weekend" exists for the current user.
-    ## Test Suite: shopping-list.auth.spec.ts
-    ## User Workflow Steps:
-      1. Navigate to `127.0.0.1:3000`.
-      2. Find the shopping list item "Lista zakupów na weekend" and click delete.
-      3. Confirm deletion.
-    ## Expected Outcomes / Assertions:
-      - The shopping list item "Lista zakupów na weekend" is removed from the shopping list.
-    ## Dynamic Data Considerations:
-      - Shopping list IDs will be dynamic.
-    ## Potential Challenges:
-      - None
+    ## Cel: Usuń listę zakupów jako zarejestrowany użytkownik
+    ## Grupa Testów: Zarządzanie Listami Zakupów
+    ## Zależności / Warunki Wstępne:
+      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+      - Dla tego użytkownika musi istnieć lista zakupów (np. "Lista zakupów na weekend").
+    ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
+      - Upewnij się, że dla bieżącego użytkownika istnieje lista zakupów o nazwie "Lista zakupów na weekend".
+    ## Zestaw Testów: shopping-list.auth.spec.ts
+    ## Kroki Przepływu Użytkownika:
+      1. Przejdź do `127.0.0.1:3000`.
+      2. Znajdź element listy zakupów "Lista zakupów na weekend" i kliknij usuń.
+      3. Potwierdź usunięcie.
+    ## Oczekiwane Wyniki / Asercje:
+      - Element listy zakupów "Lista zakupów na weekend" zostaje usunięty z listy list zakupów.
+    ## Uwagi Dotyczące Danych Dynamicznych:
+      - Identyfikatory list zakupów będą dynamiczne.
+    ## Potencjalne Wyzwania:
+      - Brak
   </TEST_SCENARIO_6>
 
   <TEST_SCENARIO_7>
-    ## Objective: Sign out the registered user
-    ## Test Group: Authentication
-    ## Dependencies / Preconditions:
-      - The user registered in TEST_SCENARIO_1 must be logged in (via `storageState`).
-    ## Setup Steps (if needed beyond starting page):
-      - None explicitly in the test itself, as authentication is handled by Playwright project configuration loading `storageState`.
-    ## Test Suite: authentication.auth.spec.ts
-    ## User Workflow Steps:
-      1. Navigate to `127.0.0.1:3000`.
-      2. Click the "Sign out" button.
-    ## Expected Outcomes / Assertions:
-      - User is redirected to the login page (`127.0.0.1:3000/login`).
-      - The saved authentication state (if any specific to this session) should be invalidated or cleared if tests are to be re-run independently. (Note: Playwright's `storageState` typically handles this by overwriting or being fresh for new setup runs).
-    ## Dynamic Data Considerations:
-      - None
-    ## Potential Challenges:
-      - None
+    ## Cel: Wyloguj zarejestrowanego użytkownika
+    ## Grupa Testów: Uwierzytelnianie
+    ## Zależności / Warunki Wstępne:
+      - Użytkownik zarejestrowany w TEST_SCENARIO_1 musi być zalogowany (poprzez `storageState`).
+    ## Kroki Konfiguracyjne (jeśli potrzebne poza stroną startową):
+      - Brak jawnych kroków w samym teście, ponieważ uwierzytelnianie jest obsługiwane przez konfigurację projektu Playwright wczytującą `storageState`.
+    ## Zestaw Testów: authentication.auth.spec.ts
+    ## Kroki Przepływu Użytkownika:
+      1. Przejdź do `127.0.0.1:3000`.
+      2. Kliknij przycisk "Wyloguj".
+    ## Oczekiwane Wyniki / Asercje:
+      - Użytkownik jest przekierowywany na stronę logowania (`127.0.0.1:3000/login`).
+      - Zapisany stan uwierzytelnienia (jeśli istnieje jakiś specyficzny dla tej sesji) powinien zostać unieważniony lub wyczyszczony, jeśli testy mają być ponownie uruchamiane niezależnie. (Uwaga: `storageState` Playwrighta zazwyczaj obsługuje to poprzez nadpisywanie lub bycie świeżym dla nowych uruchomień konfiguracji).
+    ## Uwagi Dotyczące Danych Dynamicznych:
+      - Brak
+    ## Potencjalne Wyzwania:
+      - Brak
   </TEST_SCENARIO_7>
 
   <TEST_PLAN_OVERVIEW>
-    ## Suggested Page Objects:
+    ## Sugerowane Obiekty Stron (Page Objects):
       - LoginPage
       - RegistrationPage
       - ShoppingListPage
       - ShoppingListDetailsPage
-      - ShoppingListItemComponent (for individual items in the list)
+      - ShoppingListItemComponent (dla pojedynczych pozycji na liście)
 
-    ## Suggested Test Suites:
-      - `authentication.noauth.spec.ts`: Handles user registration and saves the authentication state (`storageState`). This effectively acts as a global setup for authenticated tests.
-      - `authentication.auth.spec.ts`: Handles sign-out and other authenticated user actions related to authentication. Uses the saved `storageState`.
-      - `shopping-list.auth.spec.ts`: Handles all shopping list and item management for an authenticated user. Uses the saved `storageState`.
+    ## Sugerowane Zestawy Testów:
+      - `authentication.noauth.spec.ts`: Obsługuje rejestrację użytkownika i zapisuje stan uwierzytelnienia (`storageState`). Efektywnie działa to jako globalna konfiguracja dla testów uwierzytelnionych.
+      - `authentication.auth.spec.ts`: Obsługuje wylogowywanie i inne działania uwierzytelnionego użytkownika związane z uwierzytelnianiem. Używa zapisanego `storageState`.
+      - `shopping-list.auth.spec.ts`: Obsługuje zarządzanie wszystkimi listami zakupów i ich pozycjami dla uwierzytelnionego użytkownika. Używa zapisanego `storageState`.
 
-    ## General Notes / Strategy:
-      - **Authentication Flow:**
-        - A dedicated setup test (or a test within `authentication.noauth.spec.ts`) will register a new user with a dynamic email and save the `storageState` (e.g., to `e2e/.auth/user.json`).
-        - Authenticated test suites (`*.auth.spec.ts`) will be configured in `playwright.config.ts` to depend on this setup and use the saved `storageState`, ensuring they run as the newly registered user.
-      - **Data Uniqueness:**
-        - User email addresses are generated dynamically with a timestamp.
-        - Generate unique names for test shopping lists to avoid conflicts if tests are run in parallel or re-run.
-      - **Date Mocking:** Mock the current date for list creation and any date-sensitive assertions to ensure test stability.
-      - **Global Teardown:**
-        - A global teardown script (e.g., `e2e/global.teardown.ts`) must be implemented. This script will be responsible for cleaning up all test data from the database created during the E2E test run.
-        - Cleanup should include:
-          - Deleting user accounts created with emails matching the `E2E_EMAIL_TO_TEST` pattern (e.g., `*@e2etest.shoplisteo.local`).
-          - Deleting all shopping lists and associated items created by these test users.
-        - This script must be configured in `playwright.config.ts` (using the `globalTeardown` option) to run after all test suites have completed.
+    ## Ogólne Uwagi / Strategia:
+      - **Przepływ Uwierzytelniania:**
+        - Dedykowany test konfiguracyjny (lub test w ramach `authentication.noauth.spec.ts`) zarejestruje nowego użytkownika z dynamicznym adresem e-mail i zapisze `storageState` (np. do `e2e/.auth/user.json`).
+        - Uwierzytelnione zestawy testów (`*.auth.spec.ts`) zostaną skonfigurowane w `playwright.config.ts` tak, aby zależały od tej konfiguracji i używały zapisanego `storageState`, zapewniając, że działają jako nowo zarejestrowany użytkownik.
+      - **Unikalność Danych:**
+        - Adresy e-mail użytkowników są generowane dynamicznie ze znacznikiem czasu.
+        - Generuj unikalne nazwy dla testowych list zakupów, aby uniknąć konfliktów, jeśli testy są uruchamiane równolegle lub ponownie.
+      - **Mockowanie Daty:** Mockuj bieżącą datę dla tworzenia list i wszelkich asercji wrażliwych na datę, aby zapewnić stabilność testów.
+      - **Globalne Czyszczenie (Teardown):**
+        - Musi zostać zaimplementowany globalny skrypt czyszczący (np. `e2e/global.teardown.ts`). Skrypt ten będzie odpowiedzialny za usunięcie wszystkich danych testowych z bazy danych utworzonych podczas przebiegu testów E2E.
+        - Czyszczenie powinno obejmować:
+          - Usuwanie kont użytkowników utworzonych z adresami e-mail pasującymi do wzorca `E2E_EMAIL_TO_TEST` (np. `*@e2etest.shoplisteo.local`).
+          - Usuwanie wszystkich list zakupów i powiązanych z nimi pozycji utworzonych przez tych użytkowników testowych.
+        - Ten skrypt musi być skonfigurowany w `playwright.config.ts` (używając opcji `globalTeardown`), aby uruchomił się po zakończeniu wszystkich zestawów testów.
 
   </TEST_PLAN_OVERVIEW>
 
   <SELECTOR_REQUIREMENTS>
-    ## Essential Elements for Stable Selectors:
-    To facilitate reliable test automation, please ensure stable and unique identifiers (e.g., data-testid attributes) are added for the following key UI elements observed during the workflows:
-    - Login button
-    - Registration link on the login page
-    - Email input field (both login and registration)
-    - Password input field (both login and registration)
-    - Password confirm input field (registration)
-    - Sign up button
-    - New List button
-    - Each Shopping list item in the shopping lists
-    - Shopping list name input field (on details page)
-    - Add product text field
-    - Add product button
-    - Edit button for each product item
-    - Delete button for each product item
-    - Sign out button
-    - Confirm delete button
-    - Shopping list title element (both on main page and details page)
+    ## Niezbędne Elementy dla Stabilnych Selektorów:
+    Aby ułatwić niezawodną automatyzację testów, prosimy o zapewnienie stabilnych i unikalnych identyfikatorów (np. atrybutów data-testid) dla następujących kluczowych elementów interfejsu użytkownika obserwowanych podczas przepływów pracy:
+    - Przycisk logowania
+    - Link rejestracji na stronie logowania
+    - Pole wprowadzania adresu e-mail (zarówno logowanie, jak i rejestracja)
+    - Pole wprowadzania hasła (zarówno logowanie, jak i rejestracja)
+    - Pole potwierdzenia hasła (rejestracja)
+    - Przycisk rejestracji
+    - Przycisk "Nowa Lista"
+    - Każdy element listy zakupów na liście list zakupów
+    - Pole wprowadzania nazwy listy zakupów (na stronie szczegółów)
+    - Pole tekstowe "Dodaj produkt"
+    - Przycisk "Dodaj produkt"
+    - Przycisk edycji dla każdej pozycji produktu
+    - Przycisk usuwania dla każdej pozycji produktu
+    - Przycisk wylogowania
+    - Przycisk potwierdzenia usunięcia
+    - Element tytułu listy zakupów (zarówno na stronie głównej, jak i na stronie szczegółów)
   </SELECTOR_REQUIREMENTS>
