@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { APIContext, MiddlewareNext, AstroCookies } from "astro";
 import { onRequest } from "@/middleware/index"; // Import the middleware
 import { createServerClient } from "@supabase/ssr"; // Import to mock
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/db/database.types";
+import type { AstroLocals } from "@/types/locals";
 // import type { UserDTO } from "@/types"; // Removed unused import
 
 // Mock dependencies
@@ -26,16 +29,12 @@ const createMockContext = (
   } as unknown as AstroCookies; // Use AstroCookies type
 
   // Define a more specific type for locals if possible, but keep flexibility
-  interface MockLocals {
+  interface MockLocals extends Partial<AstroLocals> {
     runtime?: {
       env: Record<string, string | undefined>;
     };
-    supabase: any; // Keep 'any' for Supabase mock simplicity
-    supabaseAdmin: any; // Keep 'any' for Supabase mock simplicity
-    user: any; // Keep 'any' for mock simplicity
-    userDTO: any; // Keep 'any' for mock simplicity
-    isAuthenticated: boolean;
-    [key: string]: any; // Allow other properties
+    supabaseAdmin: SupabaseClient<Database> | null;
+    [key: string]: unknown;
   }
 
   const locals: MockLocals = {
@@ -51,7 +50,6 @@ const createMockContext = (
     supabase: null,
     supabaseAdmin: null,
     user: null,
-    userDTO: null,
     isAuthenticated: false,
   };
 
@@ -73,15 +71,15 @@ const createMockContext = (
 const setupSupabaseMocks = (mockContext: APIContext, isAuthenticated: boolean, isAdmin = false) => {
   const mockGetUser = vi.fn();
   const mockGetSession = vi.fn();
-  const mockSupabaseClient: any = {
+  const mockSupabaseClient: Partial<SupabaseClient<Database>> = {
     auth: {
       getUser: mockGetUser,
       getSession: mockGetSession,
-    },
+    } as unknown as SupabaseClient<Database>["auth"],
   };
-  const mockSupabaseAdminClient: any = {
+  const mockSupabaseAdminClient: Partial<SupabaseClient<Database>> = {
     /* Similar structure if admin methods needed */
-  }; // Keeping 'any' for simplicity
+  };
 
   if (isAuthenticated) {
     const userId = "user-auth-id";

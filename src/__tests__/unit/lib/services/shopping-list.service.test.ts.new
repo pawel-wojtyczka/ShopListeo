@@ -1,0 +1,147 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { SupabaseClient, PostgrestError, PostgrestSingleResponse } from "@supabase/supabase-js";
+import {
+  updateShoppingListItem,
+  ShoppingListError
+} from "@/lib/services/shopping-list.service";
+import type {
+  UpdateShoppingListItemRequest,
+  UpdateShoppingListItemResponse,
+} from "@/types";
+
+// Mock the logger module
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
+
+// Define a type for the Supabase mock client
+type MockQueryBuilder = {
+  select: any;
+  insert: any;
+  update: any;
+  delete: any;
+  eq: any;
+  order: any;
+  range: any;
+  single: any;
+  throwOnError: any;
+};
+
+type MockSupabaseClient = SupabaseClient & {
+  from: any;
+  _mocks: MockQueryBuilder;
+};
+
+// Helper to create a mock Supabase client
+const createMockSupabaseClient = (): MockSupabaseClient => {
+  const singleMock = vi.fn();
+  const throwOnErrorMock = vi.fn();
+  const eqMock = vi.fn();
+  const orderMock = vi.fn();
+  const rangeMock = vi.fn();
+  const selectMock = vi.fn();
+  const insertMock = vi.fn();
+  const updateMock = vi.fn();
+  const deleteMock = vi.fn();
+
+  const queryBuilderMock: MockQueryBuilder = {
+    select: selectMock,
+    insert: insertMock,
+    update: updateMock,
+    delete: deleteMock,
+    eq: eqMock,
+    order: orderMock,
+    range: rangeMock,
+    single: singleMock,
+    throwOnError: throwOnErrorMock,
+  };
+
+  selectMock.mockReturnValue(queryBuilderMock);
+  insertMock.mockReturnValue(queryBuilderMock);
+  updateMock.mockReturnValue(queryBuilderMock);
+  deleteMock.mockReturnValue(queryBuilderMock);
+  eqMock.mockReturnValue(queryBuilderMock);
+  orderMock.mockReturnValue(queryBuilderMock);
+  rangeMock.mockReturnValue(queryBuilderMock);
+
+  const mockSupabase = {
+    from: vi.fn().mockReturnValue(queryBuilderMock),
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+    },
+    _mocks: queryBuilderMock,
+  } as unknown as MockSupabaseClient;
+
+  return mockSupabase;
+};
+
+describe("Shopping List Service", () => {
+  describe("updateShoppingListItem", () => {
+    let mockSupabase: MockSupabaseClient;
+    const userId = "user-update-item-id";
+    const listId = "list-update-item-id";
+    const itemId = "item-update-id";
+    const updateData: UpdateShoppingListItemRequest = { itemName: "Whole Milk", purchased: true };
+
+    beforeEach(() => {
+      mockSupabase = createMockSupabaseClient();
+      vi.clearAllMocks();
+    });
+
+    it("should update an item successfully", async () => {
+      const updatedItem = {
+        id: itemId,
+        item_name: updateData.itemName,
+        purchased: updateData.purchased,
+        updated_at: new Date().toISOString(),
+        shopping_list_id: listId,
+      };
+
+      // Setup mock responses
+      const listResponse = { data: { id: listId }, error: null };
+      const itemResponse = { data: updatedItem, error: null };
+
+      // Mock the list check
+      const listMock = mockSupabase._mocks;
+      listMock.select.mockReturnValueOnce(listMock);
+      listMock.eq.mockReturnValueOnce(listMock);
+      listMock.single.mockResolvedValueOnce(listResponse);
+
+      // Mock the item update
+      const itemMock = mockSupabase._mocks;
+      itemMock.update.mockReturnValueOnce(itemMock);
+      itemMock.eq.mockReturnValueOnce(itemMock);
+      itemMock.select.mockReturnValueOnce(itemMock);
+      itemMock.single.mockResolvedValueOnce(itemResponse);
+
+      const result = await updateShoppingListItem(mockSupabase, userId, listId, itemId, updateData);
+
+      expect(result).toEqual({
+        id: updatedItem.id,
+        itemName: updatedItem.item_name,
+        purchased: updatedItem.purchased,
+        updatedAt: updatedItem.updated_at,
+      });
+
+      expect(mockSupabase.from).toHaveBeenCalledWith("shopping_lists");
+      expect(mockSupabase.from).toHaveBeenCalledWith("shopping_list_items");
+
+      expect(listMock.select).toHaveBeenCalledWith("id");
+      expect(listMock.eq).toHaveBeenCalledWith("id", listId);
+      expect(listMock.single).toHaveBeenCalledOnce();
+
+      expect(itemMock.update).toHaveBeenCalledWith({
+        item_name: updateData.itemName,
+        purchased: updateData.purchased,
+      });
+      expect(itemMock.eq).toHaveBeenCalledWith("shopping_list_id", listId);
+      expect(itemMock.select).toHaveBeenCalledWith("id, item_name, purchased, updated_at");
+      expect(itemMock.single).toHaveBeenCalledOnce();
+    });
+  });
+}); 

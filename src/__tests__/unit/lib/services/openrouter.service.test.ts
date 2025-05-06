@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { OpenRouterService } from "@/lib/services/openrouter.service";
-import { ShoppingListError } from "@/lib/services/shopping-list.service"; // Assuming error handling uses this
+import { OpenRouterService } from "../../../../lib/services/openrouter.service";
+import { ShoppingListError } from "../../../../lib/services/shopping-list.service"; // Assuming error handling uses this
 
 // Mock the logger
 vi.mock("@/lib/logger", () => ({
@@ -12,7 +12,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Import logger after mock
-import { logger } from "@/lib/logger";
+import { logger } from "../../../../lib/logger";
 
 // Store original fetch and restore it after tests
 const originalFetch = global.fetch;
@@ -67,18 +67,19 @@ describe("OpenRouterService", () => {
         body: JSON.stringify({
           model: "openai/gpt-3.5-turbo",
           messages: [
-            { role: "system", content: expect.any(String) }, // Check system prompt exists
+            {
+              role: "system",
+              content:
+                'You are a shopping list parser. Extract items from the text and return them as a JSON array in the format: {"items": ["item1", "item2"]}. Keep the original quantities if specified.',
+            },
             { role: "user", content: textInput },
           ],
           response_format: { type: "json_object" },
           temperature: 0.3,
         }),
       });
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Parsing shopping list text"),
-        expect.any(String)
-      );
-      expect(logger.info).toHaveBeenCalledWith("Parsed items successfully", expect.any(Array));
+      expect(logger.info).toHaveBeenCalledWith(`Parsing shopping list text: ${textInput}`);
+      expect(logger.info).toHaveBeenCalledWith("Parsed items successfully", ["mleko", "chleb", "2 jajka"]);
     });
 
     it("should handle empty items array from API", async () => {
@@ -173,9 +174,9 @@ describe("OpenRouterService", () => {
         new ShoppingListError("Nie udało się przetworzyć listy przez AI - błąd parsowania JSON", "AI_JSON_PARSE_ERROR")
       );
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Error parsing shopping list: Failed to parse JSON response from AI"),
-        expect.anything(),
-        expect.any(SyntaxError) // Original JSON parse error
+        "Error parsing shopping list: Failed to parse JSON response from AI",
+        { content: "not json" },
+        { error: expect.stringContaining("Unexpected token") }
       );
     });
 
@@ -205,7 +206,7 @@ describe("OpenRouterService", () => {
       );
       expect(logger.error).toHaveBeenCalledWith(
         "Error parsing shopping list: Invalid JSON format from AI (missing 'items' array)",
-        expect.anything()
+        { products: ["milk"] }
       );
     });
 
@@ -214,7 +215,7 @@ describe("OpenRouterService", () => {
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
-        json: async () => ({ error: { message: "AI service unavailable" } }),
+        text: async () => "AI service unavailable",
       } as Response;
 
       vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse);
@@ -223,9 +224,9 @@ describe("OpenRouterService", () => {
         new ShoppingListError("Błąd podczas komunikacji z serwisem AI", "AI_REQUEST_FAILED")
       );
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Error fetching from OpenRouter API"),
-        expect.objectContaining({ status: 500, statusText: "Internal Server Error" }),
-        expect.any(Object) // Error body
+        "Error fetching from OpenRouter API",
+        { status: 500, statusText: "Internal Server Error" },
+        { error: "AI service unavailable" }
       );
     });
 
@@ -237,9 +238,9 @@ describe("OpenRouterService", () => {
         new ShoppingListError("Błąd sieci podczas komunikacji z serwisem AI", "AI_NETWORK_ERROR", networkError)
       );
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Network error fetching from OpenRouter API"),
-        expect.anything(),
-        networkError
+        "Network error fetching from OpenRouter API",
+        { error: "Network failure" },
+        { originalError: "Network failure" }
       );
     });
 

@@ -688,7 +688,25 @@ export async function updateShoppingListItem(
   logger.info("Rozpoczęcie aktualizacji elementu listy zakupów", { userId, listId, itemId, data });
 
   try {
-    // Przygotuj dane do aktualizacji
+    // 1. Sprawdź, czy lista istnieje i należy do użytkownika
+    const { data: list, error: listError } = await supabase
+      .from("shopping_lists")
+      .select("id")
+      .eq("id", listId)
+      .eq("user_id", userId)
+      .single();
+
+    if (listError) {
+      logger.error("Błąd podczas sprawdzania listy zakupów", { userId, listId, errorCode: listError.code }, listError);
+      throw new ShoppingListError("Nie znaleziono listy zakupów lub brak uprawnień", "NOT_FOUND", listError);
+    }
+
+    if (!list) {
+      logger.warn("Lista zakupów nie istnieje lub brak dostępu", { userId, listId });
+      throw new ShoppingListError("Nie znaleziono listy zakupów lub brak uprawnień", "NOT_FOUND");
+    }
+
+    // 2. Przygotuj dane do aktualizacji
     const updateData: { item_name?: string; purchased?: boolean; updated_at: string } = {
       updated_at: new Date().toISOString(),
     };
@@ -701,7 +719,7 @@ export async function updateShoppingListItem(
       updateData.purchased = data.purchased;
     }
 
-    // Wykonaj aktualizację
+    // 3. Wykonaj aktualizację
     const { data: updatedItem, error: updateError } = await supabase
       .from("shopping_list_items")
       .update(updateData)
@@ -716,14 +734,12 @@ export async function updateShoppingListItem(
         { userId, listId, itemId, errorCode: updateError.code },
         updateError
       );
-      if (updateError.code === "PGRST116") {
-        throw new ShoppingListError(
-          "Element nie istnieje lub brak dostępu do jego aktualizacji",
-          "NOT_FOUND",
-          updateError
-        );
-      }
       throw new ShoppingListError("Nie udało się zaktualizować elementu listy zakupów", "DATABASE_ERROR", updateError);
+    }
+
+    if (!updatedItem) {
+      logger.warn("Element nie istnieje lub brak dostępu", { userId, listId, itemId });
+      throw new ShoppingListError("Element nie istnieje lub brak dostępu do jego aktualizacji", "NOT_FOUND");
     }
 
     logger.info("Pomyślnie zaktualizowano element listy zakupów", {
@@ -733,7 +749,7 @@ export async function updateShoppingListItem(
       data,
     });
 
-    // Zwróć zaktualizowany element w formacie DTO
+    // 4. Zwróć zaktualizowany element w formacie DTO
     return {
       id: updatedItem.id,
       itemName: updatedItem.item_name,
