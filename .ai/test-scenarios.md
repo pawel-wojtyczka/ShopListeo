@@ -2,12 +2,16 @@
     ## Cel: Utwórz nową listę zakupów jako zarejestrowany użytkownik
     ## Grupa Testów: Zarządzanie Listami Zakupów
     ## Zależności / Warunki Wstępne:
-      - Użytkownik musi być zalogowany. Logowanie następuje przy użyciu danych uwierzytelniających predefiniowanego użytkownika testowego, zdefiniowanych w pliku `.env` jako `E2E_USERNAME` (e.g., `e2e_test@asperit.com`) oraz `E2E_PASSWORD`.
+      - Dostępne są prawidłowe dane logowania użytkownika (login i hasło) w zmiennych środowiskowych `E2E_USERNAME` i `E2E_PASSWORD` (ładowane z pliku `.env`).
     ## Zestaw Testów: shopping-list.auth.spec.ts
     ## Kroki Przepływu Użytkownika:
-      1. Upewnij się, że użytkownik jest zalogowany przy użyciu danych z pliku `.env` (`E2E_USERNAME` i `E2E_PASSWORD`).
-      2. Przejdź do `127.0.0.1:3000` (lub skonfigurowanego `baseURL`).
-      3. Kliknij przycisk "Nowa Lista".
+      1. Przejdź na stronę logowania aplikacji.
+      2. Wprowadź login użytkownika ze zmiennej środowiskowej `E2E_USERNAME`.
+      3. Wprowadź hasło użytkownika ze zmiennej środowiskowej `E2E_PASSWORD`.
+      4. Kliknij przycisk "Zaloguj się".
+      5. Upewnij się, że logowanie powiodło się i użytkownik został przekierowany na stronę główną aplikacji (np. stronę z listami zakupów).
+      6. Przejdź do `127.0.0.1:3000` (lub skonfigurowanego `baseURL`, jeśli krok 5 nie przekierowuje tam automatycznie).
+      7. Kliknij przycisk "Nowa Lista".
     ## Oczekiwane Wyniki / Asercje:
       - Nowy element listy zakupów pojawia się na liście list zakupów.
       - Nowy element listy zakupów nazywa się "Lista zakupów <DD.MM.RRRR>" (lub podobnie, w zależności od bieżącej lub mockowanej daty).
