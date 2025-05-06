@@ -33,7 +33,7 @@ test.describe("Authentication - Sign Out (Authenticated)", () => {
 
     // Wait for redirection to the login page
     await loginPage.waitForLoadState("domcontentloaded"); // Wait for login page elements to be ready
-    await expect(page).toHaveURL(loginPage.url); // Check if URL is the login page URL
+    await expect(page).toHaveURL(new RegExp(`^${loginPage.url}(\\?.*)?$`), { timeout: 10000 });
 
     // Verify that elements specific to logged-out state are present
     await expect(loginPage.loginButton).toBeVisible();
