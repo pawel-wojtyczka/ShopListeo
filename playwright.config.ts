@@ -25,13 +25,15 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Force sequential execution by using only 1 worker */
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
+  globalTeardown: "./e2e/global.teardown.ts", // Path to global teardown script
+
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3000", // Ustaw bazowy URL
+    baseURL: "http://127.0.0.1:3000",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
@@ -41,7 +43,7 @@ export default defineConfig({
 
     /* Slow down execution - moved here */
     launchOptions: {
-      slowMo: 500, // Spowolnienie każdej akcji Playwright o 500ms
+      slowMo: process.env.CI ? 0 : 250, // Slower locally for observation, faster on CI
     },
 
     screenshot: "only-on-failure",
@@ -49,35 +51,27 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // Projekt setup (może być pusty lub zawierać global.setup.ts jeśli potrzebny)
-    // Jest wymagany do zdefiniowania zależności i teardown
     {
-      name: "setup",
-      testMatch: /.*\.setup\.ts/,
+      name: "setup-auth-state", // Renamed for clarity - runs registration and saves state
+      testMatch: /authentication\.noauth\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+      },
     },
-    // Projekt teardown
     {
-      name: "cleanup db",
-      testMatch: /global\.teardown\.ts/, // Wskaż plik teardown. Używamy podwójnego backslasha dla regexa w JS.
-    },
-    // Główny projekt testowy
-    {
-      name: "authenticated",
+      name: "authenticated-tests",
       testMatch: /.*\.auth\.spec\.ts/,
-      dependencies: ["setup"], // Zależność od projektu setup
+      dependencies: ["setup-auth-state"],
       use: {
         ...devices["Desktop Chrome"],
-        storageState: "./e2e/.auth/user.json",
+        storageState: "./e2e/.auth/user.json", // Use saved authentication state
       },
     },
-    {
-      name: "non-authenticated",
-      testMatch: /.*\.noauth\.spec\.ts/,
-      use: {
-        ...devices["Desktop Chrome"],
-        headless: true, // Run this project in headed mode
-      },
-    },
+    // Legacy setup project, can be removed if not used for other .setup.ts files
+    // {
+    //   name: "setup",
+    //   testMatch: /.*\.setup\.ts/,
+    // },
 
     // Możesz odkomentować poniższe, aby testować na innych przeglądarkach
     // {

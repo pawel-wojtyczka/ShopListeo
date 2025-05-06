@@ -20,8 +20,16 @@ test.describe("Authentication - No Auth", () => {
 
     // 2. Click the "No account? Register" link.
     await loginPage.clickRegisterLink();
-    await registrationPage.waitForLoadState(); // Wait for registration page to load
+
+    // Explicitly wait for the URL to change to /register
+    await page.waitForURL("**/register", { timeout: 10000 }); // Zwiększony timeout na wszelki wypadek
+
+    // Teraz sprawdź URL i kontynuuj
     expect(page.url()).toContain("/register");
+
+    // Oczekiwanie na widoczność i edytowalność pierwszego pola na stronie rejestracji
+    await expect(registrationPage.emailInput).toBeVisible({ timeout: 5000 });
+    await expect(registrationPage.emailInput).toBeEnabled({ timeout: 5000 });
 
     // 3. Enter email address
     // 4. Enter password
@@ -43,10 +51,18 @@ test.describe("Authentication - No Auth", () => {
     const userEmailDisplay = page.locator(`text=${TEST_USER_EMAIL}`);
     await expect(userEmailDisplay).toBeVisible();
 
+    // Save authentication state
+    await page.context().storageState({ path: "e2e/.auth/user.json" });
+
     // TODO: Add a more robust selector for user profile indicator once available
     // e.g. await expect(page.locator('[data-testid="user-email-display"]')).toHaveText(TEST_USER_EMAIL);
 
     // Add a delay before closing the browser (e.g., 5 seconds)
     await page.waitForTimeout(5000); // 5000 milliseconds = 5 seconds
+  });
+
+  // Hook to add delay after each test in this describe block
+  test.afterEach(async ({ page }) => {
+    await page.waitForTimeout(3000); // 3000 milliseconds = 3 seconds
   });
 });

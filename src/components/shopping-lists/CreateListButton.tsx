@@ -14,7 +14,12 @@ export function CreateListButton({ onCreateList, isCreating }: CreateListButtonP
   }, [onCreateList]);
 
   return (
-    <Button onClick={handleClick} disabled={isCreating} className="flex items-center gap-2">
+    <Button
+      onClick={handleClick}
+      disabled={isCreating}
+      className="flex items-center gap-2"
+      data-testid="new-list-button"
+    >
       <PlusIcon className="h-4 w-4" />
       Nowa lista
       {isCreating && (

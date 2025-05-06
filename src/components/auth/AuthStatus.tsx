@@ -84,6 +84,7 @@ const AuthStatus: React.FC = () => {
             className="w-full flex items-center justify-center gap-2"
             onClick={handleLogoutClick}
             disabled={isLoggingOut}
+            data-testid="sign-out-button"
           >
             <LogOut size={16} />
             {isLoggingOut ? "Wylogowywanie..." : "Wyloguj się"}
