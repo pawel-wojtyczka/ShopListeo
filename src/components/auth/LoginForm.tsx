@@ -60,6 +60,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isSubmitting, apiError 
               placeholder="ty@przyklad.com"
               {...form.register("email")}
               disabled={isSubmitting}
+              data-testid="email-input"
             />
             {form.formState.errors.email && (
               <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
@@ -67,7 +68,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isSubmitting, apiError 
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Hasło</Label>
-            <Input id="password" type="password" {...form.register("password")} disabled={isSubmitting} />
+            <Input
+              id="password"
+              type="password"
+              {...form.register("password")}
+              disabled={isSubmitting}
+              data-testid="password-input"
+            />
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
             )}
@@ -81,7 +88,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isSubmitting, apiError 
               Zapamiętaj mnie
             </Label>
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full" disabled={isSubmitting} data-testid="login-button">
             {isSubmitting && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}
             Zaloguj się
           </Button>
@@ -90,7 +97,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isSubmitting, apiError 
       <CardFooter className="flex flex-col space-y-2 text-sm">
         <p>
           Nie masz konta?{" "}
-          <a href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
+          <a
+            href="/register"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+            data-testid="register-link"
+          >
             Zarejestruj się
           </a>
         </p>

@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Construct the absolute path to the root .env file
-const envPath = path.resolve(__dirname, "../.env"); // Zakładając, że playwright.config.ts jest w głównym katalogu
+const envPath = path.resolve(__dirname, ".env"); // Poprawiona ścieżka do .env
 
 // Load environment variables from the absolute path
 dotenv.config({ path: envPath });
@@ -17,7 +17,7 @@ dotenv.config({ path: envPath });
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: "./tests/e2e", // Katalog z testami E2E
+  testDir: "./e2e",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -25,7 +25,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Force sequential execution by using only 1 worker */
-  workers: 1, // Używaj tylko jednego workera
+  workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -36,13 +36,15 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
 
-    /* Run tests in headed mode */
-    headless: true, // Uruchamiaj w tle
+    /* Global headless setting - tests will override if needed */
+    headless: false,
 
     /* Slow down execution - moved here */
     launchOptions: {
       slowMo: 500, // Spowolnienie każdej akcji Playwright o 500ms
     },
+
+    screenshot: "only-on-failure",
   },
 
   /* Configure projects for major browsers */
@@ -51,8 +53,7 @@ export default defineConfig({
     // Jest wymagany do zdefiniowania zależności i teardown
     {
       name: "setup",
-      testMatch: /global\.setup\.ts/, // Wskaż plik setup, jeśli istnieje. Używamy podwójnego backslasha dla regexa w JS.
-      teardown: "cleanup db", // Nazwa projektu teardown
+      testMatch: /.*\.setup\.ts/,
     },
     // Projekt teardown
     {
@@ -61,9 +62,21 @@ export default defineConfig({
     },
     // Główny projekt testowy
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "authenticated",
+      testMatch: /.*\.auth\.spec\.ts/,
       dependencies: ["setup"], // Zależność od projektu setup
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "./e2e/.auth/user.json",
+      },
+    },
+    {
+      name: "non-authenticated",
+      testMatch: /.*\.noauth\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        headless: true, // Run this project in headed mode
+      },
     },
 
     // Możesz odkomentować poniższe, aby testować na innych przeglądarkach
