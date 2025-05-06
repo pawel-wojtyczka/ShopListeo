@@ -208,6 +208,11 @@ const supabaseMiddleware = defineMiddleware(async (context, next) => {
   const isShoppingListApiRoute = SHOPPING_LIST_API_ROUTES.some((route) => pathname.startsWith(route));
   const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route));
 
+  // Przekierowanie na stronę główną, gdy próbujemy uzyskać dostęp do strony admina bez bycia adminem
+  if (isAdminRoute && (!isAuthenticated || !authUser?.isAdmin)) {
+    return redirect("/");
+  }
+
   // Przekierowanie na stronę logowania, gdy próbujemy uzyskać dostęp do chronionej strony będąc niezalogowanym
   // (z wyjątkiem ścieżek autoryzacyjnych i API autoryzacji)
   if (isProtectedRoute && !isAuthenticated && !isAuthRoute && !isAuthApiRoute && !isShoppingListApiRoute) {
@@ -221,11 +226,6 @@ const supabaseMiddleware = defineMiddleware(async (context, next) => {
 
   // Przekierowanie na stronę główną, gdy próbujemy uzyskać dostęp do strony autoryzacji będąc zalogowanym
   if (isAuthRoute && isAuthenticated) {
-    return redirect("/");
-  }
-
-  // Przekierowanie na stronę główną, gdy próbujemy uzyskać dostęp do strony admina bez bycia adminem
-  if (isAdminRoute && (!isAuthenticated || !authUser?.isAdmin)) {
     return redirect("/");
   }
 
