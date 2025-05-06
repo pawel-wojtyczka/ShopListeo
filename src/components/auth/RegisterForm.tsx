@@ -65,6 +65,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isSubmitting, api
               placeholder="ty@przyklad.com"
               {...form.register("email")}
               disabled={isSubmitting}
+              data-testid="email-input"
             />
             {form.formState.errors.email && (
               <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
@@ -72,19 +73,31 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isSubmitting, api
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Hasło</Label>
-            <Input id="password" type="password" {...form.register("password")} disabled={isSubmitting} />
+            <Input
+              id="password"
+              type="password"
+              {...form.register("password")}
+              disabled={isSubmitting}
+              data-testid="password-input"
+            />
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
             )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Potwierdź hasło</Label>
-            <Input id="confirmPassword" type="password" {...form.register("confirmPassword")} disabled={isSubmitting} />
+            <Input
+              id="confirmPassword"
+              type="password"
+              {...form.register("confirmPassword")}
+              disabled={isSubmitting}
+              data-testid="confirm-password-input"
+            />
             {form.formState.errors.confirmPassword && (
               <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
             )}
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full" disabled={isSubmitting} data-testid="signup-button">
             {isSubmitting && <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />}
             Zarejestruj się
           </Button>
@@ -93,7 +106,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isSubmitting, api
       <CardFooter className="flex justify-center text-sm">
         <p>
           Masz już konto?{" "}
-          <a href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          <a
+            href="/login"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+            data-testid="login-link"
+          >
             Zaloguj się
           </a>
         </p>
