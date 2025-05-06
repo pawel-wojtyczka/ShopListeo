@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { OpenRouterService } from "@/lib/openrouter.service";
+import { OpenRouterService } from "@/lib/services/openrouter.service";
 import { getErrorMessage } from "@/lib/utils/error";
 import { supabaseClient } from "@/db/supabase.client";
 import type { AstroLocals } from "@/types/locals";
@@ -222,27 +222,54 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       let _errorBodyText = "Could not read error body";
       try {
         _errorBodyText = await response.text();
+        // console.error(`[ai-parse] OpenRouter API request failed with status ${response.status}. Body: ${_errorBodyText}`);
       } catch (_textError) {
         // ignore
       }
-      // console.error(`[ai-parse] OpenRouter API request failed with status ${response.status}. Body: ${_errorBodyText}`); // COMMENTED OUT AGAIN
-      return new Response(
-        JSON.stringify({ error: "Failed to process text with AI", details: `API error: ${response.status}` }),
-        { status: 500 }
-      );
+
+      // Próbujemy przetworzyć błąd jako JSON, jeśli to możliwe
+      let errorDetail = `API error: ${response.status}`;
+      try {
+        if (_errorBodyText && _errorBodyText.trim().startsWith("{")) {
+          const errorJson = JSON.parse(_errorBodyText);
+          errorDetail = errorJson.message || errorJson.error || errorDetail;
+        }
+      } catch (_jsonError) {
+        // Ignorujemy błędy parsowania - użyjemy oryginalnej wiadomości
+      }
+
+      return new Response(JSON.stringify({ error: "Failed to process text with AI", details: errorDetail }), {
+        status: 500,
+      });
     }
 
     // Parse the response
     let responseData: AiResponse;
+    let responseText: string;
     try {
       // console.log("[ai-parse] Parsing JSON response from OpenRouter...");
-      responseData = await response.json();
+      // Najpierw pobieramy odpowiedź jako tekst
+      responseText = await response.text();
+
+      // Sprawdzamy, czy odpowiedź wygląda jak JSON przed parsowaniem
+      if (!responseText || !responseText.trim().startsWith("{")) {
+        throw new Error("Response is not a valid JSON: " + responseText.substring(0, 50));
+      }
+
+      // Teraz parsujemy JSON
+      responseData = JSON.parse(responseText);
       // console.log("[ai-parse] Successfully parsed AI response.");
     } catch (_parseError) {
-      // console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(_parseError)}`); // COMMENTED OUT AGAIN
-      return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
-        status: 500,
-      });
+      // console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(_parseError)}`);
+      // console.error(`[ai-parse] Raw response: ${responseText?.substring(0, 200) || 'Empty response'}`);
+      return new Response(
+        JSON.stringify({
+          error: "Failed to parse AI response",
+          details: getErrorMessage(_parseError),
+          rawResponse: responseText?.substring(0, 200) || "Empty response",
+        }),
+        { status: 500 }
+      );
     }
 
     // Sprawdź, czy odpowiedź ma oczekiwaną strukturę

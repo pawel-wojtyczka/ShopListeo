@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { showErrorToast, showSuccessToast } from "@/lib/services/toast-service";
+import { logger } from "@/lib/logger";
 
 interface ProductInputAreaProps {
   listId: string;
@@ -44,32 +45,48 @@ const ProductInputArea: React.FC<ProductInputAreaProps> = ({ listId, onAddItems 
         body: JSON.stringify({ text }),
       });
 
-      const responseData = await response.json();
+      // Sprawdzamy czy odpowiedź jest prawidłowym JSON, najpierw pobierając jako tekst
+      let rawResponse;
+      try {
+        rawResponse = await response.text();
+        // Próbujemy sparsować jako JSON
+        const responseData = JSON.parse(rawResponse);
 
-      if (!response.ok) {
-        throw new Error(responseData.error || responseData.details || "Failed to process text with AI");
+        if (!response.ok) {
+          throw new Error(responseData.error || responseData.details || "Failed to process text with AI");
+        }
+
+        // Przetwarzanie produktów z uwzględnieniem statusu purchased
+        if (!responseData.products || !Array.isArray(responseData.products)) {
+          throw new Error("Invalid response format: products array missing");
+        }
+
+        const products: Product[] = responseData.products.map((product: Product) => ({
+          name: product.name,
+          purchased: product.purchased || false,
+        }));
+
+        // Add products to the list
+        await onAddItems(products);
+
+        // Powiadomienie o pomyślnej operacji
+        showSuccessToast("Lista zaktualizowana", {
+          description: `Zaktualizowano listę zakupów o ${products.length} ${
+            products.length === 1 ? "produkt" : products.length < 5 ? "produkty" : "produktów"
+          }`,
+        });
+
+        setTextareaValue("");
+      } catch (parseError) {
+        logger.error("Error parsing API response:", { error: parseError }, parseError);
+        logger.error("Raw response:", { rawResponse });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        } else {
+          throw new Error("Invalid response from server");
+        }
       }
-
-      // Przetwarzanie produktów z uwzględnieniem statusu purchased
-      const products: Product[] = responseData.products.map((product: Product) => ({
-        name: product.name,
-        purchased: product.purchased || false,
-      }));
-
-      // Add products to the list
-      await onAddItems(products);
-
-      // Powiadomienie o pomyślnej operacji
-      showSuccessToast("Lista zaktualizowana", {
-        description: `Zaktualizowano listę zakupów o ${products.length} ${
-          products.length === 1 ? "produkt" : products.length < 5 ? "produkty" : "produktów"
-        }`,
-      });
-
-      setTextareaValue("");
-
-      // Usunięto odświeżenie widoku poprzez przeładowanie strony
-      // window.location.href = `${window.location.pathname}?_t=${Date.now()}`;
     } catch (error) {
       showErrorToast("Błąd podczas przetwarzania tekstu", {
         description: error instanceof Error ? error.message : "Nieznany błąd podczas przetwarzania tekstu",
