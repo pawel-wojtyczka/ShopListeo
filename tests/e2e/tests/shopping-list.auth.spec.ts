@@ -5,9 +5,6 @@ import { ShoppingListDetailsPage } from "../page-objects/ShoppingListDetailsPage
 
 test.describe("Shopping List Management - Authenticated", () => {
   test("SCENARIO 1: Create a new shopping list", async ({ page, baseURL }) => {
-    console.log("Attempting to read E2E_USERNAME:", process.env.E2E_USERNAME);
-    console.log("Attempting to read E2E_PASSWORD:", process.env.E2E_PASSWORD);
-
     const loginPage = new LoginPage(page);
     const shoppingListPage = new ShoppingListPage(page);
     const shoppingListDetailsPage = new ShoppingListDetailsPage(page);
@@ -16,7 +13,6 @@ test.describe("Shopping List Management - Authenticated", () => {
     const password = process.env.E2E_PASSWORD;
 
     if (!username || !password) {
-      console.error("E2E_USERNAME or E2E_PASSWORD (or both) are not set in environment variables.");
       throw new Error("E2E_USERNAME and E2E_PASSWORD environment variables must be set.");
     }
 
