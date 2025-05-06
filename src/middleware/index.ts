@@ -214,6 +214,11 @@ const supabaseMiddleware = defineMiddleware(async (context, next) => {
     return redirect("/login");
   }
 
+  // Przekierowanie niezalogowanych użytkowników na stronę logowania, gdy próbują uzyskać dostęp do strony głównej
+  if (pathname === "/" && !isAuthenticated && !isAuthRoute && !isAuthApiRoute) {
+    return redirect("/login");
+  }
+
   // Przekierowanie na stronę główną, gdy próbujemy uzyskać dostęp do strony autoryzacji będąc zalogowanym
   if (isAuthRoute && isAuthenticated) {
     return redirect("/");

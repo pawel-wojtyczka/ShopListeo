@@ -136,7 +136,7 @@ describe("Middleware onRequest", () => {
 
   // --- Supabase Initialization ---
   it("should initialize Supabase clients and set them in locals", async () => {
-    const { context, next } = createMockContext("/");
+    const { context, next } = createMockContext("/login");
     const { mockSupabaseClient, mockSupabaseAdminClient } = setupSupabaseMocks(context, false);
     await onRequest(context, next);
     expect(vi.mocked(createServerClient)).toHaveBeenCalledTimes(2); // Standard + Admin
@@ -159,11 +159,13 @@ describe("Middleware onRequest", () => {
   it("should set supabaseAdmin to null if SERVICE_ROLE_KEY is missing", async () => {
     const { context, next } = createMockContext("/", "GET", { SUPABASE_SERVICE_ROLE_KEY: undefined });
     setupSupabaseMocks(context, false);
-    await onRequest(context, next);
+    const response = await onRequest(context, next);
     expect(vi.mocked(createServerClient)).toHaveBeenCalledTimes(1); // Only standard client
     expect(context.locals.supabase).toBeDefined();
     expect(context.locals.supabaseAdmin).toBeNull();
-    expect(next).toHaveBeenCalledOnce();
+    expect(context.redirect).toHaveBeenCalledWith("/login");
+    expect(next).not.toHaveBeenCalled();
+    expect(response).toBeInstanceOf(Response);
   });
 
   // --- Authentication ---
