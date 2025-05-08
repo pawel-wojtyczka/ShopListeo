@@ -3,7 +3,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../db/database.types";
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 import type { UserDTO, UpdateUserRequest } from "../../types";
 
 // Definiujemy typ SupabaseClient lokalnie

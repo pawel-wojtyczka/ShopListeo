@@ -1,0 +1,16 @@
+    name = "shoplisteo-preview" # Dowolna nazwa dla lokalnego developmentu
+    compatibility_date = "2024-05-08" # Możesz zaktualizować do najnowszej daty wspieranej przez zaktualizowanego Wranglera
+                                    # Najlepiej użyć daty sugerowanej przez najnowszą wersję Wranglera lub po prostu aktualnej.
+    compatibility_flags = ["nodejs_compat"] # Ta flaga jest nadal ważna
+    
+    # Dodaj tę sekcję, jeśli nie jest domyślnie włączona, a React jej potrzebuje.
+    # Może to pomóc z `MessageChannel` lub podobnymi API przeglądarkowymi.
+    # [build.env]
+    # NODE_ENV = "development" # Lub "production" w zależności od potrzeb testów
+    
+    # Upewnij się, że Miniflare używa odpowiedniego trybu, który może lepiej wspierać API przeglądarkowe.
+    # Poniższe jest bardziej dla 'wrangler dev' niż 'pages dev', ale warto znać te opcje.
+    # [miniflare]
+    # live_reload = true
+    # host = "127.0.0.1"
+    # port = 8788 # Domyślny port Miniflare, `pages dev` będzie nadal używał portu z linii komend.
