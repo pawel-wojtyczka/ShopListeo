@@ -80,9 +80,11 @@ export default defineConfig({
 
   /* Optional: Run your local dev server before starting the tests */
   webServer: {
-    command: "npx wrangler pages dev ./dist --port=4321", // Uproszczone polecenie, wrangler wczyta wrangler.toml
+    command: "npx wrangler pages dev ./dist --port=4321 --log-level debug", // Dodano --log-level debug
     url: "http://localhost:4321",
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 300 * 1000, // Zwiększono timeout do 5 minut (było 120 * 1000)
+    stdout: "pipe",
+    stderr: "pipe",
   },
 });

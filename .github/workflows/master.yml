@@ -137,6 +137,11 @@ jobs:
       # Uruchamia testy Playwright
       - name: Run Playwright tests
         env:
+          DEBUG: "pw:api,pw:webserver"
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          # Jeśli używasz SERVICE_ROLE_KEY w global.setup.ts lub global.teardown.ts do czyszczenia danych:
+          # SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           E2E_USERNAME_ID: ${{ secrets.E2E_USERNAME_ID }}
           E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
