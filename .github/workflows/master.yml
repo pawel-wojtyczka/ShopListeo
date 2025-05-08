@@ -126,9 +126,9 @@ jobs:
           name: build-output
           path: ./dist
 
-      # Instaluje http-server globalnie
-      - name: Install http-server
-        run: npm install -g http-server
+      # Instaluje Wrangler CLI
+      - name: Install Wrangler
+        run: npm install -g wrangler@latest
 
       # Instaluje przeglądarki Playwright
       - name: Install Playwright Browsers
