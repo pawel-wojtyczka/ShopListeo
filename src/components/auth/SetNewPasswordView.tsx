@@ -12,9 +12,20 @@ const SetNewPasswordView: React.FC = () => {
   useEffect(() => {
     // This runs only on the client after mount
     try {
-      const hash = window.location.hash.substring(1); // Remove leading #
-      const params = new URLSearchParams(hash);
-      const token = params.get("access_token");
+      let token: string | null = null;
+
+      // First, try to get 'access_token' from the URL hash
+      const hash = window.location.hash.substring(1);
+      if (hash) {
+        const hashParams = new URLSearchParams(hash);
+        token = hashParams.get("access_token");
+      }
+
+      // If not found in hash, try to get 'code' from the URL query parameters
+      if (!token) {
+        const queryParams = new URLSearchParams(window.location.search);
+        token = queryParams.get("code"); // Supabase sometimes uses 'code' for password recovery via email link
+      }
 
       if (token) {
         setAccessToken(token);
