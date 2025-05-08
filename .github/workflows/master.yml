@@ -157,23 +157,14 @@ jobs:
           path: playwright-report/ 
           if-no-files-found: ignore # Ignoruj, jeśli raporty nie zostaną znalezione (np. webServer nie wystartował)
 
-      # Wyświetl logi Wranglera, jeśli testy Playwright się nie powiodły
-      - name: Display Wrangler logs on failure
+      # Prześlij logi Wranglera jako artefakt, jeśli testy Playwright się nie powiodły
+      - name: Upload Wrangler logs on failure
         if: failure()
-        run: |
-          echo "Attempting to display Wrangler logs..."
-          WRANGLER_LOG_DIR="/home/runner/.config/.wrangler/logs"
-          if [ -d "$WRANGLER_LOG_DIR" ]; then
-            LATEST_LOG_FILE=$(ls -t "$WRANGLER_LOG_DIR"/wrangler-*.log | head -n 1)
-            if [ -f "$LATEST_LOG_FILE" ]; then
-              echo "Displaying latest Wrangler log file: $LATEST_LOG_FILE"
-              cat "$LATEST_LOG_FILE"
-            else
-              echo "No Wrangler log file found in $WRANGLER_LOG_DIR."
-            fi
-          else
-            echo "Wrangler log directory $WRANGLER_LOG_DIR not found."
-          fi
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrangler-logs
+          path: "/home/runner/.config/.wrangler/logs/wrangler-*.log"
+          if-no-files-found: ignore # Ignoruj, jeśli plik logu nie istnieje
 
   # Zadanie wdrażania na Cloudflare Pages
   deploy:

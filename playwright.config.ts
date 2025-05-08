@@ -80,10 +80,10 @@ export default defineConfig({
 
   /* Optional: Run your local dev server before starting the tests */
   webServer: {
-    command: "npx wrangler pages dev ./dist --port=4321 --log-level debug", // Dodano --log-level debug
+    command: "NODE_ENV=development npx wrangler pages dev ./dist --port=4321 --log-level debug", // Dodano NODE_ENV=development
     url: "http://localhost:4321",
     reuseExistingServer: !process.env.CI,
-    timeout: 300 * 1000, // Zwiększono timeout do 5 minut (było 120 * 1000)
+    timeout: 120 * 1000, // Timeout dwie minuty
     stdout: "pipe",
     stderr: "pipe",
   },
