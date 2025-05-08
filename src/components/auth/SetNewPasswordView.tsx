@@ -5,41 +5,74 @@ import SetNewPasswordForm from "./SetNewPasswordForm";
 const SetNewPasswordView: React.FC = () => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
+  const [isVerifyingToken, setIsVerifyingToken] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // This runs only on the client after mount
-    try {
-      let token: string | null = null;
+    const processToken = async () => {
+      try {
+        let initialToken: string | null = null;
+        let isFromQueryCode = false;
 
-      // First, try to get 'access_token' from the URL hash
-      const hash = window.location.hash.substring(1);
-      if (hash) {
-        const hashParams = new URLSearchParams(hash);
-        token = hashParams.get("access_token");
-      }
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+          const hashParams = new URLSearchParams(hash);
+          initialToken = hashParams.get("access_token");
+        }
 
-      // If not found in hash, try to get 'code' from the URL query parameters
-      if (!token) {
-        const queryParams = new URLSearchParams(window.location.search);
-        token = queryParams.get("code"); // Supabase sometimes uses 'code' for password recovery via email link
-      }
+        if (!initialToken) {
+          const queryParams = new URLSearchParams(window.location.search);
+          initialToken = queryParams.get("code");
+          if (initialToken) {
+            isFromQueryCode = true;
+          }
+        }
 
-      if (token) {
-        setAccessToken(token);
-      } else {
-        setTokenError("Nie znaleziono wymaganego tokenu w adresie URL. Upewnij się, że link jest poprawny.");
+        if (initialToken) {
+          if (isFromQueryCode) {
+            setIsVerifyingToken(true);
+            setTokenError(null);
+            try {
+              const response = await fetch("/api/auth/exchange-recovery-code", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ code: initialToken }),
+              });
+              const data = await response.json();
+              if (!response.ok) {
+                throw new Error(data.message || "Weryfikacja tokenu nie powiodła się.");
+              }
+              setAccessToken(data.accessToken);
+            } catch (exchangeError: unknown) {
+              if (exchangeError instanceof Error) {
+                setTokenError(exchangeError.message || "Błąd podczas wymiany kodu na token.");
+              } else {
+                setTokenError("Wystąpił nieznany błąd podczas wymiany kodu na token.");
+              }
+              setAccessToken(null);
+            }
+            setIsVerifyingToken(false);
+          } else {
+            setAccessToken(initialToken);
+          }
+        } else {
+          setTokenError("Nie znaleziono wymaganego tokenu w adresie URL. Upewnij się, że link jest poprawny.");
+        }
+      } catch (_e) {
+        setTokenError("Wystąpił błąd podczas przetwarzania linku resetującego.");
       }
-    } catch (_e) {
-      setTokenError("Wystąpił błąd podczas przetwarzania linku resetującego.");
-    }
-  }, []); // Empty dependency array ensures this runs only once on mount
+    };
+
+    processToken();
+  }, []);
 
   const handleSetPassword = async (password: string) => {
     if (!accessToken) {
-      setApiError("Brak tokenu dostępu do wysłania żądania.");
+      setApiError("Brak tokenu dostępu do wysłania żądania (po weryfikacji).");
       return;
     }
 
@@ -81,6 +114,10 @@ const SetNewPasswordView: React.FC = () => {
   };
 
   // Render based on token status and API status
+  if (isVerifyingToken) {
+    return <p className="text-center text-muted-foreground">Weryfikowanie tokenu resetowania hasła...</p>;
+  }
+
   if (tokenError) {
     return (
       <div className="text-center text-destructive">
@@ -92,8 +129,7 @@ const SetNewPasswordView: React.FC = () => {
     );
   }
 
-  if (!accessToken && !tokenError) {
-    // Still waiting for useEffect to run and parse token
+  if (!accessToken && !tokenError && !isVerifyingToken) {
     return <p className="text-center text-muted-foreground">Wczytywanie...</p>;
   }
 
