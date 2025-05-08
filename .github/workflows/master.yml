@@ -151,10 +151,29 @@ jobs:
       # Przesyła raporty z testów Playwright (opcjonalne, ale zalecane)
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
+        if: always() # Zawsze przesyłaj raport, nawet jeśli testy się nie powiodły
         with:
           name: playwright-report
-          path: playwright-report/ # Domyślna ścieżka dla raportów Playwright
-          if-no-files-found: error # Zgłosi błąd, jeśli raporty nie zostaną znalezione
+          path: playwright-report/ 
+          if-no-files-found: ignore # Ignoruj, jeśli raporty nie zostaną znalezione (np. webServer nie wystartował)
+
+      # Wyświetl logi Wranglera, jeśli testy Playwright się nie powiodły
+      - name: Display Wrangler logs on failure
+        if: failure()
+        run: |
+          echo "Attempting to display Wrangler logs..."
+          WRANGLER_LOG_DIR="/home/runner/.config/.wrangler/logs"
+          if [ -d "$WRANGLER_LOG_DIR" ]; then
+            LATEST_LOG_FILE=$(ls -t "$WRANGLER_LOG_DIR"/wrangler-*.log | head -n 1)
+            if [ -f "$LATEST_LOG_FILE" ]; then
+              echo "Displaying latest Wrangler log file: $LATEST_LOG_FILE"
+              cat "$LATEST_LOG_FILE"
+            else
+              echo "No Wrangler log file found in $WRANGLER_LOG_DIR."
+            fi
+          else
+            echo "Wrangler log directory $WRANGLER_LOG_DIR not found."
+          fi
 
   # Zadanie wdrażania na Cloudflare Pages
   deploy:
