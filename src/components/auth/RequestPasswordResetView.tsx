@@ -42,7 +42,7 @@ const RequestPasswordResetView: React.FC = () => {
       setSuccessMessage(responseData.message || "Żądanie zostało przetworzone.");
     } catch (error) {
       // Dodajemy logowanie błędu po stronie klienta
-      console.error("Client-side error during password reset request:", error);
+      // console.error("Client-side error during password reset request:", error);
       setApiError(error instanceof Error ? error.message : "Wystąpił nieoczekiwany błąd.");
     } finally {
       setIsSubmitting(false);
