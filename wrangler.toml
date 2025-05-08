@@ -14,3 +14,9 @@
     # live_reload = true
     # host = "127.0.0.1"
     # port = 8788 # Domyślny port Miniflare, `pages dev` będzie nadal używał portu z linii komend.
+
+    # Dodaj binding dla KV store używanego do sesji przez adapter Astro
+    [[kv_namespaces]]
+    binding = "SESSION" # Nazwa, której oczekuje adapter Astro @astrojs/cloudflare
+    id = "shoplisteo-sessions-local-dev" # Lokalny, unikalny identyfikator dla tego KV namespace
+    preview_id = "shoplisteo-sessions-local-dev" # Użyj tego samego dla lokalnego podglądu (`wrangler pages dev`)
