@@ -119,13 +119,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Pobiera artefakty budowania (jeśli testy E2E tego wymagają)
-      # Zakładamy, że testy E2E mogą potrzebować działającej, zbudowanej aplikacji
+      # Pobiera artefakty budowania
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-output
-          path: ./dist # Ścieżka, gdzie zostaną rozpakowane artefakty
+          path: ./dist
+
+      # Instaluje http-server globalnie
+      - name: Install http-server
+        run: npm install -g http-server
 
       # Instaluje przeglądarki Playwright
       - name: Install Playwright Browsers

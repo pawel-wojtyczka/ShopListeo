@@ -31,7 +31,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3000", // Ustaw bazowy URL
+    baseURL: "http://localhost:4321", // ZAKTUALIZOWANY URL bazowy
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
@@ -79,12 +79,13 @@ export default defineConfig({
   ],
 
   /* Optional: Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run dev',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 120 * 1000, // Zwiększ timeout, jeśli serwer startuje wolno
-  //   stdout: 'pipe', // Przekieruj output serwera
-  //   stderr: 'pipe',
-  // },
+  webServer: {
+    command: "npx http-server ./dist --port 4321 --silent", // Zmienione polecenie na http-server
+    url: "http://localhost:4321", // Port pozostaje ten sam
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+    stdout: "pipe",
+    stderr: "pipe",
+    // waitForPort: 4321, // Można odkomentować dla pewności
+  },
 });
