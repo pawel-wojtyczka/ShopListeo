@@ -48,6 +48,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     if (error) {
+      // Log the error for debugging purposes
+      console.error("Supabase password reset error:", error);
       // Avoid revealing if email exists - return generic success message anyway
       // Or return a specific error for logging but generic for user
       // return new Response(JSON.stringify({ message: error.message || 'Błąd podczas wysyłania emaila.' }), { status: 500 });
