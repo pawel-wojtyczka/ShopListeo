@@ -1,0 +1,19 @@
+---
+import AuthLayout from "../../layouts/AuthLayout.astro"; // Poprawiona ścieżka do AuthLayout
+
+export const prerender = false; // Lub true, jeśli strona jest w pełni statyczna
+---
+
+<AuthLayout title="Rejestracja w toku">
+  <div class="text-center">
+    <h1 class="text-2xl font-semibold tracking-tight mb-4">Potwierdź swój adres e-mail</h1>
+    <p class="mb-4">Właśnie wysłaliśmy do Ciebie link aktywacyjny na podany adres e-mail.</p>
+    <p class="mb-6">Kliknij link w wiadomości e-mail, aby dokończyć rejestrację. Sprawdź również folder spam.</p>
+    <a
+      href="/login"
+      class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+    >
+      Przejdź do logowania
+    </a>
+  </div>
+</AuthLayout>
