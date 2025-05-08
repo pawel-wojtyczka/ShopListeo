@@ -31,7 +31,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:4321", // ZAKTUALIZOWANY URL bazowy
+    baseURL: "http://localhost:3000", // Ustaw bazowy URL
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
@@ -79,12 +79,12 @@ export default defineConfig({
   ],
 
   /* Optional: Run your local dev server before starting the tests */
-  webServer: {
-    command: "NODE_ENV=development npx wrangler pages dev ./dist --port=4321 --log-level debug", // Dodano NODE_ENV=development
-    url: "http://localhost:4321",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000, // Timeout dwie minuty
-    stdout: "pipe",
-    stderr: "pipe",
-  },
+  // webServer: {
+  //   command: 'npm run dev',
+  //   url: 'http://localhost:3000',
+  //   reuseExistingServer: !process.env.CI,
+  //   timeout: 120 * 1000, // Zwiększ timeout, jeśli serwer startuje wolno
+  //   stdout: 'pipe', // Przekieruj output serwera
+  //   stderr: 'pipe',
+  // },
 });
