@@ -213,8 +213,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.shopping_list_items TO anon
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.conversations TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.apply_shopping_list_changes(uuid,uuid,public.new_shopping_list_item[],uuid[]) TO anon, authenticated;
 
--- 13. Row Level Security (RLS) - Commented out for MVP
-/*
+-- 13. Row Level Security (RLS)
 -- Enable RLS for all tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shopping_lists ENABLE ROW LEVEL SECURITY;
@@ -306,7 +305,5 @@ CREATE POLICY "Users can manage their own conversations"
   ON public.conversations FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
-
-*/
 
 -- Koniec skryptu --
