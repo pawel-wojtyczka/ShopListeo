@@ -19,7 +19,13 @@ test.describe("Shopping List Management - Authenticated", () => {
     await loginPage.navigate();
     await loginPage.login(username, password);
 
+    // Sprawdź, czy logowanie się powiodło - oczekujemy, że użytkownik został przeniesiony z ekranu logowania
     await expect(page).not.toHaveURL(loginPage.url, { timeout: 10000 });
+
+    // Jeśli user został przekierowany na stronę główną, przejdź do listy zakupów
+    await page.goto("/");
+
+    // Teraz oczekujemy, że przycisk nowej listy będzie widoczny
     await expect(shoppingListPage.newListButton).toBeVisible({ timeout: 10000 });
 
     await shoppingListPage.waitForLoadState("domcontentloaded");

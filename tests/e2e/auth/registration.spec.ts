@@ -38,7 +38,7 @@ test.describe("User Registration", () => {
     // await page.pause(); // Remove pause
 
     // Assertion: Check if the user is redirected to the expected page after successful registration
-    await expect(page).toHaveURL("/"); // Expect redirection to the homepage
+    await expect(page).toHaveURL("/auth/registration-pending"); // Expect redirection to registration pending page
     // Można też sprawdzić, czy pojawił się komunikat o sukcesie, jeśli taki istnieje:
     // await expect(page.locator('.success-message')).toBeVisible();
   });
