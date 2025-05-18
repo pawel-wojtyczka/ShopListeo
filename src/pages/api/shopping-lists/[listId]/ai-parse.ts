@@ -4,177 +4,190 @@ import { getErrorMessage } from "@/lib/utils/error";
 import { supabaseClient } from "@/db/supabase.client";
 import type { AstroLocals } from "@/types/locals";
 
-// Define a basic type for the expected AI response structure
+// Definiuje podstawowy typ dla oczekiwanej struktury odpowiedzi AI
 interface AiResponse {
   choices: {
     message: {
       content: string;
     };
   }[];
-  // Add other potential fields if known
+  // Tutaj można dodać inne potencjalne pola, jeśli są znane
 }
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
-  // console.log(`[ai-parse] Received request for listId: ${params.listId}`); // Log start
-
-  // Odczytujemy zmienną środowiskową w zależności od trybu uruchomienia
+  // Odczytujemy zmienną środowiskową z kluczem API OpenRouter.
+  // W trybie deweloperskim ('development'), klucz jest pobierany bezpośrednio z `import.meta.env`.
+  // W trybie produkcyjnym lub innym, klucz jest pobierany z `locals.runtime.env`,
+  // które jest wypełniane przez mechanizmy Astro dla środowisk serverless (np. Cloudflare).
   let OPENROUTER_API_KEY: string | undefined;
-  let _keySource: string;
 
-  if (import.meta.env.MODE === "development") {
+  if (import.meta.env.DEV) {
+    // Używamy import.meta.env.DEV dla jasności
     OPENROUTER_API_KEY = import.meta.env.OPENROUTER_API_KEY;
-    _keySource = "import.meta.env (development)";
   } else {
+    // W środowisku innym niż deweloperskie (np. produkcja na Cloudflare)
+    // Astro przekazuje zmienne środowiskowe poprzez locals.runtime.env
     const potentialKey = locals.runtime?.env?.OPENROUTER_API_KEY;
+    // Sprawdzamy, czy klucz jest stringiem, aby uniknąć błędów typu.
     if (typeof potentialKey === "string") {
       OPENROUTER_API_KEY = potentialKey;
-    } else {
-      OPENROUTER_API_KEY = undefined; // Explicitly set to undefined if not a string
     }
-    _keySource = "locals.runtime.env (production/other)";
+    // Jeśli klucz nie jest stringiem (np. undefined lub inny typ), OPENROUTER_API_KEY pozostanie undefined.
   }
-  // console.log(`[ai-parse] Attempting to read OPENROUTER_API_KEY from: ${_keySource}`);
 
   try {
-    // Sprawdź, czy klucz API OpenRouter jest dostępny
+    // Sprawdza, czy klucz API OpenRouter został poprawnie załadowany.
+    // Jest to krytyczny warunek do dalszego działania funkcji.
     if (!OPENROUTER_API_KEY) {
-      // console.error(`[ai-parse] CRITICAL: OpenRouter API key is missing from ${_keySource}. Cannot proceed.`); // COMMENTED OUT AGAIN
+      // Jeśli klucz API nie jest dostępny, zwracamy błąd 500 (Internal Server Error),
+      // wskazując na problem z konfiguracją serwera.
+      console.error("[ai-parse] CRITICAL: OpenRouter API key is missing. Cannot proceed.");
       return new Response(
         JSON.stringify({ error: "Configuration error", details: "OpenRouter API key is not configured" }),
         { status: 500 }
       );
     }
-    // console.log("[ai-parse] OpenRouter API key found.");
 
-    // Pobieramy dane uwierzytelniające bezpośrednio z middleware locals
+    // Pobieramy dane uwierzytelniające użytkownika z `locals` dostarczonych przez middleware Astro.
+    // `isAuthenticated` to flaga wskazująca, czy użytkownik jest zalogowany.
+    // `user` to obiekt użytkownika z bazy danych Supabase.
+    // `authUser` to obiekt DTO użytkownika, jeśli serializowany w middleware.
     const { user, isAuthenticated, authUser } = locals as AstroLocals & { isAuthenticated: boolean };
-    // console.log(`[ai-parse] Authentication status: isAuthenticated=${isAuthenticated}`);
 
-    // Sprawdź, czy użytkownik jest zalogowany
+    // Sprawdza, czy użytkownik jest zalogowany.
+    // Dostęp do tej funkcji jest możliwy tylko dla uwierzytelnionych użytkowników.
     if (!isAuthenticated || (!user && !authUser)) {
-      // console.warn("[ai-parse] Unauthorized attempt: User not authenticated.");
+      // Jeśli użytkownik nie jest zalogowany, zwracamy błąd 401 (Unauthorized).
       return new Response(JSON.stringify({ error: "Unauthorized", details: "Użytkownik niezalogowany" }), {
         status: 401,
       });
     }
 
-    // Ustal ID użytkownika (mogą być dwa źródła: user z Supabase i authUser ze zserializowanego DTO)
+    // Ustala ID użytkownika.
+    // ID może pochodzić z obiektu `user` (z Supabase) lub `authUser` (zserializowane DTO).
+    // Jest to niezbędne do weryfikacji uprawnień do listy zakupów.
     const userId = user?.id || authUser?.id;
-    // console.log(`[ai-parse] User ID determined: ${userId}`);
 
+    // Sprawdza, czy udało się ustalić ID użytkownika.
+    // Jest to dodatkowe zabezpieczenie, choć teoretycznie nie powinno wystąpić, jeśli `isAuthenticated` jest true.
     if (!userId) {
-      // console.error("[ai-parse] CRITICAL: Could not determine User ID after authentication check."); // COMMENTED OUT AGAIN
+      console.error("[ai-parse] CRITICAL: Could not determine User ID after authentication check.");
       return new Response(JSON.stringify({ error: "Unauthorized", details: "Brak ID użytkownika" }), {
         status: 401,
       });
     }
 
-    // Get list ID from params
+    // Pobiera ID listy zakupów z parametrów ścieżki URL.
     const { listId } = params;
+    // Sprawdza, czy ID listy zostało przekazane.
     if (!listId) {
-      // console.error("[ai-parse] Bad Request: List ID is missing from params."); // COMMENTED OUT AGAIN
+      // Jeśli ID listy brakuje, zwracamy błąd 400 (Bad Request).
       return new Response(JSON.stringify({ error: "List ID is required" }), {
         status: 400,
       });
     }
 
-    // Użyj supabase z locals jeśli dostępne, w przeciwnym razie użyj globalnego klienta
-    const supabaseFromLocals = (locals as App.Locals).supabase; // Use App.Locals
+    // Używa klienta Supabase przekazanego przez `locals` (jeśli jest dostępny),
+    // w przeciwnym razie korzysta z globalnego klienta Supabase.
+    // `locals.supabase` jest zazwyczaj konfigurowane w middleware.
+    const supabaseFromLocals = (locals as App.Locals).supabase; // Używamy App.Locals dla poprawnego typowania
     const supabase = supabaseFromLocals || supabaseClient;
-    // console.log(
-    //   `[ai-parse] Supabase client source: ${supabaseFromLocals ? "locals.supabase" : "global supabaseClient (fallback)"}`
-    // );
 
-    // Verify list exists and belongs to user
-    // console.log(`[ai-parse] Verifying ownership for list ${listId} and user ${userId}...`);
+    // Weryfikuje, czy lista zakupów o podanym ID istnieje i należy do zalogowanego użytkownika.
+    // Zapobiega to dostępowi do list innych użytkowników.
     const { data: list, error: listError } = await supabase
       .from("shopping_lists")
-      .select("id")
+      .select("id") // Wystarczy wybrać dowolną kolumnę, np. 'id', aby potwierdzić istnienie.
       .eq("id", listId)
       .eq("user_id", userId)
-      .single();
+      .single(); // Oczekujemy jednego rekordu lub błędu.
 
+    // Obsługuje błędy podczas pobierania listy z bazy danych.
     if (listError) {
-      // console.error(`[ai-parse] Error fetching list ${listId} for user ${userId}: ${listError.message}`); // COMMENTED OUT AGAIN
+      // Błąd może oznaczać, że lista nie istnieje lub użytkownik nie ma do niej dostępu (zgodnie z RLS).
+      console.error(`[ai-parse] Error fetching list ${listId} for user ${userId}: ${listError.message}`);
       return new Response(JSON.stringify({ error: "List not found or access denied", details: listError.message }), {
-        status: 404, // Could be 403 or 404 depending on RLS
+        status: 404, // Status 404 jest odpowiedni, gdy zasób nie został znaleziony.
       });
     }
 
+    // Sprawdza, czy lista została znaleziona.
+    // Jeśli `list` jest `null` (a `listError` też był `null`), oznacza to, że zapytanie się powiodło,
+    // ale nie znaleziono pasującego rekordu.
     if (!list) {
-      // console.warn(`[ai-parse] List ${listId} not found for user ${userId}.`); // Warning log
       return new Response(JSON.stringify({ error: "List not found" }), {
         status: 404,
       });
     }
-    // console.log(`[ai-parse] List ${listId} ownership verified for user ${userId}.`);
 
-    // Pobierz istniejące produkty z listy zakupów wraz ze statusem purchased
-    // console.log(`[ai-parse] Fetching existing items for list ${listId}...`);
+    // Pobiera istniejące produkty z listy zakupów wraz z ich statusem 'purchased'.
+    // Te informacje zostaną przekazane do AI, aby mogła uwzględnić aktualny stan listy.
     const { data: existingItems, error: itemsError } = await supabase
       .from("shopping_list_items")
-      .select("id, item_name, purchased")
+      .select("id, item_name, purchased") // Pobieramy ID, nazwę produktu i status zakupu.
       .eq("shopping_list_id", listId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true }); // Sortujemy dla spójności.
 
+    // Obsługuje błędy podczas pobierania produktów z listy.
     if (itemsError) {
-      // console.error(`[ai-parse] Error fetching existing items for list ${listId}: ${itemsError.message}`); // COMMENTED OUT AGAIN
+      console.error(`[ai-parse] Error fetching existing items for list ${listId}: ${itemsError.message}`);
       return new Response(JSON.stringify({ error: "Failed to fetch existing products", details: itemsError.message }), {
         status: 500,
       });
     }
-    // console.log(`[ai-parse] Found ${existingItems.length} existing items for list ${listId}.`);
 
-    // Get text content from request body
+    // Przetwarza ciało żądania, aby uzyskać tekst od użytkownika.
     let body;
     let text: string | undefined;
     try {
-      // console.log("[ai-parse] Parsing request body...");
+      // Oczekujemy, że ciało żądania będzie w formacie JSON i będzie zawierać pole 'text'.
       body = await request.json();
       text = (body as { text: string }).text;
-      // console.log(`[ai-parse] Received text: ${text ? text.substring(0, 50) + "..." : "empty"}`);
-    } catch (_jsonError) {
-      // console.error(`[ai-parse] Error parsing request body: ${getErrorMessage(_jsonError)}`); // COMMENTED OUT AGAIN
+    } catch (jsonError) {
+      // Jeśli parsowanie JSONa się nie powiedzie, zwracamy błąd 400.
+      console.error(`[ai-parse] Error parsing request body: ${getErrorMessage(jsonError)}`);
       return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
         status: 400,
       });
     }
 
+    // Sprawdza, czy tekst od użytkownika został przekazany i jest typu string.
     if (!text || typeof text !== "string") {
-      // console.error("[ai-parse] Bad Request: Text content is missing or not a string."); // COMMENTED OUT AGAIN
+      // Jeśli tekst jest nieprawidłowy, zwracamy błąd 400.
       return new Response(JSON.stringify({ error: "Text content is required" }), {
         status: 400,
       });
     }
 
-    // Przygotuj obecną listę produktów ze statusem purchased
+    // Przygotowuje listę istniejących produktów w formacie oczekiwanym przez AI.
+    // Tworzymy tablicę obiektów, gdzie każdy obiekt ma nazwę produktu i status 'purchased'.
     const productsWithStatus = existingItems.map((item) => ({
       name: item.item_name,
       purchased: item.purchased,
     }));
     const existingProductsFormatted = JSON.stringify(productsWithStatus);
-    // console.log(`[ai-parse] Formatted existing items for AI: ${existingProductsFormatted.substring(0, 100)}...`);
 
-    // Initialize OpenRouter service
+    // Inicjalizuje serwis OpenRouterService.
+    // Ten serwis będzie odpowiedzialny za komunikację z API OpenRouter.
     let openRouter: OpenRouterService;
     try {
-      // console.log("[ai-parse] Initializing OpenRouterService...");
-      // Używamy klucza ze zmiennej środowiskowej odczytanej przez locals.runtime.env
+      // Przekazujemy klucz API do konstruktora serwisu.
       openRouter = new OpenRouterService(OPENROUTER_API_KEY);
-      // console.log("[ai-parse] OpenRouterService initialized successfully.");
-    } catch (_initError) {
-      // console.error(`[ai-parse] Failed to initialize OpenRouterService: ${getErrorMessage(_initError)}`); // COMMENTED OUT AGAIN
+    } catch (initError) {
+      // Jeśli inicjalizacja serwisu się nie powiedzie, zwracamy błąd 500.
+      console.error(`[ai-parse] Failed to initialize OpenRouterService: ${getErrorMessage(initError)}`);
       return new Response(JSON.stringify({ error: "AI service initialization failed" }), {
         status: 500,
       });
     }
 
-    // Przygotuj zapytanie ręcznie z wymaganymi parametrami
+    // Przygotowuje ładunek (payload) zapytania do API OpenRouter.
+    // Określamy model AI, komunikaty (systemowy i użytkownika) oraz format odpowiedzi.
     const requestPayload = {
-      model: "openai/gpt-4o",
+      model: "openai/gpt-4o", // Wybrany model AI
       messages: [
         {
-          role: "system",
+          role: "system", // Komunikat systemowy definiuje rolę i zadania AI.
           content: `Jesteś asystentem, który ma pomóc zarządzać listą zakupów. Twoje zadanie to:
 
 1. Analizować nowy tekst użytkownika z informacjami o produktach do dodania lub usunięcia.
@@ -192,18 +205,18 @@ Zasady:
 Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie każdy produkt ma właściwości 'name' (string) i 'purchased' (boolean). Upewnij się, że odpowiedź to poprawny JSON.`,
         },
         {
-          role: "user",
+          role: "user", // Komunikat użytkownika zawiera istniejące produkty i nowy tekst do przetworzenia.
           content: `Istniejące produkty na mojej liście zakupów (format JSON): ${existingProductsFormatted}\n\nPrzetwórz ten tekst i zaktualizuj moją listę zakupów (dodaj nowe produkty, usuń te, o których napisałem, że nie chcę ich kupować): "${text}"`,
         },
       ],
-      response_format: { type: "json_object" },
-      temperature: 0.2,
+      response_format: { type: "json_object" }, // Określamy, że oczekujemy odpowiedzi w formacie JSON.
+      temperature: 0.2, // Niska temperatura dla bardziej deterministycznych odpowiedzi.
       max_tokens: 1000,
     };
-    // console.log("[ai-parse] Preparing payload for OpenRouter...");
+
+    // Przesyłamy ładunek do API OpenRouter.
     let response: Response;
     try {
-      // console.log("[ai-parse] Sending request to OpenRouter...");
       response = await fetch(`${openRouter.getBaseUrl()}/chat/completions`, {
         method: "POST",
         headers: {
@@ -212,9 +225,8 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         },
         body: JSON.stringify(requestPayload),
       });
-      // console.log(`[ai-parse] Received response from OpenRouter with status: ${response.status}`);
-    } catch (_fetchError) {
-      // console.error(`[ai-parse] Fetch error calling OpenRouter: ${getErrorMessage(_fetchError)}`); // COMMENTED OUT AGAIN
+    } catch (fetchError) {
+      console.error(`[ai-parse] Fetch error calling OpenRouter: ${getErrorMessage(fetchError)}`);
       return new Response(JSON.stringify({ error: "Failed to communicate with AI service" }), { status: 502 }); // Bad Gateway
     }
 
@@ -222,7 +234,6 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       let _errorBodyText = "Could not read error body";
       try {
         _errorBodyText = await response.text();
-        // console.error(`[ai-parse] OpenRouter API request failed with status ${response.status}. Body: ${_errorBodyText}`);
       } catch (_textError) {
         // ignore
       }
@@ -243,40 +254,35 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       });
     }
 
-    // Parse the response
+    // Parsujemy odpowiedź z API OpenRouter.
     let responseData: AiResponse;
     let responseText: string;
     try {
-      // console.log("[ai-parse] Parsing JSON response from OpenRouter...");
-      // Najpierw pobieramy odpowiedź jako tekst
       responseText = await response.text();
 
-      // Sprawdzamy, czy odpowiedź wygląda jak JSON przed parsowaniem
       if (!responseText || !responseText.trim().startsWith("{")) {
         throw new Error("Response is not a valid JSON: " + responseText.substring(0, 50));
       }
 
-      // Teraz parsujemy JSON
       responseData = JSON.parse(responseText);
-      // console.log("[ai-parse] Successfully parsed AI response.");
-    } catch (_parseError) {
-      // console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(_parseError)}`);
-      // console.error(`[ai-parse] Raw response: ${responseText?.substring(0, 200) || 'Empty response'}`);
+    } catch (parseError) {
+      console.error(`[ai-parse] Failed to parse JSON response from AI: ${getErrorMessage(parseError)}`);
+      console.error(`[ai-parse] Raw response: ${responseText?.substring(0, 200) || "Empty response"}`);
       return new Response(
         JSON.stringify({
           error: "Failed to parse AI response",
-          details: getErrorMessage(_parseError),
+          details: getErrorMessage(parseError),
           rawResponse: responseText?.substring(0, 200) || "Empty response",
         }),
         { status: 500 }
       );
     }
 
-    // Sprawdź, czy odpowiedź ma oczekiwaną strukturę
+    // Sprawdza, czy odpowiedź ma oczekiwaną strukturę.
     if (!responseData.choices || !responseData.choices[0]?.message?.content) {
-      // console.error(
-      //   `[ai-parse] Invalid structure in AI response: Missing choices or content. Data: ${JSON.stringify(responseData).substring(0, 200)}...`
-      // ); // COMMENTED OUT AGAIN
+      console.error(
+        `[ai-parse] Invalid structure in AI response: Missing choices or content. Data: ${JSON.stringify(responseData).substring(0, 200)}...`
+      );
       return new Response(
         JSON.stringify({ error: "Invalid response from AI", details: "Missing choices or content" }),
         {
@@ -289,23 +295,21 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
     const contentStr = responseData.choices[0].message.content;
     let contentJson: { products: { name: string; purchased: boolean }[] };
     try {
-      // Removed parsing log
       contentJson = JSON.parse(contentStr);
-      // Removed success log
-    } catch (_jsonError) {
-      // console.error(
-      //   `[ai-parse] Failed to parse JSON content string from AI message: ${getErrorMessage(_jsonError)}. Content: ${contentStr.substring(0, 200)}...`
-      // ); // COMMENTED OUT AGAIN
+    } catch (jsonError) {
+      console.error(
+        `[ai-parse] Failed to parse JSON content string from AI message: ${getErrorMessage(jsonError)}. Content: ${contentStr.substring(0, 200)}...`
+      );
       return new Response(JSON.stringify({ error: "Failed to parse AI response content" }), {
         status: 500,
       });
     }
 
-    // Sprawdź, czy zawiera tablicę produktów
+    // Sprawdza, czy zawiera tablicę produktów
     if (!contentJson.products || !Array.isArray(contentJson.products)) {
-      // console.error(
-      //   `[ai-parse] Parsed content JSON does not contain 'products' array. Content: ${JSON.stringify(contentJson).substring(0, 200)}...`
-      // ); // COMMENTED OUT AGAIN
+      console.error(
+        `[ai-parse] Parsed content JSON does not contain 'products' array. Content: ${JSON.stringify(contentJson).substring(0, 200)}...`
+      );
       return new Response(
         JSON.stringify({
           error: "Invalid response format",
@@ -314,9 +318,8 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         { status: 500 }
       );
     }
-    // Removed validation log
 
-    // Sprawdź, czy produkty mają wymagane pola
+    // Sprawdza, czy produkty mają wymagane pola
     for (const product of contentJson.products) {
       if (!Object.prototype.hasOwnProperty.call(product, "name")) {
         product.name = "Produkt bez nazwy"; // Default name
@@ -326,7 +329,6 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         product.purchased = false;
       }
     }
-    // Removed normalization log
 
     // 1. Pobierz ponownie istniejące elementy dla pewności (lub użyj `existingItems` pobranych wcześniej)
     const currentItems = existingItems; // Używamy danych pobranych wcześniej
@@ -360,11 +362,9 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         itemsToDelete.push({ id: currentItem.id });
       }
     }
-    // Removed diff calculation log
 
     // 3. Wywołaj funkcję RPC w Supabase, aby zastosować zmiany w transakcji
     if (itemsToAdd.length > 0 || itemsToDelete.length > 0) {
-      // Removed RPC call log
       const { error: rpcError } = await supabase.rpc("apply_shopping_list_changes", {
         p_list_id: listId,
         p_user_id: userId, // Przekazujemy userId do weryfikacji uprawnień w funkcji SQL
@@ -373,19 +373,15 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       });
 
       if (rpcError) {
-        // console.error(`[ai-parse] RPC Error applying changes: ${rpcError.message}`); // COMMENTED OUT AGAIN
+        console.error(`[ai-parse] RPC Error applying changes: ${rpcError.message}`);
         return new Response(
           JSON.stringify({ error: "Failed to apply changes atomically", details: rpcError.message }),
           { status: 500 }
         );
       }
-      // Removed RPC success log
-    } else {
-      // Removed skipping RPC log
     }
 
     // 4. Zwróć nową listę elementów
-    // Removed fetching updated items log
     const { data: updatedItems, error: fetchUpdatedError } = await supabase
       .from("shopping_list_items")
       .select("id, item_name, purchased, created_at, updated_at")
@@ -393,7 +389,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       .order("created_at", { ascending: true });
 
     if (fetchUpdatedError) {
-      // console.error(`[ai-parse] Error fetching updated items for list ${listId}: ${fetchUpdatedError.message}`); // COMMENTED OUT AGAIN
+      console.error(`[ai-parse] Error fetching updated items for list ${listId}: ${fetchUpdatedError.message}`);
       return new Response(
         JSON.stringify({
           error: "Failed to fetch updated products after applying changes",
@@ -402,7 +398,6 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
         { status: 500 } // Zwróć błąd, ale operacje mogły się powieść
       );
     }
-    // Removed fetched items count log
 
     // Mapujemy na format DTO
     const updatedItemsDTO = updatedItems.map((item) => ({
@@ -413,7 +408,6 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
       updatedAt: item.updated_at,
     }));
 
-    // console.log("[ai-parse] Request processed successfully.");
     return new Response(JSON.stringify({ products: updatedItemsDTO }), {
       status: 200,
       headers: {
@@ -422,7 +416,7 @@ Zwróć odpowiedź **wyłącznie** w formacie JSON z tablicą 'products', gdzie 
     });
   } catch (error) {
     const errorMessage = getErrorMessage(error);
-    // console.error(`[ai-parse] Unhandled error in main try block: ${errorMessage}`); // COMMENTED OUT AGAIN
+    console.error(`[ai-parse] Unhandled error in main try block: ${errorMessage}`);
     return new Response(JSON.stringify({ error: "Internal Server Error", details: errorMessage }), {
       status: 500,
     });

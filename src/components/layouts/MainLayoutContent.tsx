@@ -2,6 +2,7 @@ import * as React from "react";
 import AuthStatus from "@/components/auth/AuthStatus";
 import { ToastProvider } from "@/components/ToastProvider";
 import { AuthProvider } from "@/lib/auth/AuthContext";
+import { Logo } from "@/components/ui/Logo";
 
 interface MainLayoutContentProps {
   children: React.ReactNode;
@@ -16,7 +17,9 @@ const MainLayoutContent: React.FC<MainLayoutContentProps> = ({ children }) => {
         {/* Sidebar */}
         <div className="w-64 border-r hidden md:block p-4 flex flex-col justify-between">
           <div>
-            <div className="text-xl font-bold mb-6">ShopListeo</div>
+            <div className="mb-6">
+              <Logo size="md" />
+            </div>
             <nav className="space-y-2">
               <a href="/" className="flex items-center p-2 rounded-lg hover:bg-muted text-foreground">
                 Listy zakupów

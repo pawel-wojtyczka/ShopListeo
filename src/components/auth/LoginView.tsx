@@ -3,6 +3,7 @@ import { useState } from "react";
 import LoginForm from "./LoginForm";
 import type { LoginUserRequest } from "../../types";
 import { showSuccessToast } from "@/lib/services/toast-service";
+import { Logo } from "@/components/ui/Logo";
 
 const LoginView: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +39,14 @@ const LoginView: React.FC = () => {
     }
   };
 
-  return <LoginForm onSubmit={handleLogin} isSubmitting={isSubmitting} apiError={apiError} />;
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-center">
+        <Logo size="xl" />
+      </div>
+      <LoginForm onSubmit={handleLogin} isSubmitting={isSubmitting} apiError={apiError} />
+    </div>
+  );
 };
 
 export default LoginView;
