@@ -26,6 +26,10 @@ ShopListeo is a web application designed to simplify the creation, management, a
 
 - **Openrouter.ai**: Allows communication with various AI models (such as OpenAI, Anthropic, and Google) to process shopping data efficiently while maintaining low costs. It also supports setting financial limits on API keys.
 
+### Mobile Development
+
+- **Capacitor**: Enables the creation of native mobile applications for iOS and Android by leveraging the existing web codebase (Astro, React). This will facilitate the rapid delivery of the MVP for mobile applications.
+
 ### CI/CD and Hosting
 
 - **Github Actions**: Used to create CI/CD pipelines.

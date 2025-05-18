@@ -53,6 +53,54 @@ Tradycyjne metody tworzenia list zakupów (kartka, notatnik, komunikatory) są c
 - **Bezpieczeństwo:** Hasła są hashowane, komunikacja odbywa się przez HTTPS, stosowane są mechanizmy ochrony przed atakami (walidacja danych, autoryzacja).
 - **Logowanie Błędów:** System powinien logować błędy występujące w aplikacji (backend/frontend) w celu ułatwienia diagnozy.
 
+### 3.6. Wymagania Aplikacji Mobilnej (MVP)
+
+Aplikacje mobilne dla systemów Android oraz iOS będą tworzone przy użyciu technologii Capacitor, co pozwoli na wykorzystanie istniejącej bazy kodu webowego. Celem jest szybkie dostarczenie MVP na rynek.
+
+**3.6.1. Funkcjonalności Kluczowe (MVP Mobile):**
+
+*   **Uwierzytelnianie:**
+    *   Rejestracja nowych użytkowników (email, hasło).
+    *   Logowanie dla zarejestrowanych użytkowników.
+    *   Wylogowywanie.
+    *   Proces odzyskiwania hasła będzie realizowany poprzez przekierowanie użytkownika do strony internetowej aplikacji.
+*   **Zarządzanie Listami Zakupów:**
+    *   Tworzenie nowych list zakupów.
+    *   Wyświetlanie wszystkich list zakupów użytkownika.
+    *   Edycja tytułu listy zakupów.
+    *   Usuwanie list zakupów.
+*   **Zarządzanie Produktami na Liście:**
+    *   Dodawanie produktów poprzez analizę AI wprowadzonego tekstu.
+    *   Oznaczanie produktów jako kupione/niekupione.
+    *   Edycja nazwy produktu.
+    *   Usuwanie pojedynczych produktów z listy.
+*   **Brak Funkcji Administracyjnych:** Aplikacja mobilna nie będzie zawierać panelu administracyjnego ani żadnych funkcji związanych z zarządzaniem innymi użytkownikami.
+
+**3.6.2. Interfejs Użytkownika (UI/UX) Mobilny:**
+
+*   Interfejs zostanie uproszczony i zoptymalizowany pod kątem urządzeń mobilnych (Android, iOS).
+*   Modyfikacje UI/UX nie mogą ograniczać funkcjonalności dostępnych w webowej wersji aplikacji (poza funkcjami administracyjnymi), lecz mają na celu poprawę ergonomii i doświadczenia użytkownika mobilnego.
+
+**3.6.3. Dostęp do Funkcji Natywnych Urządzenia:**
+
+*   **MVP:** Brak bezpośredniego wykorzystania zaawansowanych funkcji natywnych.
+*   **Post-MVP:** Planowane jest wprowadzenie funkcji dyktowania listy zakupów, co będzie wymagało dostępu do mikrofonu urządzenia.
+
+**3.6.4. Tryb Offline:**
+
+*   Aplikacja mobilna musi umożliwiać pracę w trybie offline.
+*   Użytkownik w trybie offline powinien mieć możliwość:
+    *   Przeglądania swoich list zakupów.
+    *   Oznaczania produktów jako kupione/niekupione.
+    *   Edytowania nazw istniejących produktów.
+    *   Usuwania produktów z listy.
+*   Zmiany dokonane w trybie offline będą przechowywane lokalnie na urządzeniu.
+*   Wymagana jest implementacja mechanizmu synchronizacji danych z serwerem po przywróczeniu połączenia internetowego. Należy uwzględnić potencjalną złożoność obsługi konfliktów danych przy synchronizacji, starając się o możliwie proste rozwiązanie dla MVP.
+
+**3.6.5. Obsługa Błędów i Analityka:**
+
+*   Zastosowane zostaną standardowe, powszechnie przyjęte praktyki dotyczące zbierania informacji o błędach i analityki użytkowania aplikacji mobilnej.
+
 ## 4. Granice produktu (Zakres MVP i Poza MVP)
 
 ### 4.1. W zakresie MVP (na podstawie kodu)
@@ -63,16 +111,15 @@ Tradycyjne metody tworzenia list zakupów (kartka, notatnik, komunikatory) są c
 - Panel administracyjny: Wyświetlanie listy użytkowników, Szczegóły użytkownika, Aktualizacja użytkownika (API), Usuwanie użytkownika (API).
 - Aplikacja webowa, responsywna.
 - Tryb jasny/ciemny.
+- Aplikacje mobilne (Android, iOS) stworzone przy użyciu Capacitor, obejmujące funkcjonalności zdefiniowane w sekcji 3.6, w tym podstawowy tryb offline z synchronizacją.
 
 ### 4.2. Poza zakresem MVP (na podstawie `app_specs.md` i braku w kodzie)
 
-- Aplikacje mobilne.
 - Integracja z zewnętrznymi usługami logowania (np. Google, Facebook).
 - Współdzielenie list zakupów między użytkownikami.
 - Dyktowanie treści przez speech-to-text.
 - Bardziej zaawansowane funkcje AI (np. kategoryzacja produktów, sugestie).
 - Powiadomienia push.
-- Funkcjonalność offline.
 - Szczegółowe logowanie historii konwersacji AI w tabeli `conversations` (tabela istnieje, ale brak widocznej logiki jej wykorzystania).
 - Dedykowana tabela `errors_log` (brak migracji dla niej).
 
