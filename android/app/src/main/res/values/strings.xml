@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ShopListeo</string>
+    <string name="title_activity_main">ShopListeo</string>
+    <string name="package_name">com.shoplisteo.app</string>
+    <string name="custom_url_scheme">com.shoplisteo.app</string>
+</resources>

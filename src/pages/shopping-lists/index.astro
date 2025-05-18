@@ -1,55 +1,14 @@
 ---
 import MainLayout from "@/layouts/MainLayout.astro";
 import ShoppingListsView from "@/components/ShoppingListsView";
-import type { ShoppingListSummaryDTO, PaginationResponse } from "@/types";
-import { getAllShoppingLists } from "@/lib/services/shopping-list.service";
-import { logger } from "@/lib/logger";
+// Importy typów i usług nie są już tutaj potrzebne
 
-// Wyłączamy prerendering, ponieważ strona jest dynamiczna
-export const prerender = false;
+// export const prerender = false; // Usunięto
 
-// Server-side data fetching
-let initialLists: ShoppingListSummaryDTO[] = [];
-let initialPagination: PaginationResponse | null = null;
-let fetchError: string | null = null;
-
-// Get user and supabase client from locals (set by middleware)
-const { user, supabase } = Astro.locals;
-
-if (!user || !supabase) {
-  // If user is not logged in server-side, set an error or handle appropriately
-  // This case shouldn't happen if middleware redirects unauthenticated users,
-  // but it's good practice to check.
-  logger.warn("[index.astro] User or Supabase client not found in locals.");
-  fetchError = "Użytkownik nie jest zalogowany lub wystąpił błąd serwera.";
-  // Redirecting might be better here:
-  // return Astro.redirect('/login');
-} else {
-  try {
-    logger.info(`[index.astro] Fetching initial shopping lists for user ${user.id} on server-side.`);
-    // Fetch the first page of lists (adjust parameters as needed)
-    const result = await getAllShoppingLists(supabase, user.id, 1, 20);
-    initialLists = result.data;
-    initialPagination = result.pagination;
-    logger.info(`[index.astro] Successfully fetched ${initialLists.length} initial lists.`);
-  } catch (error) {
-    logger.error("[index.astro] Error fetching initial shopping lists:", { error });
-    if (error instanceof Error) {
-      fetchError = error.message;
-    } else {
-      fetchError = "Wystąpił nieznany błąd podczas pobierania list zakupów.";
-    }
-  }
-}
+// Logika pobierania danych po stronie serwera została usunięta.
+// Komponent kliencki ShoppingListsView będzie teraz odpowiedzialny za pobieranie danych.
 ---
 
 <MainLayout title="Twoje Listy Zakupów">
-  {/* Pass initial data and error status to the client component */}
-  <ShoppingListsView
-    client:load
-    initialLists={initialLists}
-    initialPagination={initialPagination}
-    fetchError={fetchError}
-  />
-  {/* Note: AuthStatus in layout should work now */}
+  <ShoppingListsView client:load />
 </MainLayout>

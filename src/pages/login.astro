@@ -1,14 +1,14 @@
 ---
-import LoginView from "@/components/auth/LoginView.tsx";
+import LoginView from "@/components/auth/LoginView";
 import AuthLayout from "@/layouts/AuthLayout.astro";
 
-export const prerender = false;
+// export const prerender = false; // Usunięto - strona będzie generowana statycznie
 
-// Przekierowanie, jeśli użytkownik jest już zalogowany
-// (to jest dodatkowe zabezpieczenie, główna logika jest w middleware)
-if (Astro.locals.isAuthenticated) {
-  return Astro.redirect("/"); // Zmieniono z /shopping-lists
-}
+// Logika przekierowania, jeśli użytkownik jest już zalogowany,
+// powinna być obsłużona po stronie klienta w LoginView lub AuthContext.
+// if (Astro.locals.isAuthenticated) { // Usunięto logikę serwerową
+// return Astro.redirect("/");
+// }
 ---
 
 <AuthLayout title="Logowanie">

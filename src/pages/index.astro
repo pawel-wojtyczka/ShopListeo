@@ -1,47 +1,20 @@
 ---
 import MainLayout from "@/layouts/MainLayout.astro";
 import ShoppingListsView from "@/components/ShoppingListsView";
-import type { ShoppingListSummaryDTO, PaginationResponse } from "@/types";
-import { getAllShoppingLists } from "@/lib/services/shopping-list.service";
-import { logger } from "@/lib/logger";
+// import type { ShoppingListSummaryDTO, PaginationResponse } from "@/types"; // Już niepotrzebne tutaj
+// import { getAllShoppingLists } from "@/lib/services/shopping-list.service"; // Już niepotrzebne tutaj
+// import { logger } from "@/lib/logger"; // Już niepotrzebne tutaj
 
-// Wyłączamy prerendering, ponieważ strona jest dynamiczna
-export const prerender = false;
+// export const prerender = false; // Usunięte, aby umożliwić statyczne generowanie
 
-// Server-side data fetching
-let initialLists: ShoppingListSummaryDTO[] = [];
-let initialPagination: PaginationResponse | null = null;
-let fetchError: string | null = null;
+// Logika pobierania danych po stronie serwera została usunięta
+// Komponent kliencki ShoppingListsView będzie teraz odpowiedzialny za pobieranie danych
 
-// Get user and supabase client from locals (set by middleware)
-const { user, supabase } = Astro.locals;
-
-// Middleware już przekieruje niezalogowanych użytkowników na /login,
-// więc możemy bezpiecznie założyć, że user i supabase są dostępne
-try {
-  logger.info(`[index.astro] Fetching initial shopping lists for user ${user.id} on server-side.`);
-  // Fetch the first page of lists (adjust parameters as needed)
-  const result = await getAllShoppingLists(supabase, user.id, 1, 20);
-  initialLists = result.data;
-  initialPagination = result.pagination;
-  logger.info(`[index.astro] Successfully fetched ${initialLists.length} initial lists.`);
-} catch (error) {
-  logger.error("[index.astro] Error fetching initial shopping lists:", { error });
-  if (error instanceof Error) {
-    fetchError = error.message;
-  } else {
-    fetchError = "Wystąpił nieznany błąd podczas pobierania list zakupów.";
-  }
-}
+// const { user, supabase } = Astro.locals; // To nadal może być potrzebne, jeśli MainLayout tego wymaga lub dla innych celów po stronie klienta, ale nie do pobierania danych tutaj
 ---
 
 <MainLayout title="Twoje Listy Zakupów">
-  {/* Pass initial data and error status to the client component */}
-  <ShoppingListsView
-    client:load
-    initialLists={initialLists}
-    initialPagination={initialPagination}
-    fetchError={fetchError}
-  />
-  {/* Note: AuthStatus in layout should work now */}
+  {/* Komponent kliencki sam pobierze dane */}
+  <ShoppingListsView client:load />
+  {/* fetchError nie jest już przekazywany, komponent obsłuży błędy po stronie klienta */}
 </MainLayout>

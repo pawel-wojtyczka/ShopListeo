@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type {
   ShoppingListSummaryDTO,
   CreateShoppingListRequest,
@@ -10,9 +10,9 @@ import { useAuth } from "../auth/AuthContext";
 
 // Define the shape of the props expected by the hook
 interface UseShoppingListsProps {
-  initialLists: ShoppingListSummaryDTO[];
-  initialPagination: PaginationResponse | null;
-  fetchError: string | null;
+  initialLists?: ShoppingListSummaryDTO[];
+  initialPagination?: PaginationResponse | null;
+  fetchError?: string | null;
 }
 
 // Typ dla modelu widoku pojedynczego elementu list zakupów
@@ -37,25 +37,22 @@ export function useShoppingLists({
 }: UseShoppingListsProps) {
   // Initialize state using the props passed from the server-side fetch
   const [viewModel, setViewModel] = useState<ShoppingListsViewModel>(() => {
-    // Map initialLists to add isDeleting flag
     const mappedInitialLists = initialLists.map((list) => ({ ...list, isDeleting: false }));
+    // Ustaw isLoading na true, jeśli nie ma list początkowych i nie ma błędu z serwera
+    // Oznacza to, że dane muszą zostać pobrane po stronie klienta
+    const clientSideFetchNeeded = initialLists.length === 0 && !fetchError;
     return {
       lists: mappedInitialLists,
-      isLoading: false, // Initial load happened on server
+      isLoading: clientSideFetchNeeded, // Zaktualizowana logika dla isLoading
       isCreating: false,
-      error: fetchError, // Use error from server fetch
-      pagination: initialPagination, // Use pagination from server fetch
+      error: fetchError,
+      pagination: initialPagination,
     };
   });
 
-  // We still need auth context for user ID in create/delete actions
   const { isAuthenticated, user } = useAuth();
 
-  // REMOVED the useEffect that was responsible for the initial client-side fetch
-  // The initial data is now provided via props.
-
-  // Define fetchShoppingLists for potential future use (e.g., manual refresh)
-  // but it's not called automatically on load anymore.
+  // fetchShoppingLists zdefiniowane PRZED useEffect, który go używa
   const fetchShoppingLists = useCallback(
     async (page = 1, pageSize = 20) => {
       if (!isAuthenticated || !user) {
@@ -66,26 +63,17 @@ export function useShoppingLists({
       setViewModel((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        // Zmieniamy URL na endpoint klienta - Updated to new path
         const apiUrl = new URL("/api/shopping-lists", window.location.origin);
         apiUrl.searchParams.set("page", page.toString());
         apiUrl.searchParams.set("pageSize", pageSize.toString());
 
-        // Usuwamy logikę dodawania nagłówka Authorization Bearer
-        // const headers: Record<string, string> = { "Content-Type": "application/json" };
-        // if (token) {
-        //   headers["Authorization"] = `Bearer ${token}`;
-        // }
-
-        // Wywołujemy fetch bez nagłówka Authorization, ale z credentials: "include"
         const response = await fetch(apiUrl.toString(), {
-          headers: { "Content-Type": "application/json" }, // Content-Type jest nadal potrzebny
-          credentials: "include", // Kluczowe dla używania sesji/ciasteczek
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
         });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: response.statusText }));
-          // Dodajemy obsługę statusu 401 (Unauthorized)
           if (response.status === 401) {
             throw new Error("Sesja wygasła lub użytkownik nie jest zalogowany.");
           }
@@ -109,9 +97,15 @@ export function useShoppingLists({
         showErrorToast("Nie udało się odświeżyć list zakupów", { description: errorMessage });
       }
     },
-    // Usuwamy token z zależności, bo już go nie używamy
-    [isAuthenticated, user] // Only need isAuthenticated and user now
-  ); // Dependencies for the refetch function
+    [isAuthenticated, user]
+  );
+
+  useEffect(() => {
+    if (initialLists.length === 0 && !fetchError && isAuthenticated && user) {
+      // Nie ma potrzeby ustawiać isLoading tutaj, bo jest już ustawione w useState
+      fetchShoppingLists();
+    }
+  }, [initialLists, fetchError, isAuthenticated, user, fetchShoppingLists]);
 
   // Create and Delete functions remain largely the same,
   // they rely on cookies (via fetch) or token from context for auth,

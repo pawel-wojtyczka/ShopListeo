@@ -2,19 +2,31 @@
 import MainLayout from "@/layouts/MainLayout.astro";
 import ShoppingListDetailView from "@/components/views/ShoppingListDetailView";
 
-// Pobierz ID listy z parametrów ścieżki
-const { id } = Astro.params;
+// Parametr `id` będzie pobierany i obsługiwany po stronie klienta
+// przez komponent ShoppingListDetailView z window.location lub routera klienckiego.
+// Usunięto logikę serwerową Astro.params i Astro.redirect.
+// Usunięto export const prerender = false; - strona będzie generowana jako fallback
+// dla ścieżek pasujących do /list/*, ale jej zawartość będzie dynamiczna po stronie klienta.
 
-// Sprawdzenie, czy ID jest dostępne (opcjonalne, ale dobre praktyki)
-if (!id) {
-  // Można tu zwrócić błąd 404 lub przekierować
-  return Astro.redirect("/404"); // Przykładowe przekierowanie
+// W trybie statycznym, Astro wygeneruje plik np. `dist/list/[id]/index.html` lub podobny,
+// który posłuży jako punkt wejścia. Komponent kliencki musi obsłużyć resztę.
+
+// Dla trybu `output: "static"`, dynamiczne trasy wymagają `getStaticPaths`.
+// Zwracamy pustą tablicę, co oznacza, że żadne konkretne strony list nie będą pre-renderowane.
+// Astro wygeneruje strukturę dla tej trasy, a komponent kliencki zajmie się resztą.
+export async function getStaticPaths() {
+  return [];
 }
-
-// Wyłączamy prerendering, ponieważ strona jest dynamiczna
-export const prerender = false;
 ---
 
 <MainLayout title="Szczegóły Listy Zakupów">
-  <ShoppingListDetailView listId={id} client:load />
+  {
+    /* 
+    Komponent ShoppingListDetailView musi teraz sam pobrać listId z URL 
+    (np. window.location.pathname) i obsłużyć przypadki błędne/brakujące ID.
+    Nie przekazujemy już listId jako prop, bo Astro.params nie jest dostępne w statycznym buildzie
+    w ten sam sposób bez getStaticPaths.
+  */
+  }
+  <ShoppingListDetailView client:load />
 </MainLayout>

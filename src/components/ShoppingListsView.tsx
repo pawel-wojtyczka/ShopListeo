@@ -6,16 +6,16 @@ import type { ShoppingListSummaryDTO, PaginationResponse } from "@/types"; // Im
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"; // Import Alert components
 import { Terminal } from "lucide-react"; // Import icon
 
-// Define props for the component
+// Define props for the component - props are now optional
 interface ShoppingListsViewProps {
-  initialLists: ShoppingListSummaryDTO[];
-  initialPagination: PaginationResponse | null;
-  fetchError: string | null;
+  initialLists?: ShoppingListSummaryDTO[];
+  initialPagination?: PaginationResponse | null;
+  fetchError?: string | null;
 }
 
 export default function ShoppingListsView({ initialLists, initialPagination, fetchError }: ShoppingListsViewProps) {
-  // Initialize hook *without* arguments - hook will use props internally
-  const { lists, isLoading, error, createList, deleteList, isCreating } = useShoppingLists({
+  // Initialize hook, potentially with undefined props if not passed from Astro page
+  const { lists, isLoading, error, createList, deleteList, isCreating, pagination } = useShoppingLists({
     initialLists,
     initialPagination,
     fetchError,

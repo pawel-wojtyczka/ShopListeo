@@ -2,13 +2,12 @@
 import AuthLayout from "../layouts/AuthLayout.astro";
 import RegisterView from "../components/auth/RegisterView";
 
-export const prerender = false;
+// export const prerender = false;
 
-// Przekierowanie zalogowanych użytkowników, jeśli spróbują uzyskać dostęp do strony rejestracji
-// (to jest dodatkowe zabezpieczenie, główna logika jest w middleware)
-if (Astro.locals.isAuthenticated) {
-  return Astro.redirect("/");
-}
+// Logika przekierowania przeniesiona do klienta
+// if (Astro.locals.isAuthenticated) {
+// return Astro.redirect("/");
+// }
 ---
 
 <AuthLayout title="Zarejestruj się">
