@@ -1,0 +1,93 @@
+# AI Rules for ShopListeo
+
+## Project Overview
+ShopListeo is a web application designed to simplify the process of creating and managing shopping lists. The main feature is using AI assistant to intelligently parse user-entered text and transform it into an organized product list. It enables creating, editing lists, marking purchased products, and account management. It also includes an admin panel.
+
+## Tech Stack (Updated)
+
+### Core Technologies
+- **Astro 5.12.9**: Modern web framework for building fast sites (SSR/SSG)
+- **React 19.0.0**: UI library for building interactive components
+- **TypeScript 5.8.3**: Static typing for JavaScript
+- **Tailwind CSS 4.1.5**: Utility-first CSS framework
+- **Shadcn/ui**: UI component library based on Radix UI and Tailwind CSS
+
+### Backend & Database
+- **Supabase**: Backend-as-a-Service (BaaS) platform with PostgreSQL database, authentication, and API
+
+### AI Integration
+- **OpenRouter.ai**: LLM API aggregator for shopping list processing
+
+### Development Tools
+- **ESLint 9.23.0**: Code linting
+- **Prettier**: Code formatting
+- **Zod 3.24.3**: Schema validation
+- **React Hook Form 7.55.0**: Form management in React
+- **Husky 9.1.7 & lint-staged 15.5.0**: Git hooks for code quality automation
+
+### Testing Tools
+- **Vitest 3.1.2**: Unit and integration testing framework
+- **React Testing Library 16.3.0**: Library for testing React components
+- **Playwright 1.52.0**: End-to-End (E2E) testing framework
+- **Mock Service Worker (MSW) 2.7.5**: API mocking library for tests
+
+## Project Structure
+When introducing changes to the project, always follow the directory structure below:
+
+- `./src` - source code
+- `./src/layouts` - Astro layouts
+- `./src/pages` - Astro pages
+- `./src/pages/api` - API endpoints
+- `./src/middleware/index.ts` - Astro middleware
+- `./src/db` - Supabase clients and types
+- `./src/types.ts` - Shared types for backend and frontend (Entities, DTOs)
+- `./src/components` - Client-side components written in Astro (static) and React (dynamic)
+- `./src/components/ui` - Client-side components from Shadcn/ui
+- `./src/lib` - Services and helpers 
+- `./src/assets` - static internal assets
+- `./public` - public assets
+
+## Coding Practices
+
+### Guidelines for Clean Code
+- Use feedback from linters to improve the code when making changes
+- Prioritize error handling and edge cases
+- Handle errors and edge cases at the beginning of functions
+- Use early returns for error conditions to avoid deeply nested if statements
+- Place the happy path last in the function for improved readability
+- Avoid unnecessary else statements; use if-return pattern instead
+- Use guard clauses to handle preconditions and invalid states early
+- Implement proper error logging and user-friendly error messages
+- Consider using custom error types or error factories for consistent error handling
+- I am new at programming. Make comments with details to let me better understand the code
+- Write comments in Polish language
+
+### Environment Setup
+- Node.js v22.14.0 (as specified in .nvmrc)
+- Required environment variables (see .env.example):
+  - SUPABASE_URL, SUPABASE_KEY
+  - PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY
+  - OPENROUTER_API_KEY
+  - E2E_USERNAME, E2E_PASSWORD (for testing)
+
+### Available Scripts
+- `npm run dev`: Start Astro development server
+- `npm run build`: Build application for production
+- `npm run preview`: Preview built application
+- `npm run lint`: Run ESLint
+- `npm run lint:fix`: Run ESLint with auto-fix
+- `npm run format`: Run Prettier
+- `npm run test`: Run unit/integration tests (Vitest)
+- `npm run test:watch`: Run tests in watch mode
+- `npm run test:coverage`: Run tests with coverage report
+- `npm run test:ui`: Run Vitest UI
+- `npm run test:e2e`: Run E2E tests (Playwright)
+- `npm run test:e2e:ui`: Run Playwright UI
+
+## AI Development Support
+The project is configured to work with AI tools to streamline the development process:
+- **Cursor IDE**: AI rules in `.cursor/rules/` help the IDE understand project structure
+- **GitHub Copilot**: Instructions in `.github/copilot-instructions.md`
+- **Windsurf**: Configuration in `.windsurfrules`
+
+When modifying the directory structure, always update this section.

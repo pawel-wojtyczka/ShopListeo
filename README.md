@@ -7,10 +7,10 @@ Aplikacja webowa zaprojektowana w celu uproszczenia procesu tworzenia i zarządz
 
 ### Główne Technologie
 
-- **[Astro](https://astro.build/) v5.5.5**: Nowoczesny web framework do budowy szybkich stron (SSR/SSG).
+- **[Astro](https://astro.build/) v5.12.9**: Nowoczesny web framework do budowy szybkich stron (SSR/SSG).
 - **[React](https://react.dev/) v19.0.0**: Biblioteka UI do budowy interaktywnych komponentów.
-- **[TypeScript](https://www.typescriptlang.org/) v5**: Statyczne typowanie dla JavaScript.
-- **[Tailwind CSS](https://tailwindcss.com/) v4.0.17**: Framework CSS typu utility-first.
+- **[TypeScript](https://www.typescriptlang.org/) v5.8.3**: Statyczne typowanie dla JavaScript.
+- **[Tailwind CSS](https://tailwindcss.com/) v4.1.5**: Framework CSS typu utility-first.
 - **[Shadcn/ui](https://ui.shadcn.com/)**: Biblioteka komponentów UI oparta na Radix UI i Tailwind CSS.
 
 ### Backend & Baza Danych
@@ -84,9 +84,11 @@ Aplikacja webowa zaprojektowana w celu uproszczenia procesu tworzenia i zarządz
 
 Projekt jest skonfigurowany do współpracy z narzędziami AI w celu usprawnienia procesu deweloperskiego:
 
-- **Cursor IDE:** Reguły AI w katalogu `.cursor/rules/` pomagają IDE zrozumieć strukturę projektu i dostarczać lepsze sugestie kodu.
+- **Cursor IDE:** Reguły AI w katalogu `.cursor/rules/` pomagają IDE zrozumieć strukturę projektu i dostarczać lepsze sugestie kodu. Główny plik konfiguracyjny: `.cursorrules`.
 - **GitHub Copilot:** Instrukcje dla Copilota znajdują się w `.github/copilot-instructions.md`.
 - **Windsurf:** Plik `.windsurfrules` zawiera konfigurację AI dla Windsurf.
+
+Wszystkie pliki konfiguracyjne AI zostały zaktualizowane z najnowszymi wersjami technologii i najlepszymi praktykami.
 
 ## Testowanie
 

@@ -2,8 +2,20 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "./node_modules/.bin/astro dev",
+      "command": "npm run dev",
       "name": "Development server",
+      "request": "launch",
+      "type": "node-terminal"
+    },
+    {
+      "command": "npm run test:watch",
+      "name": "Run tests (watch)",
+      "request": "launch",
+      "type": "node-terminal"
+    },
+    {
+      "command": "npm run test:e2e:ui",
+      "name": "Playwright UI",
       "request": "launch",
       "type": "node-terminal"
     }

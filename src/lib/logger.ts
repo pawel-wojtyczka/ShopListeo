@@ -53,15 +53,32 @@ export const logger = {
     const timestamp = new Date().toISOString();
     const _entry: LogEntry = { level, message, timestamp, context, error };
 
+    // Formatowanie wiadomości z timestampem i poziomem
+    const formattedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+    
+    // Dodanie kontekstu jeśli istnieje
+    const contextStr = context ? ` | Context: ${JSON.stringify(context, null, 2)}` : '';
+    
+    // Dodanie błędu jeśli istnieje
+    const errorStr = error ? ` | Error: ${error instanceof Error ? error.message : String(error)}` : '';
+
     // W zależności od poziomu logowania używamy odpowiedniej metody konsoli
     switch (level) {
       case "debug":
+        console.debug(formattedMessage + contextStr + errorStr);
         break;
       case "info":
+        console.info(formattedMessage + contextStr + errorStr);
         break;
       case "warn":
+        console.warn(formattedMessage + contextStr + errorStr);
         break;
       case "error":
+        console.error(formattedMessage + contextStr + errorStr);
+        // Dodatkowo wyświetlamy stack trace dla błędów
+        if (error instanceof Error && error.stack) {
+          console.error('Stack trace:', error.stack);
+        }
         break;
     }
 

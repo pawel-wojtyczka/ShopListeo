@@ -16,12 +16,17 @@
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:coverage": "playwright test --coverage"
+    "test:e2e:coverage": "playwright test --coverage",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "type-check": "astro check",
+    "clean": "rm -rf dist .astro",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
-    "@astrojs/react": "^4.2.5",
-    "@astrojs/sitemap": "^3.3.1",
+    "@astrojs/react": "^4.3.0",
+    "@astrojs/sitemap": "^3.4.2",
     "@hookform/resolvers": "^5.0.1",
     "@prisma/client": "^6.6.0",
     "@radix-ui/react-alert-dialog": "^1.1.7",
@@ -36,7 +41,7 @@
     "@tanstack/react-query": "^5.74.7",
     "@types/react": "19.0.12",
     "@types/react-dom": "19.0.4",
-    "astro": "^5.7.8",
+    "astro": "^5.12.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.487.0",
@@ -52,7 +57,7 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "@astrojs/cloudflare": "^12.5.2",
+    "@astrojs/cloudflare": "^12.6.3",
     "@eslint/compat": "1.2.7",
     "@eslint/js": "9.23.0",
     "@playwright/test": "^1.52.0",
@@ -95,5 +100,32 @@
     "*.{json,css,md}": [
       "prettier --write"
     ]
-  }
+  },
+  "engines": {
+    "node": ">=22.14.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "astro",
+    "react",
+    "typescript",
+    "tailwindcss",
+    "supabase",
+    "shopping-list",
+    "ai",
+    "openrouter"
+  ],
+  "author": "ShopListeo Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pawel-wojtyczka/ShopListeo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pawel-wojtyczka/ShopListeo/issues"
+  },
+  "homepage": "https://github.com/pawel-wojtyczka/ShopListeo#readme",
+  "description": "A web application designed to simplify the process of creating and managing shopping lists with AI assistance",
+  "private": true,
+  "type": "module"
 }

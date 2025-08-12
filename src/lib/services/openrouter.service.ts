@@ -57,8 +57,24 @@ export class OpenRouterService {
     baseUrl: string = import.meta.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
     defaultModelParams: Partial<ModelParams> = {}
   ) {
+    // Logowanie konfiguracji OpenRouter (bez klucza API)
+    logger.info("OpenRouter service initialization", {
+      hasApiKey: !!apiKey,
+      apiKeyLength: apiKey?.length || 0,
+      baseUrl,
+      hasDefaultModelParams: !!Object.keys(defaultModelParams).length
+    });
+
     if (!apiKey) {
+      logger.error("OpenRouter API key is missing or empty");
       throw new Error("OpenRouter API key is required");
+    }
+
+    // Sprawdzenie formatu klucza API (powinien zaczynać się od "sk-")
+    if (!apiKey.startsWith("sk-")) {
+      logger.warn("OpenRouter API key format may be incorrect - should start with 'sk-'", {
+        apiKeyPrefix: apiKey.substring(0, 5)
+      });
     }
 
     this.apiKey = apiKey;
@@ -71,6 +87,13 @@ export class OpenRouterService {
     };
     this.systemMessage = "You are a helpful assistant.";
     this.userMessage = "";
+
+    logger.info("OpenRouter service initialized successfully", {
+      baseUrl: this.baseUrl,
+      defaultModel: this.defaultModelParams.model_name,
+      maxTokens: this.defaultModelParams.max_tokens,
+      temperature: this.defaultModelParams.temperature
+    });
   }
 
   /**
@@ -81,7 +104,10 @@ export class OpenRouterService {
    * @throws {ShoppingListError} Gdy wystąpi błąd podczas przetwarzania
    */
   public async parseShoppingList(text: string): Promise<string[]> {
-    this.log("info", `Parsing shopping list text: ${text}`);
+    logger.info(`Parsing shopping list text`, { 
+      textLength: text?.length || 0,
+      textPreview: text?.substring(0, 100) + (text?.length > 100 ? '...' : '')
+    });
 
     // Ustaw specjalne parametry dla parsowania listy zakupów
     const originalParams = { ...this.defaultModelParams };
@@ -98,6 +124,12 @@ export class OpenRouterService {
     );
 
     try {
+      logger.debug("Preparing request to OpenRouter API", {
+        model: "openai/gpt-3.5-turbo",
+        temperature: 0.3,
+        baseUrl: this.baseUrl
+      });
+
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
@@ -115,21 +147,33 @@ export class OpenRouterService {
         }),
       });
 
+      logger.debug("OpenRouter API response received", {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       if (!response.ok) {
         const errorText = await response.text();
-        this.log(
-          "error",
-          "Error fetching from OpenRouter API",
-          { status: response.status, statusText: response.statusText },
-          { error: errorText }
-        );
+        logger.error("Error fetching from OpenRouter API", { 
+          status: response.status, 
+          statusText: response.statusText,
+          errorText: errorText.substring(0, 500) // Ograniczamy długość logu
+        });
         throw new ShoppingListError("Błąd podczas komunikacji z serwisem AI", "AI_REQUEST_FAILED");
       }
 
       const data = await response.json();
+      logger.debug("OpenRouter API response parsed", {
+        hasChoices: !!data.choices,
+        choicesLength: data.choices?.length || 0,
+        hasFirstChoice: !!data.choices?.[0],
+        hasMessage: !!data.choices?.[0]?.message,
+        hasContent: !!data.choices?.[0]?.message?.content
+      });
 
       if (!data.choices || !data.choices[0]) {
-        this.log("error", "Error parsing shopping list: Invalid response structure from AI (no choices)", data);
+        logger.error("Error parsing shopping list: Invalid response structure from AI (no choices)", { data });
         throw new ShoppingListError(
           "Nie udało się przetworzyć listy przez AI - nieprawidłowa odpowiedź",
           "AI_INVALID_RESPONSE"
@@ -137,7 +181,7 @@ export class OpenRouterService {
       }
 
       if (!data.choices[0].message?.content) {
-        this.log("error", "Error parsing shopping list: Invalid response structure from AI (no message content)", data);
+        logger.error("Error parsing shopping list: Invalid response structure from AI (no message content)", { data });
         throw new ShoppingListError(
           "Nie udało się przetworzyć listy przez AI - nieprawidłowa odpowiedź",
           "AI_INVALID_RESPONSE"
@@ -147,13 +191,15 @@ export class OpenRouterService {
       let parsedContent;
       try {
         parsedContent = JSON.parse(data.choices[0].message.content);
+        logger.debug("JSON response parsed successfully", { 
+          hasItems: !!parsedContent.items,
+          itemsLength: parsedContent.items?.length || 0
+        });
       } catch (error) {
-        this.log(
-          "error",
-          "Error parsing shopping list: Failed to parse JSON response from AI",
-          { content: data.choices[0].message.content },
-          { error: error instanceof Error ? error.message : "Unknown error" }
-        );
+        logger.error("Error parsing shopping list: Failed to parse JSON response from AI", { 
+          content: data.choices[0].message.content,
+          error: error instanceof Error ? error.message : "Unknown error" 
+        });
         throw new ShoppingListError(
           "Nie udało się przetworzyć listy przez AI - błąd parsowania JSON",
           "AI_JSON_PARSE_ERROR"
@@ -161,18 +207,17 @@ export class OpenRouterService {
       }
 
       if (!parsedContent.items) {
-        this.log(
-          "error",
-          "Error parsing shopping list: Invalid JSON format from AI (missing 'items' array)",
-          parsedContent
-        );
+        logger.error("Error parsing shopping list: Invalid JSON format from AI (missing 'items' array)", { parsedContent });
         throw new ShoppingListError(
           "Nie udało się przetworzyć listy przez AI - nieprawidłowy format JSON",
           "AI_INVALID_JSON_FORMAT"
         );
       }
 
-      this.log("info", "Parsed items successfully", parsedContent.items);
+      logger.info("Parsed items successfully", { 
+        itemsCount: parsedContent.items.length,
+        items: parsedContent.items 
+      });
       return parsedContent.items;
     } catch (error) {
       if (error instanceof ShoppingListError) {
@@ -180,27 +225,24 @@ export class OpenRouterService {
       }
 
       if (error instanceof Error && error.message.includes("Network")) {
-        this.log(
-          "error",
-          "Network error fetching from OpenRouter API",
-          { error: error.message },
-          { originalError: error.message }
-        );
+        logger.error("Network error fetching from OpenRouter API", { 
+          error: error.message 
+        });
         throw new ShoppingListError("Błąd sieci podczas komunikacji z serwisem AI", "AI_NETWORK_ERROR", error);
       }
 
       if (error instanceof Error && error.message.includes("text is not a function")) {
-        this.log(
-          "error",
-          "Error fetching from OpenRouter API",
-          { status: 500, statusText: "Internal Server Error" },
-          { error: error.message }
-        );
+        logger.error("Error fetching from OpenRouter API", { 
+          status: 500, 
+          statusText: "Internal Server Error",
+          error: error.message 
+        });
         throw new ShoppingListError("Błąd podczas komunikacji z serwisem AI", "AI_REQUEST_FAILED");
       }
 
-      this.log("error", "Error parsing shopping list: Unexpected error", {
+      logger.error("Error parsing shopping list: Unexpected error", {
         error: error instanceof Error ? error.message : "Unknown error",
+        errorType: error?.constructor?.name
       });
       throw new ShoppingListError(
         "Nie udało się przetworzyć listy przez AI - nieoczekiwany błąd",
@@ -211,6 +253,7 @@ export class OpenRouterService {
       // Przywróć oryginalne parametry
       this.setModelParams(originalParams);
       this.updateSystemMessage(originalSystemMessage);
+      logger.debug("Original model parameters and system message restored");
     }
   }
 
@@ -224,16 +267,24 @@ export class OpenRouterService {
       this.retryCount = 0;
       this.userMessage = chatPayload.message;
 
-      this.log("info", `Sending chat request: ${chatPayload.message}`);
+      logger.info(`Sending chat request`, { 
+        messageLength: chatPayload.message?.length || 0,
+        hasContext: !!chatPayload.context,
+        contextLength: chatPayload.context?.length || 0
+      });
+      
       const formattedRequest = this.formatRequest();
       const response = await this.makeRequest(formattedRequest);
       return this.parseResponse(response);
     } catch (error) {
-      this.log("error", `Error in sendChatRequest: ${error instanceof Error ? error.message : "Unknown error"}`);
+      logger.error(`Error in sendChatRequest`, { 
+        error: error instanceof Error ? error.message : "Unknown error",
+        retryCount: this.retryCount 
+      });
 
       if (this.retryCount < this.maxRetries) {
         this.retryCount++;
-        this.log("warn", `Retrying request (attempt ${this.retryCount}/${this.maxRetries})`);
+        logger.warn(`Retrying request (attempt ${this.retryCount}/${this.maxRetries})`);
         return this.retryRequest(chatPayload);
       }
       return {
@@ -305,6 +356,13 @@ export class OpenRouterService {
    */
   private async makeRequest(payload: RequestPayload): Promise<Response> {
     try {
+      logger.debug("Making request to OpenRouter API", {
+        model: payload.model,
+        maxTokens: payload.max_tokens,
+        temperature: payload.temperature,
+        messagesCount: payload.messages.length
+      });
+
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
@@ -314,15 +372,25 @@ export class OpenRouterService {
         body: JSON.stringify(payload),
       });
 
+      logger.debug("OpenRouter API response received", {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       if (!response.ok) {
         const errorText = await response.text();
-        this.log("error", `API request failed with status ${response.status}: ${errorText}`);
+        logger.error(`API request failed with status ${response.status}`, { 
+          statusText: response.statusText,
+          errorText: errorText.substring(0, 500) // Ograniczamy długość logu
+        });
         throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
 
       return response;
     } catch (error) {
       if (error instanceof Error && error.message.includes("failed to fetch")) {
+        logger.error("Network error: Failed to connect to OpenRouter API", { error: error.message });
         throw new Error("Network error: Failed to connect to OpenRouter API");
       }
       throw error;
@@ -336,7 +404,16 @@ export class OpenRouterService {
     try {
       const data = await response.json();
 
+      logger.debug("Parsing OpenRouter API response", {
+        hasChoices: !!data.choices,
+        choicesLength: data.choices?.length || 0,
+        hasFirstChoice: !!data.choices?.[0],
+        hasMessage: !!data.choices?.[0]?.message,
+        hasContent: !!data.choices?.[0]?.message?.content
+      });
+
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        logger.error("Invalid response format from API", { data });
         throw new Error("Invalid response format from API");
       }
 
@@ -344,7 +421,9 @@ export class OpenRouterService {
         content: data.choices[0].message.content,
       };
     } catch (error) {
-      this.log("error", `Error parsing response: ${error instanceof Error ? error.message : "Unknown error"}`);
+      logger.error(`Error parsing response`, { 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
       throw error;
     }
   }
@@ -353,7 +432,9 @@ export class OpenRouterService {
    * Ponawia żądanie w przypadku błędu
    */
   private async retryRequest(chatPayload: ChatPayload): Promise<LLMResponse> {
-    await new Promise((resolve) => setTimeout(resolve, Math.pow(2, this.retryCount) * 1000));
+    const delay = Math.pow(2, this.retryCount) * 1000;
+    logger.debug(`Waiting ${delay}ms before retry`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
     return this.sendChatRequest(chatPayload);
   }
 
@@ -361,6 +442,11 @@ export class OpenRouterService {
    * Aktualizuje parametry modelu
    */
   public setModelParams(params: Partial<ModelParams>): void {
+    logger.debug("Updating model parameters", { 
+      oldParams: { ...this.defaultModelParams },
+      newParams: params 
+    });
+    
     this.defaultModelParams = {
       ...this.defaultModelParams,
       ...params,
@@ -371,6 +457,10 @@ export class OpenRouterService {
    * Aktualizuje wiadomość systemową
    */
   public updateSystemMessage(message: string): void {
+    logger.debug("Updating system message", { 
+      oldMessage: this.systemMessage,
+      newMessage: message 
+    });
     this.systemMessage = message;
   }
 
@@ -382,9 +472,16 @@ export class OpenRouterService {
   }
 
   /**
-   * Zwraca klucz API
+   * Zwraca klucz API (tylko prefix dla bezpieczeństwa)
    */
   public getApiKey(): string {
+    return this.apiKey.substring(0, 10) + "...";
+  }
+
+  /**
+   * Zwraca pełny klucz API (tylko do użytku wewnętrznego)
+   */
+  public getFullApiKey(): string {
     return this.apiKey;
   }
 
